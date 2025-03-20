@@ -20,7 +20,9 @@ export default function NearbyCourts() {
           </span>
         </h2>
         <p className="text-gray-500 text-center mb-12">
-          Discover nearby badminton courts for convenient and accessible gameplay.
+        Discover the Best Sports Courts Near You
+Step into Excellence – Join a Winning Academy Today
+
         </p>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

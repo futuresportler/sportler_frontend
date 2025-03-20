@@ -56,7 +56,7 @@ export default function FeaturedCoaches() {
 
         <div className="text-center">
           <Link
-            href="#"
+            href="/coaches"
             className="inline-flex items-center bg-gray-800 text-white px-6 py-2.5 rounded-full font-medium hover:bg-gray-700 transition-colors shadow-md hover:shadow-lg"
           >
             View All Coaches

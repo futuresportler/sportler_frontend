@@ -104,7 +104,7 @@ export default function HeroSection() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/80 to-emerald-900/60 backdrop-blur-[2px]"></div>
+        {/* <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/80 to-emerald-900/60 backdrop-blur-[2px]"></div> */}
       </div>
 
       {/* Enhanced background elements */}
@@ -128,12 +128,13 @@ export default function HeroSection() {
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="relative z-40">
             <div className="inline-block px-3 py-1 rounded-full bg-yellow-400/20 text-yellow-300 text-sm mb-4 backdrop-blur-sm border border-yellow-400/30">
-              World Class Badminton Coaching & Premium Courts
+              World Class Sports Coaching & Premium Courts
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
-              Choose Your <span className="text-yellow-400">Coaches</span>
+              Become the  <span className="text-yellow-400">Athlete </span>
               <br />
-              And Start Your <span className="text-yellow-400">Training</span>
+              You Were Meant <br></br> <span className="text-yellow-400">to Be
+              </span>
             </h1>
             <p className="text-base mb-6 max-w-md text-white/90">
               Unleash Your Athletic Potential with Expert Coaching,
@@ -311,9 +312,7 @@ export default function HeroSection() {
             className="relative flex justify-center mt-12 md:mt-0 z-20"
             ref={carouselRef}
           >
-            {/* Enhanced image slider with better shape and styling */}
             <div className="relative w-full max-w-md h-[340px] sm:h-[400px] md:h-[440px] flex justify-center items-center">
-              {/* Enhanced background glow effect */}
               <div className="absolute w-[85%] h-[85%] bg-gradient-to-br from-yellow-400/30 to-emerald-500/20 rounded-lg blur-2xl z-0 animate-pulse"></div>
 
               {/* Previous images with improved styling */}
@@ -380,7 +379,7 @@ export default function HeroSection() {
               ))}
 
               {/* Enhanced decorative element */}
-              <div className="absolute -bottom-6 -left-6 w-20 sm:w-24 h-20 sm:h-24 z-20 drop-shadow-xl">
+              {/* <div className="absolute -bottom-6 -left-6 w-20 sm:w-24 h-20 sm:h-24 z-20 drop-shadow-xl">
                 <div className="absolute inset-0 bg-white/15 backdrop-blur-md rounded-2xl -z-10 border border-white/20"></div>
                 <Image
                   src="/badminton-icon.svg"
@@ -389,7 +388,7 @@ export default function HeroSection() {
                   height={60}
                   className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
                 />
-              </div>
+              </div> */}
 
               {/* Improved image indicators */}
               <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
