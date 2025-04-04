@@ -1,44 +1,45 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import CoachesHeader from "./CoachesHeader"
-import CoachesFilter from "./CoachesFilter"
-import CoachesGrid from "./CoachesGrid"
-import CoachesList from "./CoachesList"
-import CoachesSearchBar from "./CoachesSearchBar"
-import Pagination from "./Pagination"
-import type { Coach, FilterOptions } from "@/types/coach"
-import { dummyCoaches } from "@/data/coaches-data"
+import AcademiesHeader from "./AcademiesHeader"
+import AcademiesFilter from "./AcademiesFilter"
+import AcademiesGrid from "./AcademiesGrid"
+import AcademiesList from "./AcademiesList"
+import AcademiesSearchBar from "./AcademiesSearchBar"
+import Pagination from "@/components/coaches/Pagination"
+import type { Academy, AcademyFilterOptions } from "@/types/academy"
+import { dummyAcademies } from "@/data/academies-data"
 import Header from "@/components/Header"
+import Footer from "@/components/Footer"
 
-export default function CoachesLayout() {
-  const [coaches, setCoaches] = useState<Coach[]>(dummyCoaches)
-  const [filteredCoaches, setFilteredCoaches] = useState<Coach[]>(dummyCoaches)
+export default function AcademiesLayout() {
+  const [academies, setAcademies] = useState<Academy[]>(dummyAcademies)
+  const [filteredAcademies, setFilteredAcademies] = useState<Academy[]>(dummyAcademies)
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [sortBy, setSortBy] = useState("relevance")
   const [filterSectionHeight, setFilterSectionHeight] = useState(0)
   const filterRef = useRef<HTMLDivElement>(null)
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+  const [filterOptions, setFilterOptions] = useState<AcademyFilterOptions>({
     price: { min: 50, max: 500 },
     rating: 0,
     certificationLevel: [],
     sessionType: [],
     availabilityTimeSlots: [],
-    trainedProfessionals: false,
+    amenities: [],
     languages: [],
-    sport: "",
+    category: "",
     searchQuery: "",
   })
 
-  const coachesPerPage = 6
-  const totalPages = Math.ceil(filteredCoaches.length / coachesPerPage)
+  const academiesPerPage = 6
+  const totalPages = Math.ceil(filteredAcademies.length / academiesPerPage)
 
-  // Get current coaches for pagination
-  const indexOfLastCoach = currentPage * coachesPerPage
-  const indexOfFirstCoach = indexOfLastCoach - coachesPerPage
-  const currentCoaches = filteredCoaches.slice(indexOfFirstCoach, indexOfLastCoach)
+  // Get current academies for pagination
+  const indexOfLastAcademy = currentPage * academiesPerPage
+  const indexOfFirstAcademy = indexOfLastAcademy - academiesPerPage
+  const currentAcademies = filteredAcademies.slice(indexOfFirstAcademy, indexOfLastAcademy)
 
   // Measure filter section height for matching scroll area
   useEffect(() => {
@@ -59,58 +60,60 @@ export default function CoachesLayout() {
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
 
-  // Filter coaches based on filter options
+  // Filter academies based on filter options
   useEffect(() => {
-    let result = [...dummyCoaches]
+    let result = [...dummyAcademies]
 
-    // Filter by sport (case insensitive)
-    if (filterOptions.sport && filterOptions.sport !== "All Sports") {
-      result = result.filter((coach) => coach.sport.toLowerCase() === filterOptions.sport.toLowerCase())
+    // Filter by category (case insensitive)
+    if (filterOptions.category && filterOptions.category !== "All Categories") {
+      result = result.filter((academy) => academy.category.toLowerCase() === filterOptions.category.toLowerCase())
     }
 
     // Filter by price range
     result = result.filter(
-      (coach) => coach.hourlyRate >= filterOptions.price.min && coach.hourlyRate <= filterOptions.price.max,
+      (academy) => academy.hourlyRate >= filterOptions.price.min && academy.hourlyRate <= filterOptions.price.max,
     )
 
     // Filter by rating
     if (filterOptions.rating > 0) {
-      result = result.filter((coach) => coach.rating >= filterOptions.rating)
+      result = result.filter((academy) => academy.rating >= filterOptions.rating)
     }
 
     // Filter by certification level
     if (filterOptions.certificationLevel.length > 0) {
-      result = result.filter((coach) => filterOptions.certificationLevel.includes(coach.certificationLevel))
+      result = result.filter((academy) => filterOptions.certificationLevel.includes(academy.certificationLevel))
     }
 
     // Filter by session type
     if (filterOptions.sessionType.length > 0) {
-      result = result.filter((coach) => coach.sessionTypes.some((type) => filterOptions.sessionType.includes(type)))
+      result = result.filter((academy) => academy.sessionTypes.some((type) => filterOptions.sessionType.includes(type)))
     }
 
     // Filter by search query (case insensitive)
     if (filterOptions.searchQuery) {
       const query = filterOptions.searchQuery.toLowerCase()
       result = result.filter(
-        (coach) =>
-          coach.name.toLowerCase().includes(query) ||
-          coach.location.toLowerCase().includes(query) ||
-          coach.description.toLowerCase().includes(query) ||
-          coach.sport.toLowerCase().includes(query),
+        (academy) =>
+          academy.title.toLowerCase().includes(query) ||
+          academy.location.toLowerCase().includes(query) ||
+          academy.description.toLowerCase().includes(query) ||
+          academy.category.toLowerCase().includes(query),
       )
     }
 
-    // Filter by trained professionals
-    if (filterOptions.trainedProfessionals) {
-      result = result.filter((coach) => coach.trainedProfessionals)
+    // Filter by amenities
+    if (filterOptions.amenities.length > 0) {
+      result = result.filter((academy) =>
+        academy.amenities.some((amenity) => filterOptions.amenities.includes(amenity)),
+      )
     }
 
     // Filter by languages
     if (filterOptions.languages.length > 0) {
-      result = result.filter((coach) => coach.languages.some((lang) => filterOptions.languages.includes(lang)))
+      result = result.filter((academy) => academy.languages.some((lang) => filterOptions.languages.includes(lang)))
     }
 
-    // Sort coaches
+    // Sort academies
     if (sortBy === "price-low") {
       result.sort((a, b) => a.hourlyRate - b.hourlyRate)
     } else if (sortBy === "price-high") {
@@ -119,12 +122,12 @@ export default function CoachesLayout() {
       result.sort((a, b) => b.rating - a.rating)
     }
 
-    setFilteredCoaches(result)
+    setFilteredAcademies(result)
     // Reset to first page when filters change
     setCurrentPage(1)
   }, [filterOptions, sortBy])
 
-  const handleFilterChange = (newOptions: Partial<FilterOptions>) => {
+  const handleFilterChange = (newOptions: Partial<AcademyFilterOptions>) => {
     setFilterOptions((prev) => ({ ...prev, ...newOptions }))
   }
 
@@ -181,10 +184,10 @@ export default function CoachesLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <CoachesHeader />
+      <AcademiesHeader />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <CoachesSearchBar
+        <AcademiesSearchBar
           onFilterChange={handleFilterChange}
           filterOptions={filterOptions}
           sortBy={sortBy}
@@ -199,12 +202,12 @@ export default function CoachesLayout() {
             ref={filterRef}
             className={`${isFilterOpen ? "block" : "hidden"} md:block w-full md:w-72 lg:w-80 flex-shrink-0`}
           >
-            <CoachesFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
+            <AcademiesFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
           </div>
 
           <div className="flex-1 flex flex-col">
             <div className="mb-4 flex justify-between items-center">
-              <p className="text-gray-700 font-medium">{filteredCoaches.length} coaches are listed</p>
+              <p className="text-gray-700 font-medium">{filteredAcademies.length} academies are listed</p>
             </div>
 
             <div
@@ -216,9 +219,9 @@ export default function CoachesLayout() {
               }}
             >
               {viewMode === "grid" ? (
-                <CoachesGrid coaches={currentCoaches} currentPage={currentPage} />
+                <AcademiesGrid academies={currentAcademies} currentPage={currentPage} />
               ) : viewMode === "list" ? (
-                <CoachesList coaches={currentCoaches} currentPage={currentPage} />
+                <AcademiesList academies={currentAcademies} currentPage={currentPage} />
               ) : (
                 <div className="h-[600px] bg-gray-200 rounded-lg flex items-center justify-center">
                   <p className="text-gray-500">Map view coming soon</p>
@@ -236,6 +239,8 @@ export default function CoachesLayout() {
       {/* Floating background elements */}
       <div className="fixed top-1/4 left-10 w-32 h-32 bg-emerald-50 rounded-full opacity-20 blur-xl z-0"></div>
       <div className="fixed bottom-1/4 right-10 w-40 h-40 bg-blue-50 rounded-full opacity-20 blur-xl z-0"></div>
+
+      <Footer />
     </div>
   )
 }

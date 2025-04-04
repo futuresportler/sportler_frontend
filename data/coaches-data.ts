@@ -1,4 +1,4 @@
-import type { Coach } from "../types/coach"
+import type { Coach } from "@/types/coach"
 
 export const dummyCoaches: Coach[] = [
   {
@@ -16,6 +16,61 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "20 May 2023",
     languages: ["English", "Spanish"],
     trainedProfessionals: true,
+    shortBio:
+      "Joshua Rogers is a professional badminton coach with 8+ years of experience coaching beginners and advanced skill levels.",
+    experience: "8+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "2 Player Lesson",
+        description: "Training with a partner",
+      },
+      {
+        title: "Small Group Session",
+        description: "3-6 players per session",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "limited" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "available" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Wed, May 22, 2023",
+        slots: [
+          { time: "9:00 AM", status: "booked" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+      {
+        date: "Thu, May 23, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "available" },
+          { time: "3:00 PM", status: "limited" },
+        ],
+      },
+    ],
   },
   {
     id: 2,
@@ -32,6 +87,38 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "20 May 2023",
     languages: ["English", "French"],
     trainedProfessionals: false,
+    shortBio: "Jamal Dean is an advanced badminton coach with a focus on technique and strategy development.",
+    experience: "6+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Online Coaching",
+        description: "Remote training sessions via video call",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "booked" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "available" },
+          { time: "3:00 PM", status: "limited" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+    ],
   },
   {
     id: 3,
@@ -48,6 +135,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "20 May 2023",
     languages: ["English", "Hindi"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 4,
@@ -65,6 +188,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "21 May 2023",
     languages: ["English", "Spanish"],
     trainedProfessionals: false,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 5,
@@ -82,6 +241,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "22 May 2023",
     languages: ["English"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 6,
@@ -98,6 +293,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "19 May 2023",
     languages: ["English", "French"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 7,
@@ -114,6 +345,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "23 May 2023",
     languages: ["English", "Mandarin"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 8,
@@ -131,6 +398,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "25 May 2023",
     languages: ["English", "Spanish"],
     trainedProfessionals: false,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 9,
@@ -148,6 +451,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "21 May 2023",
     languages: ["English"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 10,
@@ -165,6 +504,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "24 May 2023",
     languages: ["English", "Hindi"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 11,
@@ -182,6 +557,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "26 May 2023",
     languages: ["English", "Korean"],
     trainedProfessionals: false,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 12,
@@ -198,6 +609,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "22 May 2023",
     languages: ["English"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 13,
@@ -215,6 +662,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "27 May 2023",
     languages: ["English", "Spanish", "Catalan"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 14,
@@ -232,6 +715,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "23 May 2023",
     languages: ["English", "Arabic", "Hindi"],
     trainedProfessionals: false,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
   {
     id: 15,
@@ -248,6 +767,42 @@ export const dummyCoaches: Coach[] = [
     nextAvailability: "25 May 2023",
     languages: ["English", "Japanese"],
     trainedProfessionals: true,
+    shortBio: "Kevin Anderson is a professional tennis coach who has trained several national-level players.",
+    experience: "10+ years",
+    lessonTypes: [
+      {
+        title: "Single Lesson",
+        description: "One-on-one personalized coaching",
+      },
+      {
+        title: "Group Training",
+        description: "Small group sessions for 3-6 players",
+      },
+      {
+        title: "Elite Training",
+        description: "Advanced training for competitive players",
+      },
+    ],
+    availabilityCalendar: [
+      {
+        date: "Mon, May 20, 2023",
+        slots: [
+          { time: "9:00 AM", status: "available" },
+          { time: "11:00 AM", status: "available" },
+          { time: "1:00 PM", status: "limited" },
+          { time: "3:00 PM", status: "booked" },
+        ],
+      },
+      {
+        date: "Tue, May 21, 2023",
+        slots: [
+          { time: "9:00 AM", status: "limited" },
+          { time: "11:00 AM", status: "booked" },
+          { time: "1:00 PM", status: "booked" },
+          { time: "3:00 PM", status: "available" },
+        ],
+      },
+    ],
   },
 ]
 
