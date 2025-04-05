@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { CourtsHeader } from "./CourtsHeader"
 import { CourtsFilter } from "./CourtsFilter"
 import { CourtsGrid } from "./CourtsGrid"
@@ -18,8 +18,6 @@ export function CourtsLayout() {
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [sortBy, setSortBy] = useState("relevance")
-  const [filterSectionHeight, setFilterSectionHeight] = useState(0)
-  const filterRef = useRef<HTMLDivElement>(null)
   const [filterOptions, setFilterOptions] = useState<any>({
     price: { min: 10, max: 100 },
     rating: 0,
@@ -38,22 +36,6 @@ export function CourtsLayout() {
   const indexOfLastCourt = currentPage * courtsPerPage
   const indexOfFirstCourt = indexOfLastCourt - courtsPerPage
   const currentCourts = filteredCourts.slice(indexOfFirstCourt, indexOfLastCourt)
-
-  // Measure filter section height for matching scroll area
-  useEffect(() => {
-    if (filterRef.current) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          setFilterSectionHeight(entry.contentRect.height)
-        }
-      })
-
-      resizeObserver.observe(filterRef.current)
-      return () => {
-        resizeObserver.disconnect()
-      }
-    }
-  }, [])
 
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
@@ -126,99 +108,58 @@ export function CourtsLayout() {
     setIsFilterOpen(!isFilterOpen)
   }
 
-  useEffect(() => {
-    // Add custom scrollbar styling and animations
-    const style = document.createElement("style")
-    style.textContent = `
-      html {
-        scroll-behavior: smooth;
-      }
-      
-      @keyframes heartbeat {
-        0% { transform: scale(1); }
-        25% { transform: scale(1.2); }
-        50% { transform: scale(1); }
-        75% { transform: scale(1.2); }
-        100% { transform: scale(1); }
-      }
-      
-      .animate-heartbeat {
-        animation: heartbeat 0.8s ease-in-out;
-      }
-      
-      @keyframes ping-once {
-        0% { transform: scale(0.8); opacity: 1; }
-        100% { transform: scale(2); opacity: 0; }
-      }
-      
-      .animate-ping-once {
-        animation: ping-once 0.8s cubic-bezier(0, 0, 0.2, 1) forwards;
-      }
-    `
-    document.head.appendChild(style)
-
-    return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
-
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
       <Header />
       <CourtsHeader />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <CourtsSearchBar
-          onFilterChange={handleFilterChange}
-          filterOptions={filterOptions}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          toggleFilterSidebar={toggleFilterSidebar}
-        />
+      <div className="w-full px-4 py-8">
+        <div className="max-w-[2000px] mx-auto">
+          <CourtsSearchBar
+            onFilterChange={handleFilterChange}
+            filterOptions={filterOptions}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            toggleFilterSidebar={toggleFilterSidebar}
+          />
 
-        <div className="flex flex-col md:flex-row mt-6 gap-6">
-          <div
-            ref={filterRef}
-            className={`${isFilterOpen ? "block" : "hidden"} md:block w-full md:w-72 lg:w-80 flex-shrink-0`}
-          >
-            <CourtsFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
-          </div>
-
-          <div className="flex-1 flex flex-col">
-            <div className="mb-4 flex justify-between items-center">
-              <p className="text-gray-700 font-medium">{filteredCourts.length} courts are listed</p>
-              <button
-                className="md:hidden bg-emerald-600 text-white px-3 py-1 rounded-md text-sm"
-                onClick={toggleFilterSidebar}
-              >
-                {isFilterOpen ? "Hide Filters" : "Show Filters"}
-              </button>
+          <div className="flex flex-col md:flex-row mt-6 gap-6">
+            <div className={`${isFilterOpen ? "block" : "hidden"} md:block w-full md:w-72 lg:w-80 flex-shrink-0`}>
+              <CourtsFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
             </div>
 
-            <div className="pb-6 flex-1">
-              {viewMode === "grid" ? (
-                <CourtsGrid courts={currentCourts} currentPage={currentPage} />
-              ) : viewMode === "list" ? (
-                <CourtsList courts={currentCourts} currentPage={currentPage} />
-              ) : (
-                <div className="h-[600px] bg-gray-200 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Map view coming soon</p>
-                </div>
-              )}
-            </div>
+            <div className="flex-1 flex flex-col">
+              <div className="mb-4 flex justify-between items-center">
+                <p className="text-gray-700 font-medium">{filteredCourts.length} courts are listed</p>
+                <button
+                  className="md:hidden bg-emerald-600 text-white px-3 py-1 rounded-md text-sm"
+                  onClick={toggleFilterSidebar}
+                >
+                  {isFilterOpen ? "Hide Filters" : "Show Filters"}
+                </button>
+              </div>
 
-            <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
-              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
+              <div className="pb-6 flex-1">
+                {viewMode === "grid" ? (
+                  <CourtsGrid courts={currentCourts} currentPage={currentPage} />
+                ) : viewMode === "list" ? (
+                  <CourtsList courts={currentCourts} currentPage={currentPage} />
+                ) : (
+                  <div className="h-[600px] bg-gray-200 rounded-lg flex items-center justify-center">
+                    <p className="text-gray-500">Map view coming soon</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Floating background elements */}
-      <div className="fixed top-1/4 left-10 w-32 h-32 bg-emerald-50 rounded-full opacity-20 blur-xl z-0"></div>
-      <div className="fixed bottom-1/4 right-10 w-40 h-40 bg-emerald-50 rounded-full opacity-20 blur-xl z-0"></div>
 
       <Footer />
     </div>

@@ -71,7 +71,7 @@ Step into Excellence – Join a Winning Academy Today
 
         <div className="text-center">
           <Link
-            href="#"
+            href="/courts"
             className="inline-flex items-center bg-gray-800 text-white px-6 py-2.5 rounded-full font-medium hover:bg-gray-700 transition-colors shadow-md hover:shadow-lg"
           >
             View All Services

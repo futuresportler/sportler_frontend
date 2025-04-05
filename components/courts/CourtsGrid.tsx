@@ -1,10 +1,11 @@
 "use client"
 
 import type React from "react"
+
 import Image from "next/image"
 import Link from "next/link"
 import type { Court } from "@/types/court"
-import { MapPin, Calendar, Star, Eye, Clock, Heart } from "lucide-react"
+import { MapPin, Star, Clock, Heart, Users } from "lucide-react"
 import { useState, useEffect } from "react"
 
 interface CourtsGridProps {
@@ -43,30 +44,28 @@ export function CourtsGrid({ courts, currentPage = 1 }: CourtsGridProps) {
 
   return (
     <div
-      className={`grid md:grid-cols-2 lg:grid-cols-2 gap-6 relative transition-all duration-500 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 relative transition-all duration-500 ${
+        animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      }`}
     >
-      {/* Background decorative elements */}
-      <div className="absolute -top-10 -left-10 w-40 h-40 bg-emerald-50 rounded-full opacity-50 blur-xl z-0"></div>
-      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-50 rounded-full opacity-50 blur-xl z-0"></div>
-      <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-yellow-50 rounded-full opacity-30 blur-lg z-0"></div>
-      <div className="absolute bottom-1/3 left-1/4 w-24 h-24 bg-emerald-50 rounded-full opacity-30 blur-lg z-0"></div>
-
       {courts.map((court) => (
         <Link href={`/courts/${court.id}`} key={court.id} className="block">
-          <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-500 flex flex-col h-full relative z-10 transform hover:-translate-y-1 hover:scale-[1.01]">
+          <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full relative z-10 transform hover:-translate-y-1">
             <div className="relative overflow-hidden group">
               <Image
                 src={court.image || "/placeholder.svg"}
                 alt={court.name}
                 width={600}
                 height={400}
-                className="w-full h-60 object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-52 object-cover transition-transform duration-700 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute top-3 right-3">
                 <button
                   onClick={(e) => toggleFavorite(court.id, e)}
-                  className={`p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110 ${recentlyFavorited === court.id ? "animate-heartbeat" : ""}`}
+                  className={`p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110 ${
+                    recentlyFavorited === court.id ? "animate-heartbeat" : ""
+                  }`}
                 >
                   <Heart
                     size={20}
@@ -77,65 +76,51 @@ export function CourtsGrid({ courts, currentPage = 1 }: CourtsGridProps) {
                   )}
                 </button>
               </div>
-              <div className="absolute bottom-3 left-3 bg-emerald-800 text-white px-3 py-1 rounded-md text-sm font-medium transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                From ${court.price}/hr
-              </div>
               <div className="absolute top-3 left-3 bg-emerald-500 text-white px-3 py-1 rounded-md text-sm font-medium">
                 {court.sport}
               </div>
+              <div className="absolute bottom-3 left-3 bg-emerald-800 text-white px-3 py-1 rounded-md text-sm font-medium">
+                ₹{court.price}/hr
+              </div>
             </div>
 
-            <div className="p-5 flex-1 flex flex-col relative">
-              {/* Subtle background pattern */}
-              <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="none" stroke="currentColor" strokeWidth="1" />
-                  <path
-                    d="M0,20 L100,20 M0,40 L100,40 M0,60 L100,60 M0,80 L100,80 M20,0 L20,100 M40,0 L40,100 M60,0 L60,100 M80,0 L80,100"
-                    stroke="currentColor"
-                    strokeWidth="0.5"
-                  />
-                </svg>
+            <div className="p-5 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold truncate">{court.name}</h3>
+                <div className="flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
+                  <Star size={14} className="mr-1 fill-white" />
+                  <span className="text-sm">{court.rating}</span>
+                </div>
               </div>
 
-              <h3 className="text-xl font-bold mb-2 relative">{court.name}</h3>
-
-              <div className="flex items-center text-gray-600 mb-3">
+              <div className="flex items-center text-gray-600 mb-2">
                 <MapPin size={16} className="mr-1 text-emerald-600 flex-shrink-0" />
-                <span className="text-sm">{court.location}</span>
+                <span className="text-sm truncate">{court.location}</span>
               </div>
 
-              <p className="text-gray-600 mb-4 text-sm flex-grow">{court.description}</p>
+              <p className="text-gray-600 mb-4 text-sm line-clamp-2">{court.description}</p>
 
-              <div className="flex justify-between mb-4 space-x-2">
-                <button className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors text-sm transform hover:scale-105">
-                  <Eye size={16} className="mr-2" />
-                  View Court
-                </button>
-                <button className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm transform hover:scale-105">
-                  <Calendar size={16} className="mr-2" />
-                  Book Now
-                </button>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <div className="flex items-center">
-                  <Clock size={16} className="mr-2 text-emerald-600" />
-                  <div className="text-sm">
-                    <span className="text-gray-500">Hours: </span>
+              <div className="mt-auto pt-3 border-t border-gray-100">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center text-sm">
+                    <Users size={16} className="mr-1 text-emerald-600" />
                     <span className="text-emerald-600 font-medium">{court.availability}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Clock size={16} className="mr-1 text-gray-500" />
+                    <span className="text-gray-600">{court.isIndoor ? "Indoor" : "Outdoor"}</span>
                   </div>
                 </div>
 
-                <div className="group relative">
-                  <div className="flex items-center bg-yellow-400 text-white rounded px-2 py-1 transform group-hover:scale-110 transition-transform duration-300 relative z-10">
-                    <Star size={14} className="mr-1 fill-white group-hover:animate-pulse" />
-                    <span className="text-sm font-medium">{court.rating}</span>
-                    <span className="text-xs ml-1 text-white/80">{court.reviewCount}</span>
-                  </div>
-                  {/* Rating background effect */}
-                  <div className="absolute inset-0 bg-yellow-300 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 blur-md"></div>
-                  <div className="absolute inset-0 bg-yellow-200 rounded-full scale-0 group-hover:scale-150 transition-transform duration-500 blur-lg opacity-60"></div>
+                <div className="flex gap-2">
+                  <Link href={`/courts/${court.id}`} className="flex-1">
+                    <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
+                      View Details
+                    </button>
+                  </Link>
+                  <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
+                    Book Now
+                  </button>
                 </div>
               </div>
             </div>

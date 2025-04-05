@@ -12,17 +12,12 @@ import {
   ChevronUp,
   Check,
   X,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  Youtube,
-  MessageCircle,
   Calendar,
   Clock,
   ChevronLeft,
   ChevronRight,
-  Zap,
+  Info,
+  Users,
 } from "lucide-react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
@@ -45,13 +40,17 @@ export function CourtDetail({ court }: CourtDetailProps) {
     locations: true,
   })
   const [selectedSessionType, setSelectedSessionType] = useState<string | null>("one-hour")
-  const [selectedDate, setSelectedDate] = useState<string>("Today")
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [currentCourtIndex, setCurrentCourtIndex] = useState(0)
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<number | null>(null)
+  const [showCalendarPopup, setShowCalendarPopup] = useState(false)
+
+  // Update the state variables to track selections
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState("Morning")
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ time: string; slots: number } | null>(null)
+  const [selectedDuration, setSelectedDuration] = useState("FOR 1 HOUR")
 
   // Refs for scroll navigation
   const overviewRef = useRef<HTMLDivElement>(null)
@@ -68,6 +67,45 @@ export function CourtDetail({ court }: CourtDetailProps) {
     .slice(0, 9)
 
   const visibleCourts = 3
+
+  // Sample dates for the horizontal scroll
+  const availableDates = [
+    { day: "Thu", date: "20 Mar" },
+    { day: "Fri", date: "21 Mar" },
+    { day: "Sat", date: "22 Mar" },
+    { day: "Mon", date: "24 Mar" },
+    { day: "Tue", date: "25 Mar" },
+    { day: "Wed", date: "26 Mar" },
+    { day: "Thu", date: "27 Mar" },
+    { day: "Fri", date: "28 Mar" },
+    { day: "Sat", date: "29 Mar" },
+    { day: "Sun", date: "30 Mar" },
+  ]
+
+  // Sample time slots with availability
+  const timeSlots = {
+    Morning: [
+      { time: "7:00 AM - 8:00 AM", slots: 2 },
+      { time: "8:00 AM - 9:00 AM", slots: 2 },
+      { time: "9:00 AM - 10:00 AM", slots: 3 },
+      { time: "10:00 AM - 11:00 AM", slots: 1 },
+      { time: "11:00 AM - 12:00 PM", slots: 2 },
+    ],
+    Afternoon: [
+      { time: "12:00 PM - 1:00 PM", slots: 0 },
+      { time: "1:00 PM - 2:00 PM", slots: 3 },
+      { time: "2:00 PM - 3:00 PM", slots: 1 },
+      { time: "3:00 PM - 4:00 PM", slots: 2 },
+      { time: "4:00 PM - 5:00 PM", slots: 0 },
+    ],
+    Evening: [
+      { time: "5:00 PM - 6:00 PM", slots: 2 },
+      { time: "6:00 PM - 7:00 PM", slots: 1 },
+      { time: "7:00 PM - 8:00 PM", slots: 0 },
+      { time: "8:00 PM - 9:00 PM", slots: 3 },
+      { time: "9:00 PM - 10:00 PM", slots: 2 },
+    ],
+  }
 
   // Auto-rotate gallery images
   useEffect(() => {
@@ -137,34 +175,6 @@ export function CourtDetail({ court }: CourtDetailProps) {
     setCurrentCourtIndex((prev) => (prev >= similarCourts.length - visibleCourts ? 0 : prev + 1))
   }
 
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-emerald-500"
-      case "limited":
-        return "bg-yellow-500"
-      case "booked":
-        return "bg-red-500"
-      default:
-        return "bg-gray-300"
-    }
-  }
-
-  // Get status text
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "available":
-        return "Available"
-      case "limited":
-        return "Limited"
-      case "booked":
-        return "Booked"
-      default:
-        return "Unknown"
-    }
-  }
-
   // Calendar functions
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate()
@@ -208,33 +218,24 @@ export function CourtDetail({ court }: CourtDetailProps) {
 
   // Get day status (for calendar)
   const getDayStatus = (day: number) => {
-    // Check if court.availability.calendar exists
-    if (!court.availability || !court.availability.calendar) {
-      return "unavailable"
-    }
-
-    const { availableDates, limitedDates, bookedDates } = court.availability.calendar
-
-    if (bookedDates && bookedDates.includes(day)) return "booked"
-    if (limitedDates && limitedDates.includes(day)) return "limited"
-    if (availableDates && availableDates.includes(day)) return "available"
-
-    return "unavailable"
+    // Simulate availability - in real app, this would come from API
+    if (day % 7 === 3 || day % 5 === 0) return "available"
+    if (day % 8 === 0) return "limited"
+    if (day % 9 === 0) return "booked"
+    return "available"
   }
 
-  // Get session type icon
-  const getSessionTypeIcon = (type: string) => {
-    switch (type) {
-      case "one-hour":
-        return <Clock size={20} className="text-emerald-600" />
-      case "two-hours":
-        return <Clock size={20} className="text-emerald-600" />
-      case "half-day":
-        return <Calendar size={20} className="text-emerald-600" />
-      case "full-day":
-        return <Calendar size={20} className="text-emerald-600" />
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "bg-emerald-500"
+      case "limited":
+        return "bg-yellow-500"
+      case "booked":
+        return "bg-red-500"
       default:
-        return <Clock size={20} className="text-emerald-600" />
+        return "bg-gray-300"
     }
   }
 
@@ -248,27 +249,80 @@ export function CourtDetail({ court }: CourtDetailProps) {
     return result
   }
 
-  // Get availability string
-  const getAvailabilityString = () => {
-    if (typeof court.availability === "string") {
-      return court.availability
-    }
-    return court.availability?.status || "Check availability"
+  // Add these functions to handle selections
+  const handleTimeOfDaySelect = (timeOfDay: string) => {
+    setSelectedTimeOfDay(timeOfDay)
+    setSelectedTimeSlot(null) // Reset time slot when changing time of day
   }
 
-  // Get time slots safely
-  const getTimeSlots = () => {
-    if (typeof court.availability === "object" && court.availability.timeSlots) {
-      return court.availability.timeSlots
+  const handleDateSelect = (index: number) => {
+    setSelectedDateIndex(index)
+    setSelectedTimeSlot(null) // Reset time slot when changing date
+  }
+
+  const handleTimeSlotSelect = (timeSlot: { time: string; slots: number }) => {
+    setSelectedTimeSlot(timeSlot)
+  }
+
+  const handleDurationSelect = (duration: string) => {
+    setSelectedDuration(duration)
+  }
+
+  // Add a function to calculate total price
+  const calculateTotal = () => {
+    if (!selectedTimeSlot) return 0
+
+    // Get price based on selected duration
+    let pricePerHour = 0
+
+    switch (selectedDuration) {
+      case "FOR 1 HOUR":
+        pricePerHour = 499
+        break
+      case "FOR 2 HOURS":
+        pricePerHour = 450
+        break
+      case "FOR 3 HOURS":
+        pricePerHour = 400
+        break
+      case "FOR FULL DAY":
+        pricePerHour = 350
+        break
     }
-    return []
+
+    // Calculate hours based on duration
+    let totalHours = 1
+    if (selectedDuration === "FOR 2 HOURS") totalHours = 2
+    if (selectedDuration === "FOR 3 HOURS") totalHours = 3
+    if (selectedDuration === "FOR FULL DAY") totalHours = 8
+
+    const subtotal = pricePerHour * totalHours
+    const taxes = Math.round(subtotal * 0.18) // 18% GST
+    return subtotal + taxes
+  }
+
+  const toggleCalendarPopup = () => {
+    setShowCalendarPopup(!showCalendarPopup)
+  }
+
+  const handleSelectDate = (date: Date) => {
+    // Format the selected date
+    const formattedDate = date.toLocaleDateString("en-US", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    })
+
+    // In a real app, you would update available dates based on the selected date
+    // For now, we'll just close the popup
+    setShowCalendarPopup(false)
   }
 
   return (
     <>
       <Header />
 
-      <main className="bg-white pt-16 w-full">
+      <main className="bg-gray-50 w-full">
         {/* Hero Banner with Full-Width Image Slider */}
         <div className="relative h-[500px] w-full bg-gray-200">
           {court.images.map((image, index) => (
@@ -356,9 +410,13 @@ export function CourtDetail({ court }: CourtDetailProps) {
                 </div>
                 <div className="flex items-center">
                   <Clock size={16} className="mr-1" />
-                  <span className="text-sm">{getAvailabilityString()}</span>
+                  <span className="text-sm">
+                    {typeof court.availability === "string"
+                      ? court.availability
+                      : court.availability?.status || "Check availability"}
+                  </span>
                 </div>
-                <div className="px-2 py-1 bg-emerald-600 rounded-md text-sm">${court.price}/hr</div>
+                <div className="px-2 py-1 bg-emerald-600 rounded-md text-sm">₹{court.price}/hr</div>
               </div>
             </div>
           </div>
@@ -735,318 +793,391 @@ export function CourtDetail({ court }: CourtDetailProps) {
                   </div>
                 )}
               </div>
-
-              {/* Similar Courts Section */}
-              <div className="mt-16 bg-gradient-to-br from-emerald-50 to-white rounded-lg shadow-md p-8 w-full">
-                <h2 className="text-2xl font-bold mb-8 flex items-center">
-                  <span className="bg-emerald-100 p-2 rounded-full mr-3">
-                    <MapPin size={20} className="text-emerald-600" />
-                  </span>
-                  Similar Courts
-                </h2>
-
-                <div className="relative">
-                  {/* Slider navigation buttons */}
-                  <button
-                    onClick={handlePrevCourt}
-                    className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
-                  >
-                    <ChevronLeft size={24} className="text-gray-600" />
-                  </button>
-
-                  <button
-                    onClick={handleNextCourt}
-                    className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
-                  >
-                    <ChevronRight size={24} className="text-gray-600" />
-                  </button>
-
-                  {/* Courts slider */}
-                  <div className="overflow-hidden py-4">
-                    <div
-                      className="flex transition-transform duration-500 ease-in-out gap-6"
-                      style={{ transform: `translateX(-${currentCourtIndex * (100 / visibleCourts)}%)` }}
-                    >
-                      {similarCourts.map((similarCourt) => (
-                        <div key={similarCourt.id} className="w-full md:w-1/3 flex-shrink-0">
-                          <Link href={`/courts/${similarCourt.id}`}>
-                            <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full relative group transform hover:-translate-y-1">
-                              <div className="relative">
-                                <div className="absolute top-2 left-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded-md z-10">
-                                  {similarCourt.sport}
-                                </div>
-                                <div className="absolute top-2 right-2 z-10">
-                                  <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
-                                    <Heart size={16} className="text-gray-400" />
-                                  </button>
-                                </div>
-                                <Image
-                                  src={similarCourt.image || "/placeholder.svg"}
-                                  alt={similarCourt.name}
-                                  width={400}
-                                  height={300}
-                                  className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                                />
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
-                              </div>
-
-                              <div className="p-5">
-                                <div className="flex items-center mb-2">
-                                  <h3 className="font-bold text-lg">{similarCourt.name}</h3>
-                                  <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
-                                    <Star size={14} className="mr-1 fill-white" />
-                                    <span className="text-sm">{similarCourt.rating}</span>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center text-gray-600 mb-2 text-sm">
-                                  <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
-                                  <span className="truncate">{similarCourt.location}</span>
-                                </div>
-
-                                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarCourt.description}</p>
-
-                                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                                  <div className="flex items-center text-sm">
-                                    <Calendar size={14} className="mr-1 text-emerald-600" />
-                                    <span className="text-emerald-600 font-medium">{similarCourt.availability}</span>
-                                  </div>
-
-                                  <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
-                                    ${similarCourt.price}/hr
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2 mt-4">
-                                  <Link href={`/courts/${similarCourt.id}`} className="flex-1">
-                                    <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
-                                      View Details
-                                    </button>
-                                  </Link>
-                                  <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
-                                    Book Now
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </Link>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Slider dots */}
-                  <div className="flex justify-center mt-6 space-x-2">
-                    {Array.from({ length: Math.ceil(similarCourts.length / visibleCourts) }).map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentCourtIndex(index * visibleCourts)}
-                        className={`w-3 h-3 rounded-full transition-colors ${
-                          currentCourtIndex === index * visibleCourts
-                            ? "bg-emerald-600"
-                            : "bg-gray-300 hover:bg-gray-400"
-                        }`}
-                        aria-label={`Go to slide ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar - Booking Section */}
             <div className="lg:w-1/3">
-              {/* Booking Card */}
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8 sticky top-24 border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg">Book This Court</h3>
-                    <p className="text-sm text-gray-500">Check availability and book your session</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500">Starts From:</div>
-                    <div className="text-xl font-bold text-emerald-600">${court.price}/hr</div>
-                  </div>
+              <div className="bg-white rounded-lg shadow-md border border-gray-100 sticky top-24">
+                <div className="p-6 border-b border-gray-100">
+                  <h3 className="text-xl font-bold text-gray-800 mb-1">Book This Court</h3>
+                  <p className="text-sm text-gray-500">Select date, time and duration</p>
                 </div>
 
-                <div className="border-t border-gray-200 pt-4 mb-4">
-                  {/* Session Type selection */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Session Type</label>
-                    <div className="space-y-2">
-                      {court.bookingOptions.map((session) => (
-                        <div
-                          key={session.id}
-                          className={`p-3 rounded-md cursor-pointer transition-colors border ${
-                            selectedSessionType === session.id
-                              ? "bg-emerald-50 border-emerald-200"
-                              : "border-gray-200 hover:bg-gray-50"
-                          }`}
-                          onClick={() => setSelectedSessionType(session.id)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <div className="mr-3 bg-emerald-100 p-2 rounded-full">
-                                {getSessionTypeIcon(session.id)}
-                              </div>
-                              <div>
-                                <span className="font-medium block">{session.name}</span>
-                                <span className="text-xs text-gray-500">{session.duration}</span>
-                              </div>
-                            </div>
-                            <div className="text-emerald-600 font-medium">${session.price}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Select a slot section */}
+                <div className="p-6 border-b border-gray-100">
+                  <h3 className="font-medium text-lg text-emerald-800 mb-4">Select a slot</h3>
 
-                  {/* Calendar toggle */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">Select Date</label>
+                  {/* Time of day filter */}
+                  <div className="flex mb-4">
+                    {["Morning", "Afternoon", "Evening"].map((time) => (
                       <button
-                        onClick={() => setShowCalendar(!showCalendar)}
-                        className="text-emerald-600 text-sm font-medium flex items-center"
+                        key={time}
+                        onClick={() => handleTimeOfDaySelect(time)}
+                        className={`flex-1 py-2 text-center ${
+                          selectedTimeOfDay === time
+                            ? "bg-emerald-50 text-emerald-700 font-medium border-b-2 border-emerald-500"
+                            : "text-gray-500 hover:bg-gray-50"
+                        }`}
                       >
-                        <Calendar size={16} className="mr-1" />
-                        {showCalendar ? "Hide Calendar" : "Show Calendar"}
+                        {time}
                       </button>
-                    </div>
-
-                    {showCalendar && (
-                      <div className="mb-4 border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-gray-100">
-                            <ChevronLeft size={20} />
+                    ))}
+                    <button
+                      onClick={toggleCalendarPopup}
+                      className="ml-2 p-2 bg-gray-100 rounded hover:bg-gray-200 relative"
+                    >
+                      <Calendar size={18} className="text-gray-600" />
+                    </button>
+                    {showCalendarPopup && (
+                      <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg z-20 p-4 border border-gray-200 w-72">
+                        <div className="flex justify-between items-center mb-4">
+                          <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded">
+                            <ChevronLeft size={16} />
                           </button>
-                          <h4 className="font-medium">
+                          <h3 className="font-medium">
                             {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                          </h4>
-                          <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-gray-100">
-                            <ChevronRight size={20} />
+                          </h3>
+                          <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded">
+                            <ChevronRight size={16} />
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-1 mb-2">
-                          {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                            <div key={i} className="text-center text-xs font-medium text-gray-500">
+                        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                            <div key={day} className="text-xs font-medium text-gray-500">
                               {day}
                             </div>
                           ))}
                         </div>
 
                         <div className="grid grid-cols-7 gap-1">
-                          {days.map((day, index) => (
-                            <div key={index}>
-                              {day !== null ? (
+                          {days.map((day, i) => (
+                            <div key={i} className="aspect-square">
+                              {day !== null && (
                                 <button
-                                  className={`h-8 w-full rounded-md text-sm ${
-                                    selectedCalendarDate === day
-                                      ? "bg-emerald-600 text-white"
-                                      : day === new Date().getDate() &&
-                                          month === new Date().getMonth() &&
-                                          year === new Date().getFullYear()
-                                        ? "bg-emerald-100 text-emerald-700 font-bold"
-                                        : getDayStatus(day) === "available"
-                                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                          : getDayStatus(day) === "limited"
-                                            ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-                                            : getDayStatus(day) === "booked"
-                                              ? "bg-red-50 text-red-700 cursor-not-allowed opacity-50"
-                                              : "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                  onClick={() => handleSelectDate(new Date(year, month, day))}
+                                  className={`w-full h-full flex items-center justify-center text-sm rounded-full hover:bg-emerald-50 ${
+                                    getDayStatus(day) === "available"
+                                      ? "hover:text-emerald-600"
+                                      : getDayStatus(day) === "limited"
+                                        ? "text-yellow-600"
+                                        : getDayStatus(day) === "booked"
+                                          ? "text-red-500 line-through"
+                                          : ""
                                   }`}
-                                  disabled={getDayStatus(day) === "booked" || getDayStatus(day) === "unavailable"}
-                                  onClick={() => setSelectedCalendarDate(day)}
                                 >
                                   {day}
+                                  <span
+                                    className={`absolute bottom-1 w-1 h-1 rounded-full ${getStatusColor(getDayStatus(day))}`}
+                                  ></span>
                                 </button>
-                              ) : (
-                                <div className="h-8 w-full"></div>
                               )}
                             </div>
                           ))}
                         </div>
 
-                        <div className="flex justify-between mt-3 text-xs text-gray-500">
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs">
                           <div className="flex items-center">
-                            <div className="w-3 h-3 bg-emerald-500 rounded-full mr-1"></div>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
                             <span>Available</span>
                           </div>
                           <div className="flex items-center">
-                            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
+                            <span className="w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>
                             <span>Limited</span>
                           </div>
                           <div className="flex items-center">
-                            <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
+                            <span className="w-2 h-2 rounded-full bg-red-500 mr-1"></span>
                             <span>Booked</span>
                           </div>
                         </div>
                       </div>
                     )}
+                  </div>
 
-                    {/* Time slot selection */}
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {getTimeSlots().map((slot) => (
-                          <button
-                            key={slot.time}
-                            className={`py-2 px-3 rounded text-sm border ${
-                              selectedTimeSlot === slot.time
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : slot.status === "booked"
-                                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                                  : `bg-white text-gray-700 border-gray-200 hover:bg-gray-50`
-                            }`}
-                            disabled={slot.status === "booked"}
-                            onClick={() => setSelectedTimeSlot(slot.time)}
-                          >
-                            {slot.time}
+                  {/* Date selection with horizontal scroll */}
+                  <div className="overflow-x-auto pb-2 mb-4">
+                    <div className="flex space-x-2 min-w-max">
+                      {availableDates.map((item, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleDateSelect(index)}
+                          className={`w-20 p-2 text-center rounded-md cursor-pointer ${
+                            selectedDateIndex === index
+                              ? "bg-gray-700 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          <div className="text-xs">{item.day}</div>
+                          <div className="text-xs">{item.date}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Time slots grid */}
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    {timeSlots[selectedTimeOfDay].map((slot, index) => (
+                      <div
+                        key={index}
+                        onClick={() => (slot.slots > 0 ? handleTimeSlotSelect(slot) : null)}
+                        className={`text-center p-2 rounded cursor-pointer ${
+                          selectedTimeSlot?.time === slot.time && slot.slots > 0
+                            ? "bg-emerald-500 text-white"
+                            : slot.slots > 0
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                              : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        }`}
+                      >
+                        <div className="text-xs mb-1">{slot.time.split(" - ")[0]}</div>
+                        <div className="text-xs">
+                          {slot.slots} {slot.slots === 1 ? "Slot" : "Slots"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Select duration section */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-lg text-emerald-800 mb-4">Select duration</h3>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { period: "FOR 1 HOUR", price: 499, originalPrice: 699, discount: 29 },
+                        { period: "FOR 2 HOURS", price: 450, originalPrice: 650, discount: 31 },
+                        { period: "FOR 3 HOURS", price: 400, originalPrice: 600, discount: 33 },
+                        { period: "FOR FULL DAY", price: 350, originalPrice: 550, discount: 36 },
+                      ].map((option) => (
+                        <div
+                          key={option.period}
+                          onClick={() => handleDurationSelect(option.period)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            selectedDuration === option.period
+                              ? "border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]"
+                              : "border-gray-200 hover:border-emerald-200 hover:bg-emerald-50"
+                          }`}
+                        >
+                          <div className="flex flex-col h-full">
+                            <div className="text-xs font-medium mb-1 text-gray-600">{option.period}</div>
+                            <div className="font-bold text-emerald-700 text-lg">₹{option.price}/hr</div>
+                            <div className="mt-auto flex items-center justify-between">
+                              <div className="text-xs text-gray-500 line-through">₹{option.originalPrice}/hr</div>
+                              <div className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-1 rounded-full">
+                                {option.discount}% off
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Checkout section */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-lg text-emerald-800 mb-4">Booking Summary</h3>
+
+                    {selectedTimeSlot ? (
+                      <>
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                          <div className="space-y-3 text-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Clock size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Time Slot</span>
+                              </div>
+                              <span className="text-gray-900">{selectedTimeSlot.time}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Calendar size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Duration</span>
+                              </div>
+                              <span className="text-gray-900">{selectedDuration.toLowerCase()}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Calendar size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Date</span>
+                              </div>
+                              <span className="text-gray-900">
+                                {availableDates[selectedDateIndex].day} {availableDates[selectedDateIndex].date}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Users size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Available Slots</span>
+                              </div>
+                              <span className="text-gray-900">{selectedTimeSlot.slots} slots</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Order summary */}
+                        <div className="bg-emerald-50 rounded-lg p-4 mb-4 border border-emerald-100">
+                          <div className="flex justify-between font-medium text-gray-800 mb-2">
+                            <span className="text-emerald-800">Total Amount</span>
+                            <span className="text-emerald-800 text-lg">₹ {calculateTotal().toLocaleString()}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 bg-white p-2 rounded">
+                            <div className="flex justify-between mb-1">
+                              <span>Court Fee</span>
+                              <span>
+                                ₹{" "}
+                                {(selectedDuration === "FOR 1 HOUR"
+                                  ? 499
+                                  : selectedDuration === "FOR 2 HOURS"
+                                    ? 900
+                                    : selectedDuration === "FOR 3 HOURS"
+                                      ? 1200
+                                      : 2800
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Taxes & Platform Fee</span>
+                              <span>
+                                ₹{" "}
+                                {Math.round(
+                                  (selectedDuration === "FOR 1 HOUR"
+                                    ? 499
+                                    : selectedDuration === "FOR 2 HOURS"
+                                      ? 900
+                                      : selectedDuration === "FOR 3 HOURS"
+                                        ? 1200
+                                        : 2800) * 0.18,
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors flex items-center justify-center gap-2 shadow-md">
+                          <span>Pay Now ₹ {calculateTotal().toLocaleString()}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <Calendar size={24} className="text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500">Please select a time slot to continue</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Request different time */}
+                  <div className="mt-6">
+                    <h3 className="text-center text-emerald-700 font-medium mb-3">Request a different time slot?</h3>
+
+                    <div className="flex items-center gap-3 border border-gray-200 rounded-full p-2 pl-3">
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                        <Image
+                          src="/placeholder.svg?height=32&width=32"
+                          alt="Support"
+                          width={32}
+                          height={32}
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Message Support</div>
+                        <div className="text-xs text-gray-500">Avg. response time: 1 hour</div>
+                      </div>
+                      <button className="bg-emerald-50 text-emerald-700 p-2 rounded-full">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="p-4 bg-emerald-50 rounded-b-lg border-t border-emerald-100 flex items-start">
+                  <Info size={18} className="text-emerald-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-emerald-800">
+                    Free cancellation up to 24 hours before your booking. Please arrive 15 minutes before your scheduled
+                    time.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Similar Courts Section - Full Width */}
+        <div className="w-full bg-gradient-to-b from-emerald-50 to-white py-12 mt-8">
+          <div className="max-w-7xl mx-auto px-4">
+            <h2 className="text-2xl font-bold mb-8 flex items-center">
+              <span className="bg-emerald-100 p-2 rounded-full mr-3">
+                <MapPin size={20} className="text-emerald-600" />
+              </span>
+              Similar Courts
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {similarCourts.map((similarCourt) => (
+                <Link href={`/courts/${similarCourt.id}`} key={similarCourt.id}>
+                  <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 h-full relative group transform hover:-translate-y-1">
+                    <div className="relative">
+                      <div className="absolute top-2 left-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded-md z-10">
+                        {similarCourt.sport}
+                      </div>
+                      <div className="absolute top-2 right-2 z-10">
+                        <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
+                          <Heart size={16} className="text-gray-400" />
+                        </button>
+                      </div>
+                      <Image
+                        src={similarCourt.image || "/placeholder.svg"}
+                        alt={similarCourt.name}
+                        width={400}
+                        height={300}
+                        className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
+                    </div>
+
+                    <div className="p-5">
+                      <div className="flex items-center mb-2">
+                        <h3 className="font-bold text-lg">{similarCourt.name}</h3>
+                        <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
+                          <Star size={14} className="mr-1 fill-white" />
+                          <span className="text-sm">{similarCourt.rating}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center text-gray-600 mb-2 text-sm">
+                        <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
+                        <span className="truncate">{similarCourt.location}</span>
+                      </div>
+
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarCourt.description}</p>
+
+                      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                        <div className="flex items-center text-sm">
+                          <Users size={14} className="mr-1 text-emerald-600" />
+                          <span className="text-emerald-600 font-medium">{similarCourt.availability}</span>
+                        </div>
+
+                        <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                          ₹{similarCourt.price}/hr
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 mt-4">
+                        <Link href={`/courts/${similarCourt.id}`} className="flex-1">
+                          <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
+                            View Details
                           </button>
-                        ))}
+                        </Link>
+                        <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
+                          Book Now
+                        </button>
                       </div>
                     </div>
-
-                    <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors font-medium flex items-center justify-center">
-                      <Zap size={18} className="mr-2" />
-                      Book Now
-                    </button>
                   </div>
-
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full mr-1"></div>
-                      <span>Available</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-                      <span>Limited</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-                      <span>Booked</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Share Venue */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="font-bold mb-4">Share Court</h3>
-
-                <div className="flex gap-2">
-                  {[Facebook, Twitter, Instagram, Linkedin, Youtube, MessageCircle].map((Icon, index) => (
-                    <a
-                      key={index}
-                      href="#"
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-colors"
-                    >
-                      <Icon size={16} />
-                    </a>
-                  ))}
-                </div>
-              </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
