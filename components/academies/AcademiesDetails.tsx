@@ -22,15 +22,23 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Award,
+  Info,
 } from "lucide-react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import type { Academy } from "@/types/academy"
 import { dummyAcademies } from "@/data/academies-data"
-import { academyDetailData } from "@/data/academy-detail-data"
 
 interface AcademyDetailProps {
   academy: Academy
+}
+
+// Time slot type for improved type safety
+interface TimeSlot {
+  id: string
+  time: string
+  slots: number
 }
 
 export default function AcademyDetail({ academy }: AcademyDetailProps) {
@@ -44,11 +52,19 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
     reviews: true,
     locations: true,
   })
-  const [selectedCourt, setSelectedCourt] = useState<string | null>("court1")
-  const [selectedDate, setSelectedDate] = useState<string>("Today")
+
+  // Booking state
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>("morning")
+  const [selectedDate, setSelectedDate] = useState<string>("today")
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [showCalendar, setShowCalendar] = useState(false)
+
+  // UI state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [currentCoachIndex, setCurrentCoachIndex] = useState(0)
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
 
   // Refs for scroll navigation
   const overviewRef = useRef<HTMLDivElement>(null)
@@ -62,17 +78,17 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
   // Get similar academies (same category)
   const similarAcademies = dummyAcademies
     .filter((a) => a.id !== academy.id && a.category.toLowerCase() === academy.category.toLowerCase())
-    .slice(0, 6)
+    .slice(0, 9)
 
   const visibleAcademies = 3
 
   // Auto-rotate gallery images
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev === academyDetailData.gallery.length - 1 ? 0 : prev + 1))
+      setCurrentImageIndex((prev) => (prev === academy.detailData.gallery.length - 1 ? 0 : prev + 1))
     }, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [academy.detailData.gallery.length])
 
   // Toggle section expansion
   const toggleSection = (section: string) => {
@@ -118,11 +134,11 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
   // Handle slider navigation
   const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => (prev === 0 ? academyDetailData.gallery.length - 1 : prev - 1))
+    setCurrentImageIndex((prev) => (prev === 0 ? academy.detailData.gallery.length - 1 : prev - 1))
   }
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prev) => (prev === academyDetailData.gallery.length - 1 ? 0 : prev + 1))
+    setCurrentImageIndex((prev) => (prev === academy.detailData.gallery.length - 1 ? 0 : prev + 1))
   }
 
   // Handle similar academies navigation
@@ -134,42 +150,206 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
     setCurrentCoachIndex((prev) => (prev >= similarAcademies.length - visibleAcademies ? 0 : prev + 1))
   }
 
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-emerald-500"
-      case "limited":
-        return "bg-yellow-500"
-      case "booked":
-        return "bg-red-500"
+  // Calendar navigation
+  const handlePrevMonth = () => {
+    setCurrentMonth((prevMonth) => {
+      if (prevMonth === 0) {
+        setCurrentYear((prevYear) => prevYear - 1)
+        return 11
+      }
+      return prevMonth - 1
+    })
+  }
+
+  const handleNextMonth = () => {
+    setCurrentMonth((prevMonth) => {
+      if (prevMonth === 11) {
+        setCurrentYear((prevYear) => prevYear + 1)
+        return 0
+      }
+      return prevMonth + 1
+    })
+  }
+
+  // Get plan price
+  const getPlanPrice = (plan: string | null) => {
+    switch (plan) {
+      case "weekly":
+        return 99
+      case "biweekly":
+        return 179
+      case "monthly":
+        return 299
+      case "quarterly":
+        return 799
       default:
-        return "bg-gray-300"
+        return 0
     }
   }
 
-  // Get status text
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "available":
-        return "Available"
-      case "limited":
-        return "Limited"
-      case "booked":
-        return "Booked"
+  // Get plan sessions
+  const getPlanSessions = (plan: string | null) => {
+    switch (plan) {
+      case "weekly":
+        return 4
+      case "biweekly":
+        return 8
+      case "monthly":
+        return 12
+      case "quarterly":
+        return 36
       default:
-        return "Unknown"
+        return 0
     }
   }
 
-  // Get visible academies for the slider
-  const getVisibleAcademies = () => {
-    const result = []
-    for (let i = 0; i < visibleAcademies; i++) {
-      const index = (currentCoachIndex + i) % similarAcademies.length
-      result.push(similarAcademies[index])
+  // Get plan duration
+  const getPlanDuration = (plan: string | null) => {
+    switch (plan) {
+      case "weekly":
+        return "1 week"
+      case "biweekly":
+        return "2 weeks"
+      case "monthly":
+        return "1 month"
+      case "quarterly":
+        return "3 months"
+      default:
+        return ""
     }
-    return result
+  }
+
+  // Get plan discount
+  const getPlanDiscount = (plan: string | null) => {
+    switch (plan) {
+      case "weekly":
+        return 0
+      case "biweekly":
+        return 10
+      case "monthly":
+        return 15
+      case "quarterly":
+        return 25
+      default:
+        return 0
+    }
+  }
+
+  // Get plan hourly rate
+  const getPlanHourlyRate = (plan: string | null) => {
+    switch (plan) {
+      case "weekly":
+        return 25
+      case "biweekly":
+        return 22
+      case "monthly":
+        return 20
+      case "quarterly":
+        return 18
+      default:
+        return 0
+    }
+  }
+
+  // Get dates for the next week
+  const getNextDates = () => {
+    const dates = []
+    const today = new Date()
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+    for (let i = 0; i < 5; i++) {
+      const date = new Date()
+      date.setDate(today.getDate() + i)
+
+      const dayName = dayNames[date.getDay()]
+      const dayMonth = date.getDate() + " " + date.toLocaleDateString("en-US", { month: "short" })
+
+      dates.push({
+        id: `day-${i}`,
+        dayName: dayName,
+        date: dayMonth,
+        isToday: i === 0,
+      })
+    }
+
+    return dates
+  }
+
+  // Get time slots based on time of day and date
+  const getTimeSlots = (timeOfDay: string): TimeSlot[] => {
+    switch (timeOfDay) {
+      case "morning":
+        return [
+          { id: "m1", time: "7:00 AM", slots: 2 },
+          { id: "m2", time: "8:00 AM", slots: 2 },
+          { id: "m3", time: "9:00 AM", slots: 3 },
+          { id: "m4", time: "10:00 AM", slots: 1 },
+          { id: "m5", time: "11:00 AM", slots: 2 },
+        ]
+      case "afternoon":
+        return [
+          { id: "a1", time: "12:00 PM", slots: 4 },
+          { id: "a2", time: "1:00 PM", slots: 3 },
+          { id: "a3", time: "2:00 PM", slots: 5 },
+          { id: "a4", time: "3:00 PM", slots: 2 },
+          { id: "a5", time: "4:00 PM", slots: 2 },
+        ]
+      case "evening":
+        return [
+          { id: "e1", time: "5:00 PM", slots: 3 },
+          { id: "e2", time: "6:00 PM", slots: 4 },
+          { id: "e3", time: "7:00 PM", slots: 2 },
+          { id: "e4", time: "8:00 PM", slots: 1 },
+        ]
+      default:
+        return []
+    }
+  }
+
+  // Calculate total price with any applicable discounts
+  const calculateTotalPrice = () => {
+    const basePrice = getPlanPrice(selectedPlan)
+    const discount = getPlanDiscount(selectedPlan)
+
+    if (discount > 0) {
+      const discountAmount = (basePrice * discount) / 100
+      return basePrice - discountAmount
+    }
+
+    return basePrice
+  }
+
+  // Check if all required selections are made
+  const isReadyToProceed = selectedTimeOfDay && selectedDate && selectedTimeSlot && selectedPlan
+
+  // Get days in month for calendar
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate()
+  }
+
+  // Get first day of month for calendar
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay()
+  }
+
+  // Generate calendar days
+  const generateCalendarDays = () => {
+    const daysInMonth = getDaysInMonth(currentYear, currentMonth)
+    const firstDay = getFirstDayOfMonth(currentYear, currentMonth)
+
+    const days = []
+
+    // Empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null)
+    }
+
+    // Days of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i)
+    }
+
+    return days
   }
 
   return (
@@ -179,7 +359,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
       <main className="bg-white pt-16">
         {/* Hero Banner with Image Slider */}
         <div className="relative h-[400px] bg-gray-200">
-          {academyDetailData.gallery.map((image, index) => (
+          {academy.detailData.gallery.map((image, index) => (
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-1000 ${
@@ -213,7 +393,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
           {/* Slider indicators */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
-            {academyDetailData.gallery.map((_, index) => (
+            {academy.detailData.gallery.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
@@ -276,16 +456,16 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
             {/* Main Content */}
             <div className="lg:w-2/3">
               {/* Tabs Navigation */}
-              <div className="border-b border-gray-200 mb-6 sticky top-16 bg-white z-20 rounded-t-lg shadow-sm">
-                <div className="flex overflow-x-auto">
+              <div className="border-b border-gray-200 mb-8 sticky top-16 bg-white z-20 rounded-t-lg shadow-md px-2">
+                <div className="flex overflow-x-auto py-1">
                   {["overview", "includes", "rules", "amenities", "gallery", "reviews", "locations"].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => handleTabClick(tab)}
-                      className={`px-4 py-3 whitespace-nowrap font-medium text-sm ${
+                      className={`px-6 py-3 whitespace-nowrap font-medium text-sm transition-colors ${
                         activeTab === tab
-                          ? "text-emerald-600 border-b-2 border-emerald-600"
-                          : "text-gray-600 hover:text-emerald-600"
+                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50"
+                          : "text-gray-600 hover:text-emerald-600 hover:bg-gray-50"
                       }`}
                     >
                       {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -295,17 +475,23 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Overview Section */}
-              <div ref={overviewRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Overview</h2>
-                  <button onClick={() => toggleSection("overview")}>
+              <div
+                ref={overviewRef}
+                className="mb-10 scroll-mt-24 bg-white rounded-lg shadow-md p-8 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">Overview</h2>
+                  <button
+                    onClick={() => toggleSection("overview")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.overview ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.overview && (
-                  <div className="text-gray-600">
-                    <p className="mb-4">{academyDetailData.overview.description}</p>
+                  <div className="text-gray-600 leading-relaxed space-y-4">
+                    <p>{academy.detailData.overview.description}</p>
                     <p>
                       Our facility features {academy.amenities.join(", ")} and more. We pride ourselves on maintaining
                       professional standards and creating a welcoming environment for all sports enthusiasts.
@@ -315,25 +501,31 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Includes Section */}
-              <div ref={includesRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold flex items-center">
-                    <span className="bg-emerald-100 p-2 rounded-full mr-2">
-                      <Check size={18} className="text-emerald-600" />
+              <div
+                ref={includesRef}
+                className="mb-10 scroll-mt-24 bg-gradient-to-r from-emerald-50 to-white rounded-lg shadow-md p-6 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                    <span className="bg-emerald-100 p-2 rounded-full mr-3">
+                      <Check size={20} className="text-emerald-600" />
                     </span>
                     Includes
                   </h2>
-                  <button onClick={() => toggleSection("includes")}>
+                  <button
+                    onClick={() => toggleSection("includes")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.includes ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.includes && (
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                    {academyDetailData.includes.map((item, index) => (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {academy.detailData.includes.map((item, index) => (
                       <div
                         key={index}
-                        className="flex items-center bg-white p-3 rounded-md shadow-sm hover:shadow-md transition-all"
+                        className="flex items-center bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100"
                       >
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
@@ -341,12 +533,12 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                           }`}
                         >
                           {item.checked ? (
-                            <Check size={16} className="text-white" />
+                            <Check size={14} className="text-white" />
                           ) : (
-                            <X size={16} className="text-white" />
+                            <X size={14} className="text-white" />
                           )}
                         </div>
-                        <span className="text-gray-700 font-medium">{item.name}</span>
+                        <span className="text-gray-700 text-sm">{item.name}</span>
                       </div>
                     ))}
                   </div>
@@ -354,30 +546,36 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Rules Section */}
-              <div ref={rulesRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold flex items-center">
-                    <span className="bg-red-100 p-2 rounded-full mr-2">
-                      <X size={18} className="text-red-600" />
+              <div
+                ref={rulesRef}
+                className="mb-10 scroll-mt-24 bg-gradient-to-r from-red-50 to-white rounded-lg shadow-md p-6 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                    <span className="bg-red-100 p-2 rounded-full mr-3">
+                      <X size={20} className="text-red-600" />
                     </span>
                     Rules
                   </h2>
-                  <button onClick={() => toggleSection("rules")}>
+                  <button
+                    onClick={() => toggleSection("rules")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.rules ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.rules && (
-                  <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-                    {academyDetailData.rules.map((rule, index) => (
+                  <div className="space-y-3">
+                    {academy.detailData.rules.map((rule, index) => (
                       <div
                         key={index}
-                        className="flex items-start bg-white p-3 rounded-md shadow-sm hover:shadow-md transition-all"
+                        className="flex items-start bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100"
                       >
                         <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
                           <span className="text-white text-xs font-bold">{index + 1}</span>
                         </div>
-                        <p className="text-gray-700 pt-1">{rule}</p>
+                        <p className="text-gray-700 text-sm pt-1">{rule}</p>
                       </div>
                     ))}
                   </div>
@@ -385,30 +583,36 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Amenities Section */}
-              <div ref={amenitiesRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold flex items-center">
-                    <span className="bg-emerald-100 p-2 rounded-full mr-2">
-                      <Check size={18} className="text-emerald-600" />
+              <div
+                ref={amenitiesRef}
+                className="mb-10 scroll-mt-24 bg-gradient-to-r from-blue-50 to-white rounded-lg shadow-md p-6 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                    <span className="bg-blue-100 p-2 rounded-full mr-3">
+                      <Award size={20} className="text-blue-600" />
                     </span>
                     Amenities
                   </h2>
-                  <button onClick={() => toggleSection("amenities")}>
+                  <button
+                    onClick={() => toggleSection("amenities")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.amenities ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.amenities && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                    {academyDetailData.amenities.map((amenity, index) => (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {academy.detailData.amenities.map((amenity, index) => (
                       <div
                         key={index}
-                        className="flex items-center bg-white p-3 rounded-md shadow-sm hover:shadow-md transition-all"
+                        className="flex flex-col items-center bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 text-center"
                       >
-                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center mr-3">
-                          <Check size={16} className="text-white" />
+                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center mb-2">
+                          <Check size={18} className="text-white" />
                         </div>
-                        <span className="text-gray-700 font-medium">{amenity.name}</span>
+                        <span className="text-gray-700 text-sm font-medium">{amenity.name}</span>
                       </div>
                     ))}
                   </div>
@@ -416,18 +620,27 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Gallery Section */}
-              <div ref={galleryRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Gallery</h2>
-                  <button onClick={() => toggleSection("gallery")}>
+              <div
+                ref={galleryRef}
+                className="mb-10 scroll-mt-24 bg-white rounded-lg shadow-md p-8 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">Gallery</h2>
+                  <button
+                    onClick={() => toggleSection("gallery")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.gallery ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.gallery && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {academyDetailData.gallery.map((image, index) => (
-                      <div key={index} className="relative aspect-square rounded-md overflow-hidden group">
+                  <div className="grid grid-cols-3 gap-4">
+                    {academy.detailData.gallery.map((image, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200"
+                      >
                         <Image
                           src={image || "/placeholder.svg"}
                           alt={`Gallery image ${index + 1}`}
@@ -446,25 +659,31 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Reviews Section */}
-              <div ref={reviewsRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Reviews</h2>
-                  <button onClick={() => toggleSection("reviews")}>
+              <div
+                ref={reviewsRef}
+                className="mb-10 scroll-mt-24 bg-white rounded-lg shadow-md p-8 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">Reviews</h2>
+                  <button
+                    onClick={() => toggleSection("reviews")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.reviews ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.reviews && (
                   <div>
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-8 bg-gray-50 p-6 rounded-lg">
                       <div className="flex items-center">
-                        <div className="text-3xl font-bold mr-2">{academy.rating}</div>
+                        <div className="text-4xl font-bold mr-4 text-emerald-600">{academy.rating}</div>
                         <div>
-                          <div className="flex">
+                          <div className="flex mb-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
-                                size={16}
+                                size={18}
                                 className={star <= academy.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
                               />
                             ))}
@@ -500,34 +719,34 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                         </div>
                       </div>
 
-                      <button className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
+                      <button className="bg-emerald-600 text-white px-5 py-2.5 rounded-md text-sm hover:bg-emerald-700 transition-colors shadow-sm">
                         Write a Review
                       </button>
                     </div>
 
-                    <div className="space-y-6">
-                      {academyDetailData.reviews.map((review) => (
-                        <div key={review.id} className="border-b border-gray-200 pb-6">
-                          <div className="flex items-start gap-3 mb-2">
-                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                    <div className="space-y-8">
+                      {academy.detailData.reviews.map((review) => (
+                        <div key={review.id} className="border-b border-gray-200 pb-8">
+                          <div className="flex items-start gap-4 mb-3">
+                            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-100">
                               <Image
-                                src="/placeholder.svg?height=40&width=40"
+                                src="/placeholder.svg?height=48&width=48"
                                 alt={review.name}
-                                width={40}
-                                height={40}
+                                width={48}
+                                height={48}
                                 className="object-cover"
                               />
                             </div>
                             <div className="flex-1">
                               <div className="flex justify-between">
-                                <h3 className="font-medium">{review.name}</h3>
+                                <h3 className="font-medium text-lg">{review.name}</h3>
                                 <span className="text-sm text-gray-500">Posted on {review.date}</span>
                               </div>
                               <div className="flex mb-1">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <Star
                                     key={star}
-                                    size={14}
+                                    size={16}
                                     className={
                                       star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
                                     }
@@ -535,18 +754,23 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                                 ))}
                               </div>
                               {review.verified && (
-                                <div className="text-xs text-emerald-600 mb-2">✓ Verified Purchase</div>
+                                <div className="text-xs text-emerald-600 mb-2 flex items-center">
+                                  <Check size={12} className="mr-1" /> Verified Purchase
+                                </div>
                               )}
-                              <p className="text-sm text-gray-600 mb-2">{review.comment}</p>
+                              <p className="text-gray-600 mb-4 leading-relaxed">{review.comment}</p>
                               {review.images && (
-                                <div className="flex gap-2 mt-2">
+                                <div className="flex gap-3 mt-3">
                                   {review.images.map((img, idx) => (
-                                    <div key={idx} className="w-12 h-12 rounded-md overflow-hidden">
+                                    <div
+                                      key={idx}
+                                      className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200"
+                                    >
                                       <Image
                                         src={img || "/placeholder.svg"}
                                         alt="Review image"
-                                        width={48}
-                                        height={48}
+                                        width={64}
+                                        height={64}
                                         className="object-cover"
                                       />
                                     </div>
@@ -559,7 +783,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                       ))}
                     </div>
 
-                    <div className="text-center mt-4">
+                    <div className="text-center mt-6">
                       <button className="text-emerald-600 text-sm font-medium flex items-center justify-center mx-auto hover:underline">
                         Load More <ChevronDown size={16} className="ml-1" />
                       </button>
@@ -569,17 +793,23 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
 
               {/* Location Section */}
-              <div ref={locationsRef} className="mb-8 scroll-mt-24 bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Location</h2>
-                  <button onClick={() => toggleSection("locations")}>
+              <div
+                ref={locationsRef}
+                className="mb-10 scroll-mt-24 bg-white rounded-lg shadow-md p-8 border border-gray-100"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">Location</h2>
+                  <button
+                    onClick={() => toggleSection("locations")}
+                    className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                  >
                     {expandedSections.locations ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
 
                 {expandedSections.locations && (
                   <div>
-                    <div className="rounded-lg h-64 mb-4 overflow-hidden">
+                    <div className="rounded-lg h-72 mb-6 overflow-hidden border border-gray-200">
                       <iframe
                         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98784492426385!3d40.75798597138789!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25855c6480299%3A0x55194ec5a1ae072e!2sTimes%20Square!5e0!3m2!1sen!2sus!4v1710766987019!5m2!1sen!2sus"
                         width="100%"
@@ -591,17 +821,17 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                       ></iframe>
                     </div>
 
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <MapPin size={18} className="text-emerald-600" />
+                    <div className="flex items-center gap-3 text-gray-700 bg-gray-50 p-4 rounded-lg">
+                      <MapPin size={22} className="text-emerald-600" />
                       <div>
-                        <h3 className="font-medium">Our Venue Location</h3>
-                        <p className="text-sm">{academyDetailData.location.address}</p>
+                        <h3 className="font-medium text-lg">Our Venue Location</h3>
+                        <p className="text-gray-600">{academy.detailData.location.address}</p>
                       </div>
                     </div>
 
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-sm mb-2">Directions</h3>
-                      <p className="text-xs text-gray-600">
+                    <div className="mt-6 p-5 bg-gray-50 rounded-lg border border-gray-100">
+                      <h3 className="font-medium text-lg mb-3">Directions</h3>
+                      <p className="text-gray-600">
                         Located in the heart of the city, our academy is easily accessible by public transportation. The
                         nearest subway station is just a 5-minute walk away. Parking is available on-site for those
                         driving.
@@ -610,350 +840,365 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   </div>
                 )}
               </div>
-
-              {/* Similar Academies Section */}
-              <div className="mt-12 bg-gradient-to-br from-emerald-50 to-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold mb-6 flex items-center">
-                  <span className="bg-emerald-100 p-2 rounded-full mr-2">
-                    <MapPin size={18} className="text-emerald-600" />
-                  </span>
-                  Similar Academies
-                </h2>
-
-                <div className="relative">
-                  {/* Slider navigation buttons */}
-                  <button
-                    onClick={handlePrevAcademy}
-                    className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
-                  >
-                    <ChevronLeft size={24} className="text-gray-600" />
-                  </button>
-
-                  <button
-                    onClick={handleNextAcademy}
-                    className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
-                  >
-                    <ChevronRight size={24} className="text-gray-600" />
-                  </button>
-
-                  {/* Academies slider */}
-                  <div className="overflow-hidden py-4">
-                    <div
-                      className="flex transition-transform duration-500 ease-in-out gap-6"
-                      style={{ transform: `translateX(-${currentCoachIndex * (100 / visibleAcademies)}%)` }}
-                    >
-                      {similarAcademies.map((similarAcademy) => (
-                        <div key={similarAcademy.id} className="w-full md:w-1/3 flex-shrink-0">
-                          <Link href={`/academies/${similarAcademy.id}`}>
-                            <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full relative group transform hover:-translate-y-1">
-                              <div className="relative">
-                                <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md z-10">
-                                  {similarAcademy.category}
-                                </div>
-                                <div className="absolute top-2 right-2 z-10">
-                                  <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
-                                    <Heart size={16} className="text-gray-400" />
-                                  </button>
-                                </div>
-                                <Image
-                                  src={similarAcademy.image || "/placeholder.svg"}
-                                  alt={similarAcademy.title}
-                                  width={400}
-                                  height={300}
-                                  className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                                />
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
-                              </div>
-
-                              <div className="p-5">
-                                <div className="flex items-center mb-2">
-                                  <h3 className="font-bold text-lg">{similarAcademy.title}</h3>
-                                  <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
-                                    <Star size={14} className="mr-1 fill-white" />
-                                    <span className="text-sm">{similarAcademy.rating}</span>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center text-gray-600 mb-2 text-sm">
-                                  <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
-                                  <span className="truncate">{similarAcademy.location}</span>
-                                </div>
-
-                                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarAcademy.description}</p>
-
-                                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                                  <div className="flex items-center text-sm">
-                                    <Calendar size={14} className="mr-1 text-emerald-600" />
-                                    <span className="text-emerald-600 font-medium">
-                                      {similarAcademy.nextAvailability}
-                                    </span>
-                                  </div>
-
-                                  <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
-                                    ${similarAcademy.hourlyRate}/hr
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2 mt-4">
-                                  <Link href={`/academies/${similarAcademy.id}`} className="flex-1">
-                                    <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
-                                      View Details
-                                    </button>
-                                  </Link>
-                                  <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
-                                    Book Now
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </Link>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Slider dots */}
-                  <div className="flex justify-center mt-6 space-x-2">
-                    {Array.from({ length: Math.ceil(similarAcademies.length / visibleAcademies) }).map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentCoachIndex(index * visibleAcademies)}
-                        className={`w-3 h-3 rounded-full transition-colors ${
-                          currentCoachIndex === index * visibleAcademies
-                            ? "bg-emerald-600"
-                            : "bg-gray-300 hover:bg-gray-400"
-                        }`}
-                        aria-label={`Go to slide ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar - Booking Section */}
             <div className="lg:w-1/3">
-              {/* Booking Card */}
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6 sticky top-24">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg">Book A Court</h3>
-                    <p className="text-sm text-gray-500">Check availability and book your court</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500">Starts From:</div>
-                    <div className="text-xl font-bold text-emerald-600">${academy.hourlyRate}/hr</div>
-                  </div>
-                </div>
+              <div className="bg-white rounded-lg shadow-md border border-gray-100 sticky top-24">
+                <div className="p-5">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Select a slot</h3>
 
-                <div className="border-t border-gray-200 pt-4 mb-4">
-                  {/* Court selection */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Court</label>
-                    <div className="space-y-2">
-                      {academyDetailData.availability.courts.map((court) => (
-                        <div
-                          key={court.id}
-                          className={`p-3 rounded-md cursor-pointer transition-colors border ${
-                            selectedCourt === court.id
-                              ? "bg-emerald-50 border-emerald-200"
-                              : "border-gray-200 hover:bg-gray-50"
-                          }`}
-                          onClick={() => setSelectedCourt(court.id)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">{court.name}</span>
-                            <div
-                              className={`px-2 py-0.5 rounded-full text-xs text-white ${getStatusColor(court.status)}`}
-                            >
-                              {getStatusText(court.status)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Time of day selection - Clean UI with underline indicator */}
+                  <div className="flex border-b border-gray-200 mb-4">
+                    {["Morning", "Afternoon", "Evening"].map((timeOfDay) => (
+                      <button
+                        key={timeOfDay}
+                        onClick={() => setSelectedTimeOfDay(timeOfDay.toLowerCase())}
+                        className={`flex-1 text-center py-2 px-2 font-medium text-sm relative ${
+                          selectedTimeOfDay === timeOfDay.toLowerCase()
+                            ? "text-emerald-600"
+                            : "hover:text-emerald-500 text-gray-600"
+                        }`}
+                      >
+                        {timeOfDay}
+                        {selectedTimeOfDay === timeOfDay.toLowerCase() && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"></div>
+                        )}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setShowCalendar(!showCalendar)}
+                      className="p-2 text-gray-500 hover:text-emerald-600"
+                    >
+                      <Calendar size={18} />
+                    </button>
                   </div>
 
-                  {/* Date selection */}
+                  {/* Date selection - more compact horizontal scrolling cards */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {academyDetailData.availability.dates.map((date) => (
+                    <div className="flex overflow-x-auto space-x-2 pb-2">
+                      {getNextDates().map((date) => (
                         <button
-                          key={date.date}
-                          className={`py-2 px-3 rounded text-sm border ${
-                            selectedDate === date.date
-                              ? "bg-emerald-600 text-white border-emerald-600"
-                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                          key={date.id}
+                          onClick={() => setSelectedDate(date.id)}
+                          className={`flex-shrink-0 w-16 rounded-lg flex flex-col items-center justify-center py-2 ${
+                            selectedDate === date.id
+                              ? "bg-emerald-50 border-2 border-emerald-600 text-emerald-600"
+                              : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-emerald-200"
                           }`}
-                          onClick={() => setSelectedDate(date.date)}
                         >
-                          {date.date}
+                          <div className="font-medium text-xs">{date.dayName}</div>
+                          <div className="text-xs mt-1">{date.date}</div>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Time slot selection */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {academyDetailData.availability.dates
-                        .find((date) => date.date === selectedDate)
-                        ?.slots.map((slot) => (
-                          <button
-                            key={slot.time}
-                            className={`py-2 px-3 rounded text-sm border ${
-                              selectedTimeSlot === slot.time
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : slot.status === "booked"
-                                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                                  : `bg-white text-gray-700 border-gray-200 hover:bg-gray-50`
-                            }`}
-                            disabled={slot.status === "booked"}
-                            onClick={() => setSelectedTimeSlot(slot.time)}
-                          >
-                            {slot.time}
-                          </button>
+                  {/* Calendar (conditionally rendered) */}
+                  {showCalendar && (
+                    <div className="mb-4 border border-gray-200 rounded-lg p-3 bg-white">
+                      <div className="flex justify-between items-center mb-2">
+                        <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-gray-100">
+                          <ChevronLeft size={16} />
+                        </button>
+                        <h4 className="text-sm font-medium">
+                          {new Date(currentYear, currentMonth, 1).toLocaleDateString("en-US", {
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </h4>
+                        <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-gray-100">
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 mb-1">
+                        {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+                          <div key={i} className="text-center text-xs font-medium text-gray-500">
+                            {day}
+                          </div>
                         ))}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1">
+                        {generateCalendarDays().map((day, index) => (
+                          <div key={index}>
+                            {day !== null ? (
+                              <button
+                                className={`h-7 w-full rounded-md text-xs ${
+                                  day === new Date().getDate() &&
+                                  currentMonth === new Date().getMonth() &&
+                                  currentYear === new Date().getFullYear()
+                                    ? "bg-emerald-100 text-emerald-700 font-bold"
+                                    : "hover:bg-gray-100"
+                                }`}
+                                onClick={() => {
+                                  setSelectedDate(`day-${day}`)
+                                  setShowCalendar(false)
+                                }}
+                              >
+                                {day}
+                              </button>
+                            ) : (
+                              <div className="h-7 w-full"></div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Time slots - compact grid layout */}
+                  <div className="mb-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {getTimeSlots(selectedTimeOfDay).map((slot) => (
+                        <button
+                          key={slot.id}
+                          onClick={() => setSelectedTimeSlot(slot.id)}
+                          className={`relative p-2 rounded-lg flex flex-col items-center justify-center transition-all ${
+                            selectedTimeSlot === slot.id
+                              ? "bg-emerald-100 border-2 border-emerald-500"
+                              : "bg-emerald-50 border border-gray-200 hover:border-emerald-300"
+                          }`}
+                        >
+                          <div className="text-gray-800 font-medium text-xs">{slot.time}</div>
+                          <div className="text-emerald-600 text-xs">{slot.slots} Slots</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors font-medium">
-                    Book Now
-                  </button>
-                </div>
+                  {/* Select duration */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Select duration</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: "weekly", name: "FOR 1 WEEK", price: 99, hourly: 25, discount: 0 },
+                        { id: "biweekly", name: "FOR 2 WEEKS", price: 179, hourly: 22, discount: 10 },
+                        { id: "monthly", name: "FOR 1 MONTH", price: 299, hourly: 20, discount: 15 },
+                        { id: "quarterly", name: "FOR 3 MONTHS", price: 799, hourly: 18, discount: 25 },
+                      ].map((plan) => (
+                        <button
+                          key={plan.id}
+                          onClick={() => setSelectedPlan(plan.id)}
+                          className={`relative p-3 rounded-lg border ${
+                            selectedPlan === plan.id
+                              ? "border-emerald-300 bg-emerald-50 shadow-sm"
+                              : "border-gray-200 hover:border-emerald-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="font-medium text-gray-600 text-xs">{plan.name}</div>
+                            <div className="text-emerald-600 font-bold text-lg mt-1">${plan.hourly}/hr</div>
+                            <div className="text-xs text-gray-500 line-through">${plan.hourly + 5}/hr</div>
 
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full mr-1"></div>
-                    <span>Available</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-                    <span>Limited</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-                    <span>Booked</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Request For Availability */}
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h3 className="font-bold mb-4">Request For Availability</h3>
-
-                <form className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm text-gray-600 mb-1">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      placeholder="Enter Name"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="email" className="block text-sm text-gray-600 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      placeholder="Enter Email Address"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="phone" className="block text-sm text-gray-600 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      placeholder="Enter Phone Number"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="purpose" className="block text-sm text-gray-600 mb-1">
-                      Purpose
-                    </label>
-                    <input
-                      type="text"
-                      id="purpose"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      placeholder="Enter Purpose"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="court" className="block text-sm text-gray-600 mb-1">
-                      Court
-                    </label>
-                    <select
-                      id="court"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
-                    >
-                      <option value="">Select Court</option>
-                      {academyDetailData.availability.courts.map((court) => (
-                        <option key={court.id} value={court.id}>
-                          {court.name}
-                        </option>
+                            {plan.discount > 0 && (
+                              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                                -{plan.discount}%
+                              </div>
+                            )}
+                          </div>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="details" className="block text-sm text-gray-600 mb-1">
-                      Details
-                    </label>
-                    <textarea
-                      id="details"
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      placeholder="Enter Details"
-                    ></textarea>
-                  </div>
+                  {/* Booking Summary */}
+                  <div className="mt-4 border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Booking Summary</h4>
 
-                  <div className="flex items-start">
-                    <input type="checkbox" id="terms" className="mt-1 mr-2" />
-                    <label htmlFor="terms" className="text-xs text-gray-600">
-                      By clicking "Send Request", I agree to DreamSports' Terms of Service and acknowledge that I have
-                      read the Privacy Policy.
-                    </label>
-                  </div>
+                    {isReadyToProceed ? (
+                      <div className="space-y-2 text-sm mb-4">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Plan:</span>
+                          <span className="font-medium capitalize">{selectedPlan}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Sessions:</span>
+                          <span className="font-medium">{getPlanSessions(selectedPlan)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Duration:</span>
+                          <span className="font-medium">{getPlanDuration(selectedPlan)}</span>
+                        </div>
+                        {selectedTimeSlot && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Time:</span>
+                            <span className="font-medium">
+                              {getTimeSlots(selectedTimeOfDay).find((t) => t.id === selectedTimeSlot)?.time}
+                            </span>
+                          </div>
+                        )}
+                        {getPlanDiscount(selectedPlan) > 0 && (
+                          <div className="flex justify-between text-red-600">
+                            <span>Savings:</span>
+                            <span className="font-medium">{getPlanDiscount(selectedPlan)}%</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 p-3 rounded-lg mb-4 text-center">
+                        <p className="text-sm text-gray-500">Please select all options to see booking details</p>
+                      </div>
+                    )}
 
-                  <button
-                    type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors font-medium"
-                  >
-                    Send Request
-                  </button>
-                </form>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="font-medium text-gray-700">Total:</span>
+                      <span className="font-bold text-xl text-emerald-600">${calculateTotalPrice()}</span>
+                    </div>
+
+                    <button
+                      className={`w-full py-3 rounded-md font-medium text-white ${
+                        isReadyToProceed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-300"
+                      }`}
+                      disabled={!isReadyToProceed}
+                    >
+                      {isReadyToProceed ? "Pay Now" : "Select all options to continue"}
+                    </button>
+
+                    <div className="text-center mt-3">
+                      <button className="text-emerald-600 text-xs hover:underline flex items-center justify-center mx-auto">
+                        <Info size={12} className="mr-1" />
+                        Request a different time slot
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Share Venue */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="font-bold mb-4">Share Venue</h3>
-
+              {/* Share Academy */}
+              <div className="bg-white rounded-lg shadow-sm p-4 mt-4">
+                <h3 className="font-medium text-sm mb-3">Share Academy</h3>
                 <div className="flex gap-2">
                   {[Facebook, Twitter, Instagram, Linkedin, Youtube, MessageCircle].map((Icon, index) => (
                     <a
                       key={index}
                       href="#"
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-colors"
+                      className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-colors"
                     >
-                      <Icon size={16} />
+                      <Icon size={14} />
                     </a>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Similar Academies Section - Full Width */}
+        <div className="mt-16 bg-gradient-to-br from-emerald-50 to-white py-8">
+          <div className="max-w-7xl mx-auto px-4">
+            <h2 className="text-2xl font-bold mb-8 flex items-center">
+              <span className="bg-emerald-100 p-2 rounded-full mr-3">
+                <MapPin size={20} className="text-emerald-600" />
+              </span>
+              Similar Academies
+            </h2>
+
+            <div className="relative">
+              {/* Slider navigation buttons */}
+              <button
+                onClick={handlePrevAcademy}
+                className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
+              >
+                <ChevronLeft size={24} className="text-gray-600" />
+              </button>
+
+              <button
+                onClick={handleNextAcademy}
+                className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
+              >
+                <ChevronRight size={24} className="text-gray-600" />
+              </button>
+
+              {/* Academies slider */}
+              <div className="overflow-hidden py-4">
+                <div
+                  className="flex transition-transform duration-500 ease-in-out gap-6"
+                  style={{ transform: `translateX(-${currentCoachIndex * (100 / visibleAcademies)}%)` }}
+                >
+                  {similarAcademies.map((similarAcademy) => (
+                    <div key={similarAcademy.id} className="w-full md:w-1/3 flex-shrink-0">
+                      <Link href={`/academies/${similarAcademy.id}`}>
+                        <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full relative group transform hover:-translate-y-1">
+                          <div className="relative">
+                            <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md z-10">
+                              {similarAcademy.category}
+                            </div>
+                            <div className="absolute top-2 right-2 z-10">
+                              <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
+                                <Heart size={16} className="text-gray-400" />
+                              </button>
+                            </div>
+                            <Image
+                              src={similarAcademy.image || "/placeholder.svg"}
+                              alt={similarAcademy.title}
+                              width={400}
+                              height={300}
+                              className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
+                          </div>
+
+                          <div className="p-5">
+                            <div className="flex items-center mb-2">
+                              <h3 className="font-bold text-lg">{similarAcademy.title}</h3>
+                              <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
+                                <Star size={14} className="mr-1 fill-white" />
+                                <span className="text-sm">{similarAcademy.rating}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center text-gray-600 mb-2 text-sm">
+                              <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
+                              <span className="truncate">{similarAcademy.location}</span>
+                            </div>
+
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarAcademy.description}</p>
+
+                            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                              <div className="flex items-center text-sm">
+                                <Calendar size={14} className="mr-1 text-emerald-600" />
+                                <span className="text-emerald-600 font-medium">{similarAcademy.nextAvailability}</span>
+                              </div>
+
+                              <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                                ${similarAcademy.hourlyRate}/hr
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 mt-4">
+                              <Link href={`/academies/${similarAcademy.id}`} className="flex-1">
+                                <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
+                                  View Details
+                                </button>
+                              </Link>
+                              <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
+                                Book Now
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Slider dots */}
+              <div className="flex justify-center mt-6 space-x-2">
+                {Array.from({ length: Math.ceil(similarAcademies.length / visibleAcademies) }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentCoachIndex(index * visibleAcademies)}
+                    className={`w-3 h-3 rounded-full transition-colors ${
+                      currentCoachIndex === index * visibleAcademies
+                        ? "bg-emerald-600"
+                        : "bg-gray-300 hover:bg-gray-400"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
               </div>
             </div>
           </div>

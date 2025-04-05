@@ -23,6 +23,7 @@ import {
   Globe,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
@@ -52,12 +53,58 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
     location: true,
   })
   const [selectedDate, setSelectedDate] = useState<string | null>(coach.availabilityCalendar?.[0]?.date || null)
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [showOtherAvailability, setShowOtherAvailability] = useState(false)
   const [currentCoachIndex, setCurrentCoachIndex] = useState(0)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [showCalendarPopup, setShowCalendarPopup] = useState(false)
+
+  // Update the state variables to track selections
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState("Morning")
+  const [selectedDateIndex, setSelectedDateIndex] = useState(0)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ time: string; slots: number } | null>(null)
+  const [selectedDuration, setSelectedDuration] = useState("FOR 1 DAY")
+
+  // Sample dates for the horizontal scroll
+  const availableDates = [
+    { day: "Thu", date: "20 Mar" },
+    { day: "Fri", date: "21 Mar" },
+    { day: "Sat", date: "22 Mar" },
+    { day: "Mon", date: "24 Mar" },
+    { day: "Tue", date: "25 Mar" },
+    { day: "Wed", date: "26 Mar" },
+    { day: "Thu", date: "27 Mar" },
+    { day: "Fri", date: "28 Mar" },
+    { day: "Sat", date: "29 Mar" },
+    { day: "Sun", date: "30 Mar" },
+  ]
+
+  // Sample time slots with availability
+  const timeSlots = {
+    Morning: [
+      { time: "7:00 AM - 8:00 AM", slots: 2 },
+      { time: "8:00 AM - 9:00 AM", slots: 2 },
+      { time: "9:00 AM - 10:00 AM", slots: 3 },
+      { time: "10:00 AM - 11:00 AM", slots: 1 },
+      { time: "11:00 AM - 12:00 PM", slots: 2 },
+    ],
+    Afternoon: [
+      { time: "12:00 PM - 1:00 PM", slots: 0 },
+      { time: "1:00 PM - 2:00 PM", slots: 3 },
+      { time: "2:00 PM - 3:00 PM", slots: 1 },
+      { time: "3:00 PM - 4:00 PM", slots: 2 },
+      { time: "4:00 PM - 5:00 PM", slots: 0 },
+    ],
+    Evening: [
+      { time: "5:00 PM - 6:00 PM", slots: 2 },
+      { time: "6:00 PM - 7:00 PM", slots: 1 },
+      { time: "7:00 PM - 8:00 PM", slots: 0 },
+      { time: "8:00 PM - 9:00 PM", slots: 3 },
+      { time: "9:00 PM - 10:00 PM", slots: 2 },
+    ],
+  }
 
   // Get similar coaches (same sport)
   const similarCoaches = dummyCoaches
@@ -194,6 +241,75 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
       result.push(similarCoaches[index])
     }
     return result
+  }
+
+  // Add these functions to handle selections
+  const handleTimeOfDaySelect = (timeOfDay: string) => {
+    setSelectedTimeOfDay(timeOfDay)
+    setSelectedTimeSlot(null) // Reset time slot when changing time of day
+  }
+
+  const handleDateSelect = (index: number) => {
+    setSelectedDateIndex(index)
+    setSelectedTimeSlot(null) // Reset time slot when changing date
+  }
+
+  const handleTimeSlotSelect = (timeSlot: { time: string; slots: number }) => {
+    setSelectedTimeSlot(timeSlot)
+  }
+
+  const handleDurationSelect = (duration: string) => {
+    setSelectedDuration(duration)
+  }
+
+  // Add a function to calculate total price
+  const calculateTotal = () => {
+    if (!selectedTimeSlot) return 0
+
+    // Get price based on selected duration
+    let pricePerHour = 0
+    const totalHours = 60 // Default to 60 hours
+
+    switch (selectedDuration) {
+      case "FOR 1 DAY":
+        pricePerHour = 322
+        break
+      case "FOR 1 WEEK":
+        pricePerHour = 300
+        break
+      case "FOR 1 MONTH":
+        pricePerHour = 276
+        break
+      case "FOR 3 MONTHS":
+        pricePerHour = 249
+        break
+    }
+
+    const subtotal = pricePerHour * totalHours
+    const taxes = 1245 // Example tax amount
+    return subtotal + taxes
+  }
+
+  // Toggle review modal
+  const toggleReviewModal = () => {
+    setShowReviewModal(!showReviewModal)
+  }
+
+  const toggleCalendarPopup = () => {
+    setShowCalendarPopup(!showCalendarPopup)
+  }
+
+  const handleSelectDate = (date: Date) => {
+    // Format the selected date
+    const formattedDate = date.toLocaleDateString("en-US", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    })
+
+    // In a real app, you would update available dates based on the selected date
+    // For now, we'll just close the popup
+    setShowCalendarPopup(false)
   }
 
   return (
@@ -539,7 +655,12 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
                       </div>
                     </div>
 
-                    <button className="bg-emerald-600 text-white px-3 py-1 rounded-md text-sm">Write a Review</button>
+                    <button
+                      onClick={toggleReviewModal}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-md text-sm transition-colors"
+                    >
+                      Write a Review
+                    </button>
                   </div>
 
                   <div className="space-y-4">
@@ -644,7 +765,8 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
                 <div className="p-4 pt-0 border-t border-gray-100">
                   <div className="rounded-lg h-48 mb-4 overflow-hidden">
                     <iframe
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98784492426385!3d40.75798597138789!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25855c6480299%3A0x55194ec5a1ae072e!2sTimes%20Square!5e0!3m2!1sen!2sus!4v1710766987019!5m2!1sen!2sus"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98784492426385!3d40.7579859<merged_code>
+https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98784492426385!3d40.75798597138789!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25855c6480299%3A0x55194ec5a1ae072e!2sTimes%20Square!5e0!3m2!1sen!2sus!4v1710766987019!5m2!1sen!2sus"
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}
@@ -666,319 +788,325 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
             </div>
           </div>
 
-          {/* Sidebar - Booking Section with improved calendar */}
+          {/* Sidebar - Booking Section */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden sticky top-24">
-              <div className="p-4 border-b border-gray-100">
-                <h2 className="text-lg font-bold">Book A Coach</h2>
-                <p className="text-sm text-gray-500">{coach.name} is available to book</p>
-              </div>
-
               <div className="p-4">
-                <h3 className="font-medium mb-3">Next Availability</h3>
+                {/* Select a slot section */}
+                <div className="mb-6">
+                  <h3 className="font-medium text-lg text-emerald-800 mb-4">Select a slot</h3>
 
-                {/* Calendar toggle - Replace text with icon */}
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm text-gray-600">Select a date to see available time slots</p>
-                  <button
-                    onClick={() => setShowCalendar(!showCalendar)}
-                    className="text-emerald-600 text-sm font-medium flex items-center"
-                  >
-                    <Calendar size={16} className="mr-1" />
-                    {showCalendar ? (
-                      <ChevronUp size={16} className="ml-1" />
-                    ) : (
-                      <ChevronDown size={16} className="ml-1" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Calendar view with month navigation */}
-                {showCalendar && (
-                  <div className="mb-4 border border-gray-200 rounded-lg p-3">
-                    <div className="flex justify-between items-center mb-3">
-                      <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-gray-100">
-                        <ChevronLeft size={20} />
+                  {/* Time of day filter */}
+                  <div className="flex mb-4">
+                    {["Morning", "Afternoon", "Evening"].map((time) => (
+                      <button
+                        key={time}
+                        onClick={() => handleTimeOfDaySelect(time)}
+                        className={`flex-1 py-2 text-center ${
+                          selectedTimeOfDay === time
+                            ? "bg-emerald-50 text-emerald-700 font-medium border-b-2 border-emerald-500"
+                            : "text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        {time}
                       </button>
-                      <h4 className="font-medium">
-                        {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                      </h4>
-                      <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-gray-100">
-                        <ChevronRight size={20} />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1 mb-2">
-                      {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                        <div key={i} className="text-center text-xs font-medium text-gray-500">
-                          {day}
+                    ))}
+                    <button
+                      onClick={toggleCalendarPopup}
+                      className="ml-2 p-2 bg-gray-100 rounded hover:bg-gray-200 relative"
+                    >
+                      <Calendar size={18} className="text-gray-600" />
+                    </button>
+                    {showCalendarPopup && (
+                      <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg z-20 p-4 border border-gray-200 w-72">
+                        <div className="flex justify-between items-center mb-4">
+                          <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded">
+                            <ChevronLeft size={16} />
+                          </button>
+                          <h3 className="font-medium">
+                            {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                          </h3>
+                          <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded">
+                            <ChevronRight size={16} />
+                          </button>
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="grid grid-cols-7 gap-1">
-                      {days.map((day, index) => (
-                        <div key={index}>
-                          {day !== null ? (
-                            <button
-                              className={`h-8 w-full rounded-md text-sm ${
-                                day === new Date().getDate() &&
-                                month === new Date().getMonth() &&
-                                year === new Date().getFullYear()
-                                  ? "bg-emerald-600 text-white"
-                                  : getDayStatus(day) === "available"
-                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                    : getDayStatus(day) === "limited"
-                                      ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                                      : getDayStatus(day) === "booked"
-                                        ? "bg-red-100 text-red-700 cursor-not-allowed opacity-50"
-                                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                              }`}
-                              disabled={getDayStatus(day) === "booked"}
-                              onClick={() => {
-                                const date = new Date(year, month, day)
-                                const formattedDate = formatDate(date)
-                                setExpandedDate(expandedDate === formattedDate ? null : formattedDate)
-                              }}
-                            >
+                        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                            <div key={day} className="text-xs font-medium text-gray-500">
                               {day}
-                            </button>
-                          ) : (
-                            <div className="h-8 w-full"></div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex justify-between mt-3 text-xs text-gray-500">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-emerald-500 rounded-full mr-1"></div>
-                        <span>Available</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-                        <span>Limited</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-                        <span>Booked</span>
-                      </div>
-                    </div>
-
-                    {/* Show time slots for expanded date */}
-                    {expandedDate && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <h5 className="font-medium text-sm mb-2">Available slots for {expandedDate}</h5>
-                        <div className="grid grid-cols-2 gap-2">
-                          {["9:00 AM", "11:00 AM", "1:00 PM", "3:00 PM"].map((time, index) => (
-                            <button
-                              key={time}
-                              className={`py-1 px-2 rounded text-sm flex items-center justify-between ${
-                                selectedTimeSlot === time
-                                  ? "bg-emerald-600 text-white"
-                                  : index === 2
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : `bg-emerald-50 text-emerald-700 hover:bg-emerald-100`
-                              }`}
-                              disabled={index === 2}
-                              onClick={() => setSelectedTimeSlot(time)}
-                            >
-                              <span>{time}</span>
-                              <div
-                                className={`w-2 h-2 rounded-full ${
-                                  index === 0
-                                    ? "bg-emerald-500"
-                                    : index === 1
-                                      ? "bg-emerald-500"
-                                      : index === 2
-                                        ? "bg-red-500"
-                                        : "bg-emerald-500"
-                                }`}
-                              ></div>
-                            </button>
+                            </div>
                           ))}
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-1">
+                          {days.map((day, i) => (
+                            <div key={i} className="aspect-square">
+                              {day !== null && (
+                                <button
+                                  onClick={() => handleSelectDate(new Date(year, month, day))}
+                                  className={`w-full h-full flex items-center justify-center text-sm rounded-full hover:bg-emerald-50 ${
+                                    getDayStatus(day) === "available"
+                                      ? "hover:text-emerald-600"
+                                      : getDayStatus(day) === "limited"
+                                        ? "text-yellow-600"
+                                        : getDayStatus(day) === "booked"
+                                          ? "text-red-500 line-through"
+                                          : ""
+                                  }`}
+                                >
+                                  {day}
+                                  <span
+                                    className={`absolute bottom-1 w-1 h-1 rounded-full ${getStatusColor(getDayStatus(day))}`}
+                                  ></span>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs">
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
+                            <span>Available</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>
+                            <span>Limited</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-red-500 mr-1"></span>
+                            <span>Booked</span>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
-                )}
 
-                <div className="space-y-2 mb-6">
-                  {coach.availabilityCalendar?.slice(0, 3).map((day, index) => (
-                    <div
-                      key={day.date}
-                      className={`p-3 rounded-md cursor-pointer transition-colors border ${
-                        selectedDate === day.date
-                          ? "bg-emerald-50 border-emerald-200"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                      onClick={() => {
-                        if (selectedDate === day.date) {
-                          setSelectedDate(null)
-                        } else {
-                          setSelectedDate(day.date)
-                        }
-                      }}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{day.date}</span>
+                  {/* Date selection with horizontal scroll */}
+                  <div className="overflow-x-auto pb-2 mb-4">
+                    <div className="flex space-x-2 min-w-max">
+                      {availableDates.map((item, index) => (
                         <div
-                          className={`px-2 py-0.5 rounded-full text-xs text-white ${
-                            index % 3 === 0 ? "bg-emerald-500" : index % 3 === 1 ? "bg-yellow-500" : "bg-red-500"
+                          key={index}
+                          onClick={() => handleDateSelect(index)}
+                          className={`w-20 p-2 text-center rounded-md cursor-pointer ${
+                            selectedDateIndex === index
+                              ? "bg-gray-700 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
-                          {index % 3 === 0 ? "Available" : index % 3 === 1 ? "Limited" : "Few Slots"}
+                          <div className="text-xs">{item.day}</div>
+                          <div className="text-xs">{item.date}</div>
                         </div>
-                      </div>
-
-                      {selectedDate === day.date && (
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          {day.slots.map((slot) => (
-                            <button
-                              key={slot.time}
-                              className={`py-1 px-2 rounded text-sm flex items-center justify-between ${
-                                selectedTimeSlot === slot.time
-                                  ? "bg-emerald-600 text-white"
-                                  : slot.status === "booked"
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : `${getStatusColor(slot.status)} bg-opacity-10 text-gray-700 hover:bg-opacity-20`
-                              }`}
-                              disabled={slot.status === "booked"}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedTimeSlot(slot.time)
-                              }}
-                            >
-                              <span>{slot.time}</span>
-                              <div className={`w-2 h-2 rounded-full ${getStatusColor(slot.status)}`}></div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors mb-6">
-                  Book Now
-                </button>
-
-                {/* Request for Availability - Fixed layout with image */}
-                <div className="border-t border-gray-100 pt-4">
-                  <h3 className="font-medium mb-4">Request for Availability</h3>
-
-                  <div className="mb-4 relative h-40 rounded-lg overflow-hidden">
-                    <Image
-                      src="/placeholder.svg?height=160&width=400"
-                      alt="Request availability"
-                      fill
-                      className="object-cover"
-                      style={{ transform: "none" }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                      <p className="text-white text-sm">
-                        Can't find a suitable time? Send a request to {coach.name} for personalized scheduling.
-                      </p>
+                      ))}
                     </div>
                   </div>
 
-                  <form className="space-y-4">
-                    <div>
-                      <label htmlFor="name" className="block text-sm text-gray-600 mb-1">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        placeholder="Enter Name"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="email" className="block text-sm text-gray-600 mb-1">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        placeholder="Enter Email Address"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="phone" className="block text-sm text-gray-600 mb-1">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        placeholder="Enter Phone Number"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="purpose" className="block text-sm text-gray-600 mb-1">
-                        Email Phone Purpose
-                      </label>
-                      <input
-                        type="text"
-                        id="purpose"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        placeholder="Enter Purpose"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="court" className="block text-sm text-gray-600 mb-1">
-                        Court
-                      </label>
-                      <select
-                        id="court"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                  {/* Time slots grid */}
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    {timeSlots[selectedTimeOfDay].map((slot, index) => (
+                      <div
+                        key={index}
+                        onClick={() => (slot.slots > 0 ? handleTimeSlotSelect(slot) : null)}
+                        className={`text-center p-2 rounded cursor-pointer ${
+                          selectedTimeSlot?.time === slot.time && slot.slots > 0
+                            ? "bg-emerald-500 text-white"
+                            : slot.slots > 0
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                              : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        }`}
                       >
-                        <option value="">Select Court</option>
-                        <option value="court1">Court 1</option>
-                        <option value="court2">Court 2</option>
-                      </select>
-                    </div>
+                        <div className="text-xs mb-1">{slot.time.split(" - ")[0]}</div>
+                        <div className="text-xs">
+                          {slot.slots} {slot.slots === 1 ? "Slot" : "Slots"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-                    <div>
-                      <label htmlFor="details" className="block text-sm text-gray-600 mb-1">
-                        Details
-                      </label>
-                      <textarea
-                        id="details"
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        placeholder="Enter Details"
-                      ></textarea>
-                    </div>
+                  {/* Select duration section */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-lg text-emerald-800 mb-4">Select duration</h3>
 
-                    <div className="flex items-start">
-                      <input type="checkbox" id="terms" className="mt-1 mr-2" />
-                      <label htmlFor="terms" className="text-xs text-gray-600">
-                        By clicking "Send Request", I agree to DreamSports' Terms of Service and acknowledge that I have
-                        read the Privacy Policy.
-                      </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { period: "FOR 1 DAY", price: 322, originalPrice: 495, discount: 35 },
+                        { period: "FOR 1 WEEK", price: 300, originalPrice: 460, discount: 35 },
+                        { period: "FOR 1 MONTH", price: 276, originalPrice: 500, discount: 45 },
+                        { period: "FOR 3 MONTHS", price: 249, originalPrice: 510, discount: 51 },
+                      ].map((option) => (
+                        <div
+                          key={option.period}
+                          onClick={() => handleDurationSelect(option.period)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            selectedDuration === option.period
+                              ? "border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]"
+                              : "border-gray-200 hover:border-emerald-200 hover:bg-emerald-50"
+                          }`}
+                        >
+                          <div className="flex flex-col h-full">
+                            <div className="text-xs font-medium mb-1 text-gray-600">{option.period}</div>
+                            <div className="font-bold text-emerald-700 text-lg">₹{option.price}/hr</div>
+                            <div className="mt-auto flex items-center justify-between">
+                              <div className="text-xs text-gray-500 line-through">₹{option.originalPrice}/hr</div>
+                              <div className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-1 rounded-full">
+                                {option.discount}% off
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  </div>
 
-                    <button
-                      type="submit"
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors"
-                    >
-                      Send Request
-                    </button>
-                  </form>
+                  {/* Checkout section */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-lg text-emerald-800 mb-4">Booking Summary</h3>
+
+                    {selectedTimeSlot ? (
+                      <>
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                          <div className="space-y-3 text-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Clock size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Time Slot</span>
+                              </div>
+                              <span className="text-gray-900">{selectedTimeSlot.time}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Calendar size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Duration</span>
+                              </div>
+                              <span className="text-gray-900">{selectedDuration.toLowerCase()}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Calendar size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Starting Date</span>
+                              </div>
+                              <span className="text-gray-900">
+                                {availableDates[selectedDateIndex].day} {availableDates[selectedDateIndex].date}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Calendar size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Ending Date</span>
+                              </div>
+                              <span className="text-gray-900">Sun 22 June</span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Clock size={16} className="text-emerald-600 mr-2" />
+                                <span className="text-gray-700 font-medium">Total Hours</span>
+                              </div>
+                              <span className="text-gray-900">60 hours</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Order summary */}
+                        <div className="bg-emerald-50 rounded-lg p-4 mb-4 border border-emerald-100">
+                          <div className="flex justify-between font-medium text-gray-800 mb-2">
+                            <span className="text-emerald-800">Total Amount</span>
+                            <span className="text-emerald-800 text-lg">₹ {calculateTotal().toLocaleString()}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 bg-white p-2 rounded">
+                            <div className="flex justify-between mb-1">
+                              <span>Coaching Fee (60 hrs x ₹ 249/hr)</span>
+                              <span>₹ {(249 * 60).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Taxes & Platform Fee</span>
+                              <span>₹ 1,245</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-md transition-colors flex items-center justify-center gap-2 shadow-md">
+                          <span>Proceed to pay ₹ {calculateTotal().toLocaleString()}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <Calendar size={24} className="text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500">Please select a time slot to continue</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Request different time */}
+                  <div className="mt-6">
+                    <h3 className="text-center text-emerald-700 font-medium mb-3">Request a different time slot?</h3>
+
+                    <div className="flex items-center gap-3 border border-gray-200 rounded-full p-2 pl-3">
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                        <Image
+                          src={coach.image || "/placeholder.svg?height=32&width=32"}
+                          alt={coach.name}
+                          width={32}
+                          height={32}
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Message {coach.name}</div>
+                        <div className="text-xs text-gray-500">Avg. response time: 1 hour</div>
+                      </div>
+                      <button className="bg-emerald-50 text-emerald-700 p-2 rounded-full">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keep the "Listing By Owner" section as is */}
+              <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
+                <div className="p-4 border-b border-gray-100">
+                  <h2 className="text-lg font-bold">Listing By Owner</h2>
+                </div>
+
+                <div className="p-4">
+                  <div className="bg-gray-100 rounded-lg h-32 mb-4 relative overflow-hidden">
+                    <Image
+                      src="/placeholder.svg?height=128&width=300"
+                      alt="Manchester Academy"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <h3 className="font-medium">Sarah Sports Academy</h3>
+                  <p className="text-sm text-gray-500 mb-2">@sarahsports</p>
+                  <p className="text-sm text-gray-600 mb-4">Member since: 2020</p>
+
+                  <h3 className="font-medium mb-2">Share Venue</h3>
+                  <div className="flex gap-2">
+                    {[Facebook, Twitter, Instagram, Linkedin, Youtube].map((Icon, index) => (
+                      <a
+                        key={index}
+                        href="#"
+                        className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-colors"
+                      >
+                        <Icon size={16} />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Similar Coaches Section - Improved with slider */}
+        {/* Similar Coaches Section */}
         <div className="max-w-7xl mx-auto px-4 py-8">
           <h2 className="text-2xl font-bold mb-6">Similar {coach.sport} Coaches</h2>
 
@@ -1090,6 +1218,70 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
           </div>
         </div>
       </main>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-bold">Write a Review</h2>
+              <button onClick={toggleReviewModal} className="text-gray-500 hover:text-gray-700">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button key={star} className="text-yellow-400 hover:scale-110 transition-transform">
+                      <Star size={24} className="fill-yellow-400" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="review" className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Review
+                </label>
+                <textarea
+                  id="review"
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-md p-2 text-sm"
+                  placeholder="Share your experience with this coach..."
+                ></textarea>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Add Photos (optional)</label>
+                <div className="flex items-center justify-center border-2 border-dashed border-gray-300 p-4 rounded-md">
+                  <div className="text-center">
+                    <div className="mt-1 flex justify-center">
+                      <button className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-md text-sm font-medium">
+                        Upload Photos
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 5MB</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  onClick={toggleReviewModal}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700">
+                  Submit Review
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </>
