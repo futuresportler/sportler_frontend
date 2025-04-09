@@ -8,13 +8,15 @@ import AcademiesList from "./AcademiesList"
 import AcademiesSearchBar from "./AcademiesSearchBar"
 import Pagination from "@/components/coaches/Pagination"
 import type { Academy, AcademyFilterOptions } from "@/types/academy"
-import { dummyAcademies } from "@/data/academies-data"
+import { newAcademies } from "@/data/new-academies-data"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 
 export default function AcademiesLayout() {
-  const [academies, setAcademies] = useState<Academy[]>(dummyAcademies)
-  const [filteredAcademies, setFilteredAcademies] = useState<Academy[]>(dummyAcademies)
+  // State to hold the academies data
+  const [academies, setAcademies] = useState<Academy[]>([])
+  const [filteredAcademies, setFilteredAcademies] = useState<Academy[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -29,9 +31,25 @@ export default function AcademiesLayout() {
     availabilityTimeSlots: [],
     amenities: [],
     languages: [],
+    sports: [],
     category: "",
     searchQuery: "",
   })
+
+  // Load academies data
+  useEffect(() => {
+    console.log("Loading academies data from newAcademies:", newAcademies.length)
+
+    if (newAcademies && newAcademies.length > 0) {
+      // Set the academies directly without the timeout
+      setAcademies(newAcademies)
+      setFilteredAcademies(newAcademies)
+      setIsLoading(false)
+    } else {
+      console.error("No academies data found in newAcademies")
+      setIsLoading(false)
+    }
+  }, [])
 
   const academiesPerPage = 6
   const totalPages = Math.ceil(filteredAcademies.length / academiesPerPage)
@@ -62,31 +80,70 @@ export default function AcademiesLayout() {
 
   // Filter academies based on filter options
   useEffect(() => {
-    let result = [...dummyAcademies]
+    console.log("Filtering academies:", academies.length, "academies available")
+    if (academies.length === 0) return
+
+    // Check if any filters are active
+    const hasActiveFilters =
+      (filterOptions.category && filterOptions.category !== "All Categories") ||
+      (filterOptions.sports && filterOptions.sports.length > 0) ||
+      (filterOptions.price && (filterOptions.price.min > 50 || filterOptions.price.max < 500)) ||
+      (filterOptions.rating && filterOptions.rating > 0) ||
+      (filterOptions.certificationLevel && filterOptions.certificationLevel.length > 0) ||
+      (filterOptions.sessionType && filterOptions.sessionType.length > 0) ||
+      (filterOptions.searchQuery && filterOptions.searchQuery.length > 0) ||
+      (filterOptions.amenities && filterOptions.amenities.length > 0) ||
+      (filterOptions.languages && filterOptions.languages.length > 0) ||
+      sortBy !== "relevance"
+
+    // If no filters are active, just use all academies
+    if (!hasActiveFilters) {
+      console.log("No active filters, showing all academies")
+      setFilteredAcademies(academies)
+      setCurrentPage(1)
+      return
+    }
+
+    let result = [...academies]
 
     // Filter by category (case insensitive)
     if (filterOptions.category && filterOptions.category !== "All Categories") {
-      result = result.filter((academy) => academy.category.toLowerCase() === filterOptions.category.toLowerCase())
+      result = result.filter((academy) => academy.category.toLowerCase() === filterOptions.category?.toLowerCase())
+    }
+
+    // Filter by sports
+    if (filterOptions.sports && filterOptions.sports.length > 0) {
+      result = result.filter((academy) => academy.sports?.some((sport) => filterOptions.sports?.includes(sport)))
     }
 
     // Filter by price range
-    result = result.filter(
-      (academy) => academy.hourlyRate >= filterOptions.price.min && academy.hourlyRate <= filterOptions.price.max,
-    )
+    if (filterOptions.price) {
+      result = result.filter(
+        (academy) =>
+          academy.hourlyRate !== undefined &&
+          academy.hourlyRate >= filterOptions.price!.min &&
+          academy.hourlyRate <= filterOptions.price!.max,
+      )
+    }
 
     // Filter by rating
-    if (filterOptions.rating > 0) {
-      result = result.filter((academy) => academy.rating >= filterOptions.rating)
+    if (filterOptions.rating && filterOptions.rating > 0) {
+      result = result.filter((academy) => academy.rating !== undefined && academy.rating >= filterOptions.rating!)
     }
 
     // Filter by certification level
-    if (filterOptions.certificationLevel.length > 0) {
-      result = result.filter((academy) => filterOptions.certificationLevel.includes(academy.certificationLevel))
+    if (filterOptions.certificationLevel && filterOptions.certificationLevel.length > 0) {
+      result = result.filter(
+        (academy) =>
+          academy.certificationLevel && filterOptions.certificationLevel?.includes(academy.certificationLevel),
+      )
     }
 
     // Filter by session type
-    if (filterOptions.sessionType.length > 0) {
-      result = result.filter((academy) => academy.sessionTypes.some((type) => filterOptions.sessionType.includes(type)))
+    if (filterOptions.sessionType && filterOptions.sessionType.length > 0) {
+      result = result.filter((academy) =>
+        academy.sessionTypes?.some((type) => filterOptions.sessionType?.includes(type)),
+      )
     }
 
     // Filter by search query (case insensitive)
@@ -97,35 +154,36 @@ export default function AcademiesLayout() {
           academy.title.toLowerCase().includes(query) ||
           academy.location.toLowerCase().includes(query) ||
           academy.description.toLowerCase().includes(query) ||
-          academy.category.toLowerCase().includes(query),
+          academy.category.toLowerCase().includes(query) ||
+          academy.sports?.some((sport) => sport.toLowerCase().includes(query)),
       )
     }
 
     // Filter by amenities
-    if (filterOptions.amenities.length > 0) {
+    if (filterOptions.amenities && filterOptions.amenities.length > 0) {
       result = result.filter((academy) =>
-        academy.amenities.some((amenity) => filterOptions.amenities.includes(amenity)),
+        academy.amenities.some((amenity) => filterOptions.amenities?.includes(amenity)),
       )
     }
 
     // Filter by languages
-    if (filterOptions.languages.length > 0) {
-      result = result.filter((academy) => academy.languages.some((lang) => filterOptions.languages.includes(lang)))
+    if (filterOptions.languages && filterOptions.languages.length > 0) {
+      result = result.filter((academy) => academy.languages.some((lang) => filterOptions.languages?.includes(lang)))
     }
 
     // Sort academies
     if (sortBy === "price-low") {
-      result.sort((a, b) => a.hourlyRate - b.hourlyRate)
+      result.sort((a, b) => (a.hourlyRate || 0) - (b.hourlyRate || 0))
     } else if (sortBy === "price-high") {
-      result.sort((a, b) => b.hourlyRate - a.hourlyRate)
+      result.sort((a, b) => (b.hourlyRate || 0) - (a.hourlyRate || 0))
     } else if (sortBy === "rating") {
-      result.sort((a, b) => b.rating - a.rating)
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0))
     }
 
     setFilteredAcademies(result)
     // Reset to first page when filters change
     setCurrentPage(1)
-  }, [filterOptions, sortBy])
+  }, [filterOptions, sortBy, academies])
 
   const handleFilterChange = (newOptions: Partial<AcademyFilterOptions>) => {
     setFilterOptions((prev) => ({ ...prev, ...newOptions }))
@@ -139,18 +197,8 @@ export default function AcademiesLayout() {
     // Add custom scrollbar styling and animations
     const style = document.createElement("style")
     style.textContent = `
-      .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
-      }
-      .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: rgba(16, 185, 129, 0.2);
-        border-radius: 20px;
-      }
-      .scrollbar-thin:hover::-webkit-scrollbar-thumb {
-        background-color: rgba(16, 185, 129, 0.4);
+      html {
+        scroll-behavior: smooth;
       }
       
       @keyframes heartbeat {
@@ -181,8 +229,17 @@ export default function AcademiesLayout() {
     }
   }, [])
 
+  console.log("Rendering with:", {
+    isLoading,
+    academiesCount: academies.length,
+    filteredCount: filteredAcademies.length,
+    currentCount: currentAcademies.length,
+    currentPage,
+    totalPages,
+  })
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Header />
       <AcademiesHeader />
 
@@ -207,18 +264,22 @@ export default function AcademiesLayout() {
 
           <div className="flex-1 flex flex-col">
             <div className="mb-4 flex justify-between items-center">
-              <p className="text-gray-700 font-medium">{filteredAcademies.length} academies are listed</p>
+              <p className="text-gray-700 font-medium">
+                {isLoading ? "Loading academies..." : `${filteredAcademies.length} academies are listed`}
+              </p>
             </div>
 
-            <div
-              className="overflow-y-auto pr-2 pb-4 flex-1 scrollbar-thin"
-              style={{
-                height: "calc(100vh - 350px)",
-                scrollbarWidth: "thin",
-                scrollbarColor: "rgba(16, 185, 129, 0.2) transparent",
-              }}
-            >
-              {viewMode === "grid" ? (
+            <div className="pb-6 flex-1">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+                </div>
+              ) : filteredAcademies.length === 0 ? (
+                <div className="bg-white rounded-lg p-8 text-center">
+                  <h3 className="text-xl font-semibold mb-2">No academies found</h3>
+                  <p className="text-gray-600">Try adjusting your filters or search criteria</p>
+                </div>
+              ) : viewMode === "grid" ? (
                 <AcademiesGrid academies={currentAcademies} currentPage={currentPage} />
               ) : viewMode === "list" ? (
                 <AcademiesList academies={currentAcademies} currentPage={currentPage} />
@@ -229,9 +290,11 @@ export default function AcademiesLayout() {
               )}
             </div>
 
-            <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
-              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
-            </div>
+            {!isLoading && filteredAcademies.length > 0 && (
+              <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -244,4 +307,3 @@ export default function AcademiesLayout() {
     </div>
   )
 }
-

@@ -28,7 +28,7 @@ import {
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import type { Academy } from "@/types/academy"
-import { dummyAcademies } from "@/data/academies-data"
+import { newAcademies } from "@/data/new-academies-data"
 
 interface AcademyDetailProps {
   academy: Academy
@@ -76,19 +76,26 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
   const locationsRef = useRef<HTMLDivElement>(null)
 
   // Get similar academies (same category)
-  const similarAcademies = dummyAcademies
+  const similarAcademies = newAcademies
     .filter((a) => a.id !== academy.id && a.category.toLowerCase() === academy.category.toLowerCase())
     .slice(0, 9)
 
   const visibleAcademies = 3
 
+  // Get gallery images or use placeholder
+  const galleryImages = academy.detailData.gallery || [
+    "/placeholder.svg?height=600&width=800",
+    "/placeholder.svg?height=600&width=800",
+    "/placeholder.svg?height=600&width=800",
+  ]
+
   // Auto-rotate gallery images
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev === academy.detailData.gallery.length - 1 ? 0 : prev + 1))
+      setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))
     }, 5000)
     return () => clearInterval(interval)
-  }, [academy.detailData.gallery.length])
+  }, [galleryImages.length])
 
   // Toggle section expansion
   const toggleSection = (section: string) => {
@@ -134,11 +141,11 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
   // Handle slider navigation
   const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => (prev === 0 ? academy.detailData.gallery.length - 1 : prev - 1))
+    setCurrentImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))
   }
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prev) => (prev === academy.detailData.gallery.length - 1 ? 0 : prev + 1))
+    setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))
   }
 
   // Handle similar academies navigation
@@ -356,10 +363,10 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
     <>
       <Header />
 
-      <main className="bg-white pt-16">
+      <main className="bg-white pt-16 w-full">
         {/* Hero Banner with Image Slider */}
         <div className="relative h-[400px] bg-gray-200">
-          {academy.detailData.gallery.map((image, index) => (
+          {galleryImages.map((image, index) => (
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-1000 ${
@@ -393,7 +400,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
           {/* Slider indicators */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
-            {academy.detailData.gallery.map((_, index) => (
+            {galleryImages.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
@@ -425,36 +432,44 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={16}
-                        className={star <= academy.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
-                      />
-                    ))}
+                {academy.rating && (
+                  <div className="flex items-center">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={16}
+                          className={
+                            star <= (academy.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                          }
+                        />
+                      ))}
+                    </div>
+                    <span className="ml-2 text-sm">{academy.reviewCount} Reviews</span>
                   </div>
-                  <span className="ml-2 text-sm">{academy.reviewCount} Reviews</span>
-                </div>
+                )}
                 <div className="flex items-center">
                   <MapPin size={16} className="mr-1" />
                   <span className="text-sm">{academy.location}</span>
                 </div>
-                <div className="flex items-center">
-                  <Clock size={16} className="mr-1" />
-                  <span className="text-sm">{academy.time}</span>
-                </div>
-                <div className="px-2 py-1 bg-emerald-600 rounded-md text-sm">${academy.hourlyRate}/hr</div>
+                {academy.time && (
+                  <div className="flex items-center">
+                    <Clock size={16} className="mr-1" />
+                    <span className="text-sm">{academy.time}</span>
+                  </div>
+                )}
+                {academy.hourlyRate && (
+                  <div className="px-2 py-1 bg-emerald-600 rounded-md text-sm">${academy.hourlyRate}/hr</div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="w-full max-w-[2000px] mx-auto px-4 py-6">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Main Content */}
-            <div className="lg:w-2/3">
+            <div className="lg:w-3/4 w-full">
               {/* Tabs Navigation */}
               <div className="border-b border-gray-200 mb-8 sticky top-16 bg-white z-20 rounded-t-lg shadow-md px-2">
                 <div className="flex overflow-x-auto py-1">
@@ -496,6 +511,19 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                       Our facility features {academy.amenities.join(", ")} and more. We pride ourselves on maintaining
                       professional standards and creating a welcoming environment for all sports enthusiasts.
                     </p>
+
+                    {academy.sports && academy.sports.length > 0 && (
+                      <div className="mt-4">
+                        <h3 className="text-lg font-medium text-gray-800 mb-2">Sports Offered</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {academy.sports.map((sport, index) => (
+                            <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                              {sport}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -636,7 +664,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
                 {expandedSections.gallery && (
                   <div className="grid grid-cols-3 gap-4">
-                    {academy.detailData.gallery.map((image, index) => (
+                    {galleryImages.map((image, index) => (
                       <div
                         key={index}
                         className="relative aspect-square rounded-lg overflow-hidden group border border-gray-200"
@@ -677,14 +705,16 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   <div>
                     <div className="flex items-center justify-between mb-8 bg-gray-50 p-6 rounded-lg">
                       <div className="flex items-center">
-                        <div className="text-4xl font-bold mr-4 text-emerald-600">{academy.rating}</div>
+                        <div className="text-4xl font-bold mr-4 text-emerald-600">{academy.rating || "N/A"}</div>
                         <div>
                           <div className="flex mb-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
                                 size={18}
-                                className={star <= academy.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                                className={
+                                  star <= (academy.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                                }
                               />
                             ))}
                           </div>
@@ -693,7 +723,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                       </div>
 
                       <div>
-                        <div className="text-sm font-medium">Recommended by 97% of Players</div>
+                        <div className="text-sm font-medium">Recommended by {academy.reviewCount || 0} Players</div>
                         <div className="flex gap-4 mt-2">
                           <div className="text-xs">
                             <div className="font-medium">Service</div>
@@ -748,7 +778,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                                     key={star}
                                     size={16}
                                     className={
-                                      star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                                      star <= (review.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
                                     }
                                   />
                                 ))}
@@ -832,9 +862,8 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                     <div className="mt-6 p-5 bg-gray-50 rounded-lg border border-gray-100">
                       <h3 className="font-medium text-lg mb-3">Directions</h3>
                       <p className="text-gray-600">
-                        Located in the heart of the city, our academy is easily accessible by public transportation. The
-                        nearest subway station is just a 5-minute walk away. Parking is available on-site for those
-                        driving.
+                        Located in {academy.location}, our academy is easily accessible by public transportation. Please
+                        contact us for detailed directions from your location.
                       </p>
                     </div>
                   </div>
@@ -843,18 +872,18 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
             </div>
 
             {/* Sidebar - Booking Section */}
-            <div className="lg:w-1/3">
+            <div className="lg:w-1/4 w-full">
               <div className="bg-white rounded-lg shadow-md border border-gray-100 sticky top-24">
                 <div className="p-5">
                   <h3 className="text-lg font-bold text-gray-800 mb-4">Select a slot</h3>
 
                   {/* Time of day selection - Clean UI with underline indicator */}
-                  <div className="flex border-b border-gray-200 mb-4">
+                  <div className="flex border-b border-gray-200 mb-3">
                     {["Morning", "Afternoon", "Evening"].map((timeOfDay) => (
                       <button
                         key={timeOfDay}
                         onClick={() => setSelectedTimeOfDay(timeOfDay.toLowerCase())}
-                        className={`flex-1 text-center py-2 px-2 font-medium text-sm relative ${
+                        className={`flex-1 text-center py-1.5 px-1 font-medium text-xs relative ${
                           selectedTimeOfDay === timeOfDay.toLowerCase()
                             ? "text-emerald-600"
                             : "hover:text-emerald-500 text-gray-600"
@@ -868,27 +897,27 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                     ))}
                     <button
                       onClick={() => setShowCalendar(!showCalendar)}
-                      className="p-2 text-gray-500 hover:text-emerald-600"
+                      className="p-1.5 text-gray-500 hover:text-emerald-600"
                     >
-                      <Calendar size={18} />
+                      <Calendar size={16} />
                     </button>
                   </div>
 
                   {/* Date selection - more compact horizontal scrolling cards */}
-                  <div className="mb-4">
-                    <div className="flex overflow-x-auto space-x-2 pb-2">
+                  <div className="mb-3">
+                    <div className="flex overflow-x-auto space-x-1.5 pb-1.5">
                       {getNextDates().map((date) => (
                         <button
                           key={date.id}
                           onClick={() => setSelectedDate(date.id)}
-                          className={`flex-shrink-0 w-16 rounded-lg flex flex-col items-center justify-center py-2 ${
+                          className={`flex-shrink-0 w-14 rounded-lg flex flex-col items-center justify-center py-1.5 ${
                             selectedDate === date.id
                               ? "bg-emerald-50 border-2 border-emerald-600 text-emerald-600"
                               : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-emerald-200"
                           }`}
                         >
                           <div className="font-medium text-xs">{date.dayName}</div>
-                          <div className="text-xs mt-1">{date.date}</div>
+                          <div className="text-xs mt-0.5">{date.date}</div>
                         </button>
                       ))}
                     </div>
@@ -949,13 +978,13 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   )}
 
                   {/* Time slots - compact grid layout */}
-                  <div className="mb-4">
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="mb-3">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {getTimeSlots(selectedTimeOfDay).map((slot) => (
                         <button
                           key={slot.id}
                           onClick={() => setSelectedTimeSlot(slot.id)}
-                          className={`relative p-2 rounded-lg flex flex-col items-center justify-center transition-all ${
+                          className={`relative p-1.5 rounded-lg flex flex-col items-center justify-center transition-all ${
                             selectedTimeSlot === slot.id
                               ? "bg-emerald-100 border-2 border-emerald-500"
                               : "bg-emerald-50 border border-gray-200 hover:border-emerald-300"
@@ -969,9 +998,9 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   </div>
 
                   {/* Select duration */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Select duration</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="mb-3">
+                    <h4 className="text-xs font-medium text-gray-700 mb-1.5">Select duration</h4>
+                    <div className="grid grid-cols-2 gap-1.5">
                       {[
                         { id: "weekly", name: "FOR 1 WEEK", price: 99, hourly: 25, discount: 0 },
                         { id: "biweekly", name: "FOR 2 WEEKS", price: 179, hourly: 22, discount: 10 },
@@ -981,7 +1010,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                         <button
                           key={plan.id}
                           onClick={() => setSelectedPlan(plan.id)}
-                          className={`relative p-3 rounded-lg border ${
+                          className={`relative p-2 rounded-lg border ${
                             selectedPlan === plan.id
                               ? "border-emerald-300 bg-emerald-50 shadow-sm"
                               : "border-gray-200 hover:border-emerald-200 hover:bg-gray-50"
@@ -989,7 +1018,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                         >
                           <div className="text-center">
                             <div className="font-medium text-gray-600 text-xs">{plan.name}</div>
-                            <div className="text-emerald-600 font-bold text-lg mt-1">${plan.hourly}/hr</div>
+                            <div className="text-emerald-600 font-bold text-base mt-0.5">${plan.hourly}/hr</div>
                             <div className="text-xs text-gray-500 line-through">${plan.hourly + 5}/hr</div>
 
                             {plan.discount > 0 && (
@@ -1004,11 +1033,11 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   </div>
 
                   {/* Booking Summary */}
-                  <div className="mt-4 border-t border-gray-200 pt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Booking Summary</h4>
+                  <div className="mt-3 border-t border-gray-200 pt-3">
+                    <h4 className="text-xs font-medium text-gray-700 mb-1.5">Booking Summary</h4>
 
                     {isReadyToProceed ? (
-                      <div className="space-y-2 text-sm mb-4">
+                      <div className="space-y-1.5 text-xs mb-3">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Plan:</span>
                           <span className="font-medium capitalize">{selectedPlan}</span>
@@ -1037,28 +1066,28 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                         )}
                       </div>
                     ) : (
-                      <div className="bg-gray-50 p-3 rounded-lg mb-4 text-center">
-                        <p className="text-sm text-gray-500">Please select all options to see booking details</p>
+                      <div className="bg-gray-50 p-2 rounded-lg mb-3 text-center">
+                        <p className="text-xs text-gray-500">Please select all options to see booking details</p>
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center mb-3">
                       <span className="font-medium text-gray-700">Total:</span>
-                      <span className="font-bold text-xl text-emerald-600">${calculateTotalPrice()}</span>
+                      <span className="font-bold text-lg text-emerald-600">${calculateTotalPrice()}</span>
                     </div>
 
                     <button
-                      className={`w-full py-3 rounded-md font-medium text-white ${
+                      className={`w-full py-2.5 rounded-md font-medium text-white text-sm ${
                         isReadyToProceed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-300"
                       }`}
                       disabled={!isReadyToProceed}
                     >
-                      {isReadyToProceed ? "Pay Now" : "Select all options to continue"}
+                      {isReadyToProceed ? "Pay Now" : "Select all options"}
                     </button>
 
-                    <div className="text-center mt-3">
+                    <div className="text-center mt-2">
                       <button className="text-emerald-600 text-xs hover:underline flex items-center justify-center mx-auto">
-                        <Info size={12} className="mr-1" />
+                        <Info size={10} className="mr-1" />
                         Request a different time slot
                       </button>
                     </div>
@@ -1086,127 +1115,134 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
         </div>
 
         {/* Similar Academies Section - Full Width */}
-        <div className="mt-16 bg-gradient-to-br from-emerald-50 to-white py-8">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl font-bold mb-8 flex items-center">
-              <span className="bg-emerald-100 p-2 rounded-full mr-3">
-                <MapPin size={20} className="text-emerald-600" />
-              </span>
-              Similar Academies
-            </h2>
+        {similarAcademies.length > 0 && (
+          <div className="mt-12 bg-gradient-to-br from-emerald-50 to-white py-8 w-full">
+            <div className="w-full max-w-[2000px] mx-auto px-4">
+              <h2 className="text-2xl font-bold mb-8 flex items-center">
+                <span className="bg-emerald-100 p-2 rounded-full mr-3">
+                  <MapPin size={20} className="text-emerald-600" />
+                </span>
+                Similar Academies
+              </h2>
 
-            <div className="relative">
-              {/* Slider navigation buttons */}
-              <button
-                onClick={handlePrevAcademy}
-                className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
-              >
-                <ChevronLeft size={24} className="text-gray-600" />
-              </button>
-
-              <button
-                onClick={handleNextAcademy}
-                className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
-              >
-                <ChevronRight size={24} className="text-gray-600" />
-              </button>
-
-              {/* Academies slider */}
-              <div className="overflow-hidden py-4">
-                <div
-                  className="flex transition-transform duration-500 ease-in-out gap-6"
-                  style={{ transform: `translateX(-${currentCoachIndex * (100 / visibleAcademies)}%)` }}
+              <div className="relative">
+                {/* Slider navigation buttons */}
+                <button
+                  onClick={handlePrevAcademy}
+                  className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
                 >
-                  {similarAcademies.map((similarAcademy) => (
-                    <div key={similarAcademy.id} className="w-full md:w-1/3 flex-shrink-0">
-                      <Link href={`/academies/${similarAcademy.id}`}>
-                        <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full relative group transform hover:-translate-y-1">
-                          <div className="relative">
-                            <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md z-10">
-                              {similarAcademy.category}
-                            </div>
-                            <div className="absolute top-2 right-2 z-10">
-                              <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
-                                <Heart size={16} className="text-gray-400" />
-                              </button>
-                            </div>
-                            <Image
-                              src={similarAcademy.image || "/placeholder.svg"}
-                              alt={similarAcademy.title}
-                              width={400}
-                              height={300}
-                              className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
-                          </div>
+                  <ChevronLeft size={24} className="text-gray-600" />
+                </button>
 
-                          <div className="p-5">
-                            <div className="flex items-center mb-2">
-                              <h3 className="font-bold text-lg">{similarAcademy.title}</h3>
-                              <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
-                                <Star size={14} className="mr-1 fill-white" />
-                                <span className="text-sm">{similarAcademy.rating}</span>
+                <button
+                  onClick={handleNextAcademy}
+                  className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
+                >
+                  <ChevronRight size={24} className="text-gray-600" />
+                </button>
+
+                {/* Academies slider */}
+                <div className="overflow-hidden py-4">
+                  <div
+                    className="flex transition-transform duration-500 ease-in-out gap-6"
+                    style={{ transform: `translateX(-${currentCoachIndex * (100 / visibleAcademies)}%)` }}
+                  >
+                    {similarAcademies.map((similarAcademy) => (
+                      <div key={similarAcademy.id} className="w-full md:w-1/3 flex-shrink-0">
+                        <Link href={`/academies/${similarAcademy.id}`}>
+                          <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full relative group transform hover:-translate-y-1">
+                            <div className="relative">
+                              <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md z-10">
+                                {similarAcademy.category}
                               </div>
-                            </div>
-
-                            <div className="flex items-center text-gray-600 mb-2 text-sm">
-                              <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
-                              <span className="truncate">{similarAcademy.location}</span>
-                            </div>
-
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarAcademy.description}</p>
-
-                            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                              <div className="flex items-center text-sm">
-                                <Calendar size={14} className="mr-1 text-emerald-600" />
-                                <span className="text-emerald-600 font-medium">{similarAcademy.nextAvailability}</span>
-                              </div>
-
-                              <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
-                                ${similarAcademy.hourlyRate}/hr
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2 mt-4">
-                              <Link href={`/academies/${similarAcademy.id}`} className="flex-1">
-                                <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
-                                  View Details
+                              <div className="absolute top-2 right-2 z-10">
+                                <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
+                                  <Heart size={16} className="text-gray-400" />
                                 </button>
-                              </Link>
-                              <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
-                                Book Now
-                              </button>
+                              </div>
+                              <Image
+                                src={similarAcademy.image || "/placeholder.svg"}
+                                alt={similarAcademy.title}
+                                width={400}
+                                height={300}
+                                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                              />
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
+                            </div>
+
+                            <div className="p-5">
+                              <div className="flex items-center mb-2">
+                                <h3 className="font-bold text-lg">{similarAcademy.title}</h3>
+                                {similarAcademy.rating && (
+                                  <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
+                                    <Star size={14} className="mr-1 fill-white" />
+                                    <span className="text-sm">{similarAcademy.rating}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center text-gray-600 mb-2 text-sm">
+                                <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
+                                <span className="truncate">{similarAcademy.location}</span>
+                              </div>
+
+                              <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarAcademy.description}</p>
+
+                              <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                <div className="flex items-center text-sm">
+                                  <Calendar size={14} className="mr-1 text-emerald-600" />
+                                  <span className="text-emerald-600 font-medium">
+                                    {similarAcademy.nextAvailability}
+                                  </span>
+                                </div>
+
+                                {similarAcademy.hourlyRate && (
+                                  <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                                    ${similarAcademy.hourlyRate}/hr
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex gap-2 mt-4">
+                                <Link href={`/academies/${similarAcademy.id}`} className="flex-1">
+                                  <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
+                                    View Details
+                                  </button>
+                                </Link>
+                                <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
+                                  Book Now
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                    </div>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Slider dots */}
+                <div className="flex justify-center mt-6 space-x-2">
+                  {Array.from({ length: Math.ceil(similarAcademies.length / visibleAcademies) }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentCoachIndex(index * visibleAcademies)}
+                      className={`w-3 h-3 rounded-full transition-colors ${
+                        currentCoachIndex === index * visibleAcademies
+                          ? "bg-emerald-600"
+                          : "bg-gray-300 hover:bg-gray-400"
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
                   ))}
                 </div>
               </div>
-
-              {/* Slider dots */}
-              <div className="flex justify-center mt-6 space-x-2">
-                {Array.from({ length: Math.ceil(similarAcademies.length / visibleAcademies) }).map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentCoachIndex(index * visibleAcademies)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      currentCoachIndex === index * visibleAcademies
-                        ? "bg-emerald-600"
-                        : "bg-gray-300 hover:bg-gray-400"
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
-                ))}
-              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
       <Footer />
     </>
   )
 }
-

@@ -19,6 +19,16 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
   const [animateIn, setAnimateIn] = useState(false)
   const [recentlyFavorited, setRecentlyFavorited] = useState<number | null>(null)
 
+  console.log(
+    "AcademiesList rendering with",
+    academies?.length,
+    "academies",
+    academies?.map((a) => a.id).slice(0, 3),
+    "...",
+  )
+
+  console.log("AcademiesList received:", academies?.length, "academies")
+
   // Page transition animation
   useEffect(() => {
     setAnimateIn(false)
@@ -43,6 +53,17 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
     }
   }
 
+  if (!academies || academies.length === 0) {
+    console.warn("AcademiesList: No academies data received")
+    return (
+      <div className="bg-white rounded-lg p-8 text-center">
+        <h3 className="text-xl font-semibold mb-2">No academies found</h3>
+        <p className="text-gray-600">Try adjusting your filters or search criteria</p>
+        <p className="text-gray-500 mt-4">Debug info: Received {academies ? academies.length : "null"} academies</p>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`space-y-6 relative transition-all duration-500 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
@@ -58,11 +79,11 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
           <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row relative z-10 transform hover:-translate-y-1">
             <div className="relative md:w-1/3 overflow-hidden group">
               <Image
-                src={academy.image || "/placeholder.svg"}
+                src={academy.detailData.gallery?.[0] || "/placeholder.svg?height=400&width=600&text=No+Image"}
                 alt={academy.title}
                 width={400}
                 height={300}
-                className="w-full h-64 md:h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="h-64 w-[400px] object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute top-3 right-3">
@@ -79,9 +100,11 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
                   )}
                 </button>
               </div>
-              <div className="absolute bottom-3 left-3 bg-emerald-800 text-white px-3 py-1 rounded-md text-sm font-medium">
-                From ${academy.hourlyRate}/hr
-              </div>
+              {academy.hourlyRate && (
+                <div className="absolute bottom-3 left-3 bg-emerald-800 text-white px-3 py-1 rounded-md text-sm font-medium">
+                  From ${academy.hourlyRate}/hr
+                </div>
+              )}
               <div className="absolute top-3 left-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium">
                 {academy.category}
               </div>
@@ -102,21 +125,24 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
 
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xl font-bold">{academy.title}</h3>
-                <div className="group relative">
-                  <div className="flex items-center bg-yellow-400 text-white rounded px-2 py-1 transform group-hover:scale-110 transition-transform duration-300 relative z-10">
-                    <Star size={14} className="mr-1 fill-white group-hover:animate-pulse" />
-                    <span className="text-sm font-medium">{academy.rating}</span>
-                    <span className="text-xs ml-1 text-white/80">{academy.reviewCount} Reviews</span>
+                {academy.rating && (
+                  <div className="group relative">
+                    <div className="flex items-center bg-yellow-400 text-white rounded px-2 py-1 transform group-hover:scale-110 transition-transform duration-300 relative z-10">
+                      <Star size={14} className="mr-1 fill-white group-hover:animate-pulse" />
+                      <span className="text-sm font-medium">{academy.rating}</span>
+                      <span className="text-xs ml-1 text-white/80">{academy.reviewCount} Reviews</span>
+                    </div>
+                    {/* Rating background effect */}
+                    <div className="absolute inset-0 bg-yellow-300 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 blur-md"></div>
+                    <div className="absolute inset-0 bg-yellow-200 rounded-full scale-0 group-hover:scale-150 transition-transform duration-500 blur-lg opacity-60"></div>
                   </div>
-                  {/* Rating background effect */}
-                  <div className="absolute inset-0 bg-yellow-300 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 blur-md"></div>
-                  <div className="absolute inset-0 bg-yellow-200 rounded-full scale-0 group-hover:scale-150 transition-transform duration-500 blur-lg opacity-60"></div>
-                </div>
+                )}
               </div>
 
               <div className="flex items-center text-gray-600 mb-3">
                 <MapPin size={16} className="mr-1 text-emerald-600" />
                 <span className="text-sm">{academy.location}</span>
+                {academy.state && <span className="text-sm ml-1 text-gray-400">({academy.state})</span>}
               </div>
 
               <p className="text-gray-600 mb-4 text-sm">{academy.description}</p>
@@ -124,10 +150,20 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
               <div className="flex items-center mb-4">
                 <Clock size={16} className="mr-2 text-emerald-600" />
                 <div className="text-sm">
-                  <span className="text-gray-500">Hours: </span>
-                  <span className="text-emerald-600 font-medium">{academy.time}</span>
+                  <span className="text-gray-500">Available: </span>
+                  <span className="text-emerald-600 font-medium">{academy.nextAvailability}</span>
                 </div>
               </div>
+
+              {academy.sports && academy.sports.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {academy.sports.map((sport, index) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                      {sport}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="flex gap-4">
                 <button className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors transform hover:scale-105">
@@ -146,4 +182,3 @@ export default function AcademiesList({ academies, currentPage }: AcademiesListP
     </div>
   )
 }
-
