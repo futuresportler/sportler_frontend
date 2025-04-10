@@ -23,7 +23,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Award,
-  Info,
+  Phone,
+  Mail,
+  Globe,
+  DollarSign,
 } from "lucide-react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
@@ -32,13 +35,6 @@ import { newAcademies } from "@/data/new-academies-data"
 
 interface AcademyDetailProps {
   academy: Academy
-}
-
-// Time slot type for improved type safety
-interface TimeSlot {
-  id: string
-  time: string
-  slots: number
 }
 
 export default function AcademyDetail({ academy }: AcademyDetailProps) {
@@ -52,13 +48,6 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
     reviews: true,
     locations: true,
   })
-
-  // Booking state
-  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>("morning")
-  const [selectedDate, setSelectedDate] = useState<string>("today")
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null)
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
-  const [showCalendar, setShowCalendar] = useState(false)
 
   // UI state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -75,10 +64,12 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
   const reviewsRef = useRef<HTMLDivElement>(null)
   const locationsRef = useRef<HTMLDivElement>(null)
 
-  // Get similar academies (same category)
+  // Get similar academies (same category) with null checks
   const similarAcademies = newAcademies
-    .filter((a) => a.id !== academy.id && a.category.toLowerCase() === academy.category.toLowerCase())
-    .slice(0, 9)
+    ? newAcademies
+        .filter((a) => a.id !== academy.id && a.category.toLowerCase() === academy.category.toLowerCase())
+        .slice(0, 9)
+    : []
 
   const visibleAcademies = 3
 
@@ -155,208 +146,6 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
   const handleNextAcademy = () => {
     setCurrentCoachIndex((prev) => (prev >= similarAcademies.length - visibleAcademies ? 0 : prev + 1))
-  }
-
-  // Calendar navigation
-  const handlePrevMonth = () => {
-    setCurrentMonth((prevMonth) => {
-      if (prevMonth === 0) {
-        setCurrentYear((prevYear) => prevYear - 1)
-        return 11
-      }
-      return prevMonth - 1
-    })
-  }
-
-  const handleNextMonth = () => {
-    setCurrentMonth((prevMonth) => {
-      if (prevMonth === 11) {
-        setCurrentYear((prevYear) => prevYear + 1)
-        return 0
-      }
-      return prevMonth + 1
-    })
-  }
-
-  // Get plan price
-  const getPlanPrice = (plan: string | null) => {
-    switch (plan) {
-      case "weekly":
-        return 99
-      case "biweekly":
-        return 179
-      case "monthly":
-        return 299
-      case "quarterly":
-        return 799
-      default:
-        return 0
-    }
-  }
-
-  // Get plan sessions
-  const getPlanSessions = (plan: string | null) => {
-    switch (plan) {
-      case "weekly":
-        return 4
-      case "biweekly":
-        return 8
-      case "monthly":
-        return 12
-      case "quarterly":
-        return 36
-      default:
-        return 0
-    }
-  }
-
-  // Get plan duration
-  const getPlanDuration = (plan: string | null) => {
-    switch (plan) {
-      case "weekly":
-        return "1 week"
-      case "biweekly":
-        return "2 weeks"
-      case "monthly":
-        return "1 month"
-      case "quarterly":
-        return "3 months"
-      default:
-        return ""
-    }
-  }
-
-  // Get plan discount
-  const getPlanDiscount = (plan: string | null) => {
-    switch (plan) {
-      case "weekly":
-        return 0
-      case "biweekly":
-        return 10
-      case "monthly":
-        return 15
-      case "quarterly":
-        return 25
-      default:
-        return 0
-    }
-  }
-
-  // Get plan hourly rate
-  const getPlanHourlyRate = (plan: string | null) => {
-    switch (plan) {
-      case "weekly":
-        return 25
-      case "biweekly":
-        return 22
-      case "monthly":
-        return 20
-      case "quarterly":
-        return 18
-      default:
-        return 0
-    }
-  }
-
-  // Get dates for the next week
-  const getNextDates = () => {
-    const dates = []
-    const today = new Date()
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-    for (let i = 0; i < 5; i++) {
-      const date = new Date()
-      date.setDate(today.getDate() + i)
-
-      const dayName = dayNames[date.getDay()]
-      const dayMonth = date.getDate() + " " + date.toLocaleDateString("en-US", { month: "short" })
-
-      dates.push({
-        id: `day-${i}`,
-        dayName: dayName,
-        date: dayMonth,
-        isToday: i === 0,
-      })
-    }
-
-    return dates
-  }
-
-  // Get time slots based on time of day and date
-  const getTimeSlots = (timeOfDay: string): TimeSlot[] => {
-    switch (timeOfDay) {
-      case "morning":
-        return [
-          { id: "m1", time: "7:00 AM", slots: 2 },
-          { id: "m2", time: "8:00 AM", slots: 2 },
-          { id: "m3", time: "9:00 AM", slots: 3 },
-          { id: "m4", time: "10:00 AM", slots: 1 },
-          { id: "m5", time: "11:00 AM", slots: 2 },
-        ]
-      case "afternoon":
-        return [
-          { id: "a1", time: "12:00 PM", slots: 4 },
-          { id: "a2", time: "1:00 PM", slots: 3 },
-          { id: "a3", time: "2:00 PM", slots: 5 },
-          { id: "a4", time: "3:00 PM", slots: 2 },
-          { id: "a5", time: "4:00 PM", slots: 2 },
-        ]
-      case "evening":
-        return [
-          { id: "e1", time: "5:00 PM", slots: 3 },
-          { id: "e2", time: "6:00 PM", slots: 4 },
-          { id: "e3", time: "7:00 PM", slots: 2 },
-          { id: "e4", time: "8:00 PM", slots: 1 },
-        ]
-      default:
-        return []
-    }
-  }
-
-  // Calculate total price with any applicable discounts
-  const calculateTotalPrice = () => {
-    const basePrice = getPlanPrice(selectedPlan)
-    const discount = getPlanDiscount(selectedPlan)
-
-    if (discount > 0) {
-      const discountAmount = (basePrice * discount) / 100
-      return basePrice - discountAmount
-    }
-
-    return basePrice
-  }
-
-  // Check if all required selections are made
-  const isReadyToProceed = selectedTimeOfDay && selectedDate && selectedTimeSlot && selectedPlan
-
-  // Get days in month for calendar
-  const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate()
-  }
-
-  // Get first day of month for calendar
-  const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay()
-  }
-
-  // Generate calendar days
-  const generateCalendarDays = () => {
-    const daysInMonth = getDaysInMonth(currentYear, currentMonth)
-    const firstDay = getFirstDayOfMonth(currentYear, currentMonth)
-
-    const days = []
-
-    // Empty cells for days before the first day of the month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null)
-    }
-
-    // Days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i)
-    }
-
-    return days
   }
 
   return (
@@ -508,8 +297,12 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   <div className="text-gray-600 leading-relaxed space-y-4">
                     <p>{academy.detailData.overview.description}</p>
                     <p>
-                      Our facility features {academy.amenities.join(", ")} and more. We pride ourselves on maintaining
-                      professional standards and creating a welcoming environment for all sports enthusiasts.
+                      Our facility features{" "}
+                      {academy.amenities && academy.amenities.length > 0
+                        ? academy.amenities.join(", ")
+                        : "premium amenities"}{" "}
+                      and more. We pride ourselves on maintaining professional standards and creating a welcoming
+                      environment for all sports enthusiasts.
                     </p>
 
                     {academy.sports && academy.sports.length > 0 && (
@@ -550,7 +343,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
                 {expandedSections.includes && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {academy.detailData.includes.map((item, index) => (
+                    {(academy.detailData.includes || []).map((item, index) => (
                       <div
                         key={index}
                         className="flex items-center bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100"
@@ -595,7 +388,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
                 {expandedSections.rules && (
                   <div className="space-y-3">
-                    {academy.detailData.rules.map((rule, index) => (
+                    {(academy.detailData.rules || []).map((rule, index) => (
                       <div
                         key={index}
                         className="flex items-start bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100"
@@ -632,7 +425,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
                 {expandedSections.amenities && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {academy.detailData.amenities.map((amenity, index) => (
+                    {(academy.detailData.amenities || []).map((amenity, index) => (
                       <div
                         key={index}
                         className="flex flex-col items-center bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 text-center"
@@ -755,7 +548,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                     </div>
 
                     <div className="space-y-8">
-                      {academy.detailData.reviews.map((review) => (
+                      {(academy.detailData.reviews || []).map((review) => (
                         <div key={review.id} className="border-b border-gray-200 pb-8">
                           <div className="flex items-start gap-4 mb-3">
                             <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-100">
@@ -871,226 +664,59 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
               </div>
             </div>
 
-            {/* Sidebar - Booking Section */}
+            {/* Sidebar - Academy Info */}
             <div className="lg:w-1/4 w-full">
               <div className="bg-white rounded-lg shadow-md border border-gray-100 sticky top-24">
                 <div className="p-5">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Select a slot</h3>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Contact Academy</h3>
 
-                  {/* Time of day selection - Clean UI with underline indicator */}
-                  <div className="flex border-b border-gray-200 mb-3">
-                    {["Morning", "Afternoon", "Evening"].map((timeOfDay) => (
-                      <button
-                        key={timeOfDay}
-                        onClick={() => setSelectedTimeOfDay(timeOfDay.toLowerCase())}
-                        className={`flex-1 text-center py-1.5 px-1 font-medium text-xs relative ${
-                          selectedTimeOfDay === timeOfDay.toLowerCase()
-                            ? "text-emerald-600"
-                            : "hover:text-emerald-500 text-gray-600"
-                        }`}
-                      >
-                        {timeOfDay}
-                        {selectedTimeOfDay === timeOfDay.toLowerCase() && (
-                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"></div>
-                        )}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setShowCalendar(!showCalendar)}
-                      className="p-1.5 text-gray-500 hover:text-emerald-600"
-                    >
-                      <Calendar size={16} />
-                    </button>
-                  </div>
-
-                  {/* Date selection - more compact horizontal scrolling cards */}
-                  <div className="mb-3">
-                    <div className="flex overflow-x-auto space-x-1.5 pb-1.5">
-                      {getNextDates().map((date) => (
-                        <button
-                          key={date.id}
-                          onClick={() => setSelectedDate(date.id)}
-                          className={`flex-shrink-0 w-14 rounded-lg flex flex-col items-center justify-center py-1.5 ${
-                            selectedDate === date.id
-                              ? "bg-emerald-50 border-2 border-emerald-600 text-emerald-600"
-                              : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-emerald-200"
-                          }`}
-                        >
-                          <div className="font-medium text-xs">{date.dayName}</div>
-                          <div className="text-xs mt-0.5">{date.date}</div>
-                        </button>
-                      ))}
+                  <div className="space-y-4">
+                    {/* Contact Info */}
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <MapPin size={18} className="text-emerald-600 flex-shrink-0" />
+                      <span className="text-sm">{academy.location}</span>
                     </div>
-                  </div>
 
-                  {/* Calendar (conditionally rendered) */}
-                  {showCalendar && (
-                    <div className="mb-4 border border-gray-200 rounded-lg p-3 bg-white">
-                      <div className="flex justify-between items-center mb-2">
-                        <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-gray-100">
-                          <ChevronLeft size={16} />
-                        </button>
-                        <h4 className="text-sm font-medium">
-                          {new Date(currentYear, currentMonth, 1).toLocaleDateString("en-US", {
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </h4>
-                        <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-gray-100">
-                          <ChevronRight size={16} />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-7 gap-1 mb-1">
-                        {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                          <div key={i} className="text-center text-xs font-medium text-gray-500">
-                            {day}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-7 gap-1">
-                        {generateCalendarDays().map((day, index) => (
-                          <div key={index}>
-                            {day !== null ? (
-                              <button
-                                className={`h-7 w-full rounded-md text-xs ${
-                                  day === new Date().getDate() &&
-                                  currentMonth === new Date().getMonth() &&
-                                  currentYear === new Date().getFullYear()
-                                    ? "bg-emerald-100 text-emerald-700 font-bold"
-                                    : "hover:bg-gray-100"
-                                }`}
-                                onClick={() => {
-                                  setSelectedDate(`day-${day}`)
-                                  setShowCalendar(false)
-                                }}
-                              >
-                                {day}
-                              </button>
-                            ) : (
-                              <div className="h-7 w-full"></div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Time slots - compact grid layout */}
-                  <div className="mb-3">
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {getTimeSlots(selectedTimeOfDay).map((slot) => (
-                        <button
-                          key={slot.id}
-                          onClick={() => setSelectedTimeSlot(slot.id)}
-                          className={`relative p-1.5 rounded-lg flex flex-col items-center justify-center transition-all ${
-                            selectedTimeSlot === slot.id
-                              ? "bg-emerald-100 border-2 border-emerald-500"
-                              : "bg-emerald-50 border border-gray-200 hover:border-emerald-300"
-                          }`}
-                        >
-                          <div className="text-gray-800 font-medium text-xs">{slot.time}</div>
-                          <div className="text-emerald-600 text-xs">{slot.slots} Slots</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Select duration */}
-                  <div className="mb-3">
-                    <h4 className="text-xs font-medium text-gray-700 mb-1.5">Select duration</h4>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {[
-                        { id: "weekly", name: "FOR 1 WEEK", price: 99, hourly: 25, discount: 0 },
-                        { id: "biweekly", name: "FOR 2 WEEKS", price: 179, hourly: 22, discount: 10 },
-                        { id: "monthly", name: "FOR 1 MONTH", price: 299, hourly: 20, discount: 15 },
-                        { id: "quarterly", name: "FOR 3 MONTHS", price: 799, hourly: 18, discount: 25 },
-                      ].map((plan) => (
-                        <button
-                          key={plan.id}
-                          onClick={() => setSelectedPlan(plan.id)}
-                          className={`relative p-2 rounded-lg border ${
-                            selectedPlan === plan.id
-                              ? "border-emerald-300 bg-emerald-50 shadow-sm"
-                              : "border-gray-200 hover:border-emerald-200 hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="text-center">
-                            <div className="font-medium text-gray-600 text-xs">{plan.name}</div>
-                            <div className="text-emerald-600 font-bold text-base mt-0.5">${plan.hourly}/hr</div>
-                            <div className="text-xs text-gray-500 line-through">${plan.hourly + 5}/hr</div>
-
-                            {plan.discount > 0 && (
-                              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                                -{plan.discount}%
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Booking Summary */}
-                  <div className="mt-3 border-t border-gray-200 pt-3">
-                    <h4 className="text-xs font-medium text-gray-700 mb-1.5">Booking Summary</h4>
-
-                    {isReadyToProceed ? (
-                      <div className="space-y-1.5 text-xs mb-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Plan:</span>
-                          <span className="font-medium capitalize">{selectedPlan}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Sessions:</span>
-                          <span className="font-medium">{getPlanSessions(selectedPlan)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Duration:</span>
-                          <span className="font-medium">{getPlanDuration(selectedPlan)}</span>
-                        </div>
-                        {selectedTimeSlot && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Time:</span>
-                            <span className="font-medium">
-                              {getTimeSlots(selectedTimeOfDay).find((t) => t.id === selectedTimeSlot)?.time}
-                            </span>
-                          </div>
-                        )}
-                        {getPlanDiscount(selectedPlan) > 0 && (
-                          <div className="flex justify-between text-red-600">
-                            <span>Savings:</span>
-                            <span className="font-medium">{getPlanDiscount(selectedPlan)}%</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-gray-50 p-2 rounded-lg mb-3 text-center">
-                        <p className="text-xs text-gray-500">Please select all options to see booking details</p>
+                    {academy.phone && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Phone size={18} className="text-emerald-600 flex-shrink-0" />
+                        <span className="text-sm">{academy.phone}</span>
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-medium text-gray-700">Total:</span>
-                      <span className="font-bold text-lg text-emerald-600">${calculateTotalPrice()}</span>
-                    </div>
+                    {academy.email && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Mail size={18} className="text-emerald-600 flex-shrink-0" />
+                        <span className="text-sm">{academy.email}</span>
+                      </div>
+                    )}
 
-                    <button
-                      className={`w-full py-2.5 rounded-md font-medium text-white text-sm ${
-                        isReadyToProceed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-300"
-                      }`}
-                      disabled={!isReadyToProceed}
-                    >
-                      {isReadyToProceed ? "Pay Now" : "Select all options"}
+                    {academy.website && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Globe size={18} className="text-emerald-600 flex-shrink-0" />
+                        <a
+                          href={academy.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-emerald-600 hover:underline"
+                        >
+                          Visit Website
+                        </a>
+                      </div>
+                    )}
+
+                    {academy.hourlyRate && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <DollarSign size={18} className="text-emerald-600 flex-shrink-0" />
+                        <span className="text-sm font-medium">${academy.hourlyRate}/hr</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <button className="w-full py-2.5 rounded-md font-medium text-white text-sm bg-emerald-600 hover:bg-emerald-700">
+                      Contact Academy
                     </button>
-
-                    <div className="text-center mt-2">
-                      <button className="text-emerald-600 text-xs hover:underline flex items-center justify-center mx-auto">
-                        <Info size={10} className="mr-1" />
-                        Request a different time slot
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
