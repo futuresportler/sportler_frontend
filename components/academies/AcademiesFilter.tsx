@@ -244,6 +244,8 @@ export default function AcademiesFilter({ filterOptions, onFilterChange }: Acade
         {expandedSections.amenities && (
           <div className="space-y-3">
             {[
+              "Sports Clubs",
+              "Archery Classes",
               "Indoor Courts",
               "Outdoor Courts",
               "Locker Rooms",
@@ -405,4 +407,3 @@ export default function AcademiesFilter({ filterOptions, onFilterChange }: Acade
     </div>
   )
 }
-

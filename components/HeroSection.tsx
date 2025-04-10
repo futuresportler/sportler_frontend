@@ -1,8 +1,9 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import { Search, ChevronDown, MapPin, Activity } from "lucide-react";
+import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
+import { Search, ChevronDown, MapPin, Activity } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 // Sample images for carousel
 const heroImages = [
@@ -10,7 +11,7 @@ const heroImages = [
   "/pexels-rdne-7045428.jpg?height=500&width=500",
   "/pexels-rdne-7335042.jpg?height=500&width=500",
   "/pexels-victorfreitas-841130.jpg?height=500&width=500",
-];
+]
 
 // Sample sport options with icons
 const sportOptions = [
@@ -20,90 +21,99 @@ const sportOptions = [
   { name: "Basketball", icon: "🏀" },
   { name: "Swimming", icon: "🏊‍♂️" },
   { name: "Cricket", icon: "🏏" },
-];
+]
 
 // Sample city options
-const cityOptions = [
-  "New York",
-  "London",
-  "Mumbai",
-  "Tokyo",
-  "Sydney",
-  "Paris",
-  "Berlin",
-];
+const cityOptions = ["New York", "London", "Mumbai", "Tokyo", "Sydney", "Paris", "Berlin"]
 
 export default function HeroSection() {
-  const [currentImage, setCurrentImage] = useState(0);
-  const [searchType, setSearchType] = useState("coach");
-  const [showSportDropdown, setShowSportDropdown] = useState(false);
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [selectedSport, setSelectedSport] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [currentImage, setCurrentImage] = useState(0)
+  const [searchType, setSearchType] = useState("coach")
+  const [showSportDropdown, setShowSportDropdown] = useState(false)
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const [selectedSport, setSelectedSport] = useState("")
+  const [selectedCity, setSelectedCity] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
 
-  const sportDropdownRef = useRef(null);
-  const cityDropdownRef = useRef(null);
-  const carouselRef = useRef(null);
+  const sportDropdownRef = useRef(null)
+  const cityDropdownRef = useRef(null)
+  const carouselRef = useRef(null)
+  const router = useRouter()
 
   // Handle carousel image change
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImage((prev) =>
-        prev === heroImages.length - 1 ? 0 : prev + 1
-      );
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+      setCurrentImage((prev) => (prev === heroImages.length - 1 ? 0 : prev + 1))
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (
-        sportDropdownRef.current &&
-        !sportDropdownRef.current.contains(event.target)
-      ) {
-        setShowSportDropdown(false);
+      if (sportDropdownRef.current && !sportDropdownRef.current.contains(event.target)) {
+        setShowSportDropdown(false)
       }
 
-      if (
-        cityDropdownRef.current &&
-        !cityDropdownRef.current.contains(event.target)
-      ) {
-        setShowCityDropdown(false);
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target)) {
+        setShowCityDropdown(false)
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handleSearchTypeChange = (type) => {
-    setSearchType(type);
-  };
+    setSearchType(type)
+  }
 
   const handleSearch = (e) => {
-    e.preventDefault();
-    setIsSearching(true);
+    e.preventDefault()
 
-    // Simulate search completion after 1 second
+    // Validate that at least one filter is selected
+    if (!selectedSport && !selectedCity) {
+      // Show an error or notification that at least one filter is required
+      alert("Please select at least a sport or location to search")
+      return
+    }
+
+    setIsSearching(true)
+
+    // Build query parameters
+    const queryParams = new URLSearchParams()
+    if (selectedSport) queryParams.set("sport", selectedSport.toLowerCase())
+    if (selectedCity) queryParams.set("location", selectedCity)
+    queryParams.set("type", searchType)
+
+    // Determine the target page based on search type
+    let targetPage
+    switch (searchType) {
+      case "coach":
+        targetPage = "/coaches"
+        break
+      case "academy":
+        targetPage = "/academies"
+        break
+      case "turf":
+        targetPage = "/courts"
+        break
+      default:
+        targetPage = "/coaches"
+    }
+
+    // Navigate to the appropriate page with query parameters
     setTimeout(() => {
-      setIsSearching(false);
-      // You would typically navigate or update results here
-    }, 1000);
-  };
+      setIsSearching(false)
+      router.push(`${targetPage}?${queryParams.toString()}`)
+    }, 800) // Short delay for loading animation
+  }
 
   return (
     <section className="relative text-white pt-16 pb-24 px-4 md:px-8 lg:px-16 overflow-hidden min-h-[85vh] flex items-center">
       {/* Background image with improved overlay */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/banner.jpg?height=1080&width=1920"
-          alt="Background"
-          fill
-          className="object-cover"
-          priority
-        />
+        <Image src="/banner.jpg?height=1080&width=1920" alt="Background" fill className="object-cover" priority />
         {/* <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/80 to-emerald-900/60 backdrop-blur-[2px]"></div> */}
       </div>
 
@@ -131,55 +141,58 @@ export default function HeroSection() {
               World Class Sports Coaching & Premium Courts
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
-              Become the  <span className="text-yellow-400">Athlete </span>
+              Become the <span className="text-yellow-400">Athlete </span>
               <br />
-              You Were Meant <br></br> <span className="text-yellow-400">to Be
-              </span>
+              You Were Meant <br></br> <span className="text-yellow-400">to Be </span>
             </h1>
             <p className="text-base mb-6 max-w-md text-white/90">
-              Unleash Your Athletic Potential with Expert Coaching,
-              State-of-the-Art Facilities, and Personalized Training Programs.
+              Unleash Your Athletic Potential with Expert Coaching, State-of-the-Art Facilities, and Personalized
+              Training Programs.
             </p>
 
             {/* Improved search type selector with animation */}
-            <div className="flex max-w-xl mb-4 bg-white/10 backdrop-blur-md rounded-xl p-1.5 border border-white/10">
+            <div
+              className="flex max-w-xl mb-4 bg-white/10 backdrop-blur-md rounded-xl p-1.5 border border-white/10"
+              role="tablist"
+              aria-label="Search categories"
+            >
               <button
                 onClick={() => handleSearchTypeChange("coach")}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  searchType === "coach"
-                    ? "bg-white text-emerald-600 shadow-md"
-                    : "text-white hover:bg-white/10"
+                  searchType === "coach" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
                 }`}
+                role="tab"
+                aria-selected={searchType === "coach"}
+                aria-controls="search-form"
               >
                 Coach
               </button>
               <button
                 onClick={() => handleSearchTypeChange("academy")}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  searchType === "academy"
-                    ? "bg-white text-emerald-600 shadow-md"
-                    : "text-white hover:bg-white/10"
+                  searchType === "academy" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
                 }`}
+                role="tab"
+                aria-selected={searchType === "academy"}
+                aria-controls="search-form"
               >
                 Academy
               </button>
               <button
                 onClick={() => handleSearchTypeChange("turf")}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  searchType === "turf"
-                    ? "bg-white text-emerald-600 shadow-md"
-                    : "text-white hover:bg-white/10"
+                  searchType === "turf" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
                 }`}
+                role="tab"
+                aria-selected={searchType === "turf"}
+                aria-controls="search-form"
               >
                 Turf
               </button>
             </div>
 
             {/* Enhanced search bar with dropdowns that open UPWARD */}
-            <form
-              onSubmit={handleSearch}
-              className="relative w-full max-w-2xl z-50"
-            >
+            <form onSubmit={handleSearch} className="relative w-full max-w-2xl z-50">
               <div className="bg-white rounded-xl shadow-2xl overflow-visible w-full">
                 <div className="flex flex-col sm:flex-row">
                   {/* Sport dropdown */}
@@ -198,13 +211,7 @@ export default function HeroSection() {
                         </div>
                       </label>
                       <div className="flex items-center justify-between">
-                        <span
-                          className={
-                            selectedSport
-                              ? "text-gray-800 font-medium"
-                              : "text-gray-400"
-                          }
-                        >
+                        <span className={selectedSport ? "text-gray-800 font-medium" : "text-gray-400"}>
                           {selectedSport || "Select Sport"}
                         </span>
                         <ChevronDown
@@ -224,8 +231,8 @@ export default function HeroSection() {
                             key={sport.name}
                             className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 flex items-center gap-3 transition-colors"
                             onClick={() => {
-                              setSelectedSport(sport.name);
-                              setShowSportDropdown(false);
+                              setSelectedSport(sport.name)
+                              setShowSportDropdown(false)
                             }}
                           >
                             <span className="text-xl">{sport.icon}</span>
@@ -249,13 +256,7 @@ export default function HeroSection() {
                         </div>
                       </label>
                       <div className="flex items-center justify-between">
-                        <span
-                          className={
-                            selectedCity
-                              ? "text-gray-800 font-medium"
-                              : "text-gray-400"
-                          }
-                        >
+                        <span className={selectedCity ? "text-gray-800 font-medium" : "text-gray-400"}>
                           {selectedCity || "Choose Location"}
                         </span>
                         <ChevronDown
@@ -275,8 +276,8 @@ export default function HeroSection() {
                             key={city}
                             className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 transition-colors"
                             onClick={() => {
-                              setSelectedCity(city);
-                              setShowCityDropdown(false);
+                              setSelectedCity(city)
+                              setShowCityDropdown(false)
                             }}
                           >
                             {city}
@@ -308,19 +309,15 @@ export default function HeroSection() {
           </div>
 
           {/* IMPROVED SLIDER SECTION */}
-          <div
-            className="relative flex justify-center mt-12 md:mt-0 z-20"
-            ref={carouselRef}
-          >
+          <div className="relative flex justify-center mt-12 md:mt-0 z-20" ref={carouselRef}>
             <div className="relative w-full max-w-md h-[340px] sm:h-[400px] md:h-[440px] flex justify-center items-center">
-              <div className="absolute w-[85%] h-[85%] bg-gradient-to-br from-yellow-400/30 to-emerald-500/20 rounded-lg blur-2xl z-0 animate-pulse"></div>
+              <div className="absolute w-[85%] h-[85%] bg-yellow-400/30 to-emerald-500/20 rounded-lg blur-2xl z-0 animate-pulse"></div>
 
               {/* Previous images with improved styling */}
               {heroImages.map((src, index) => {
                 const showAsBack =
                   index !== currentImage &&
-                  (index === currentImage - 1 ||
-                    (currentImage === 0 && index === heroImages.length - 1));
+                  (index === currentImage - 1 || (currentImage === 0 && index === heroImages.length - 1))
 
                 return showAsBack ? (
                   <div
@@ -339,7 +336,7 @@ export default function HeroSection() {
                       className="object-cover"
                     />
                   </div>
-                ) : null;
+                ) : null
               })}
 
               {/* Current main image with improved shape from oval to modern rounded rectangle */}
@@ -347,9 +344,7 @@ export default function HeroSection() {
                 <div
                   key={`main-${index}`}
                   className={`absolute w-[90%] h-[90%] overflow-hidden transition-all duration-700 ease-in-out ${
-                    currentImage === index
-                      ? "opacity-100 z-10 right-0 scale-100"
-                      : "opacity-0 z-0 right-8 scale-95"
+                    currentImage === index ? "opacity-100 z-10 right-0 scale-100" : "opacity-0 z-0 right-8 scale-95"
                   }`}
                   style={{
                     borderRadius: "24px",
@@ -390,14 +385,14 @@ export default function HeroSection() {
                 />
               </div> */}
 
-              {/* Improved image indicators */}
+              {/* Image indicator dots */}
               <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
                 {heroImages.map((_, index) => (
                   <button
                     key={`dot-${index}`}
-                    className={`transition-all ${
+                    className={`w-2 h-2 rounded-full transition-all ${
                       currentImage === index
-                        ? "bg-yellow-400 w-6 h-2 rounded-full"
+                        ? "bg-yellow-400 w-4 h-2 rounded-full"
                         : "bg-white/40 hover:bg-white/70 w-2 h-2 rounded-full"
                     }`}
                     onClick={() => setCurrentImage(index)}
@@ -410,5 +405,5 @@ export default function HeroSection() {
         </div>
       </div>
     </section>
-  );
+  )
 }
