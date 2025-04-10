@@ -150,7 +150,7 @@ export default function Header() {
           after:left-0 after:bottom-0 after:transition-all hover:after:w-full md:text-center"
           onClick={() => setIsMobileMenuOpen(false)}
         >
-          Contact Us
+          Contact
         </Link>
 
         {/* Mobile-only coach registration options */}
@@ -209,7 +209,7 @@ export default function Header() {
             className="w-full bg-white text-emerald-600 px-4 py-3 rounded-lg text-sm font-medium 
             transition-all duration-200 hover:bg-emerald-50 shadow-sm"
             onClick={() => setIsMobileMenuOpen(false)}
-          >
+          >a
             Login / Register
           </button>
         </div>
