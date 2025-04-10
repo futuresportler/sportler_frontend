@@ -6,9 +6,9 @@ import { useEffect, useState } from "react"
 
 // Sample images for the slider
 const headerImages = [
-  "/placeholder.svg?height=300&width=1920",
-  "/placeholder.svg?height=300&width=1920",
-  "/placeholder.svg?height=300&width=1920",
+  "/happy-children-playing-football-league-600nw-1938424333.webp?height=300&width=1920",
+  "/suchitra_academy_sports.jpg?height=300&width=1920",
+  "/football-camp.jpg?height=300&width=1920",
 ]
 
 export default function AcademiesHeader() {

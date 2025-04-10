@@ -1,46 +1,39 @@
 export const featuredPlayers = [
   {
     id: 1,
-    title: "Sarah Boxing Academy",
-    category: "Tennis",
-    description: "Elevate your athletic journey at Sarah Sports Academy, where excellence meets opportunity.",
-    image: "acadmy-01.jpg/?height=200&width=400",
-    coach: "Mart Sublin",
-    rating: 4.7,
-    location: "Tambaram, Chennai",
-    time: "9:00 AM - 6:00 PM",
-    availability: "Available",
-    coach_image:"featured-05.jpg",
+    title: "Savarkar Archery Academy",
+    category: "Archery",
+    description: "Training center for Sports Clubs, Archery Classes",
+    image:  "https://content.jdmagicbox.com/v2/comp/pune/j4/020pxx20.xx20.150417143033.h4j4/catalogue/focus-archery-academy-karve-nagar-hingne-budrukh-pune-archery-classes-2it3612.jpg?w=3840&q=75",
+    coach: "Not Provided",
+    rating: 4.4,
+    location: "Dadar West, Mumbai",
+    time: "Opens at 07:00 AM"
   },
   {
     id: 2,
-    title: "Badminton Academy",
-    category: "Badminton",
-    description: "Unleash your badminton potential at our premier Badminton Academy, where champions are made.",
-    image: "/acadmy-02.jpg?height=200&width=400",
-    coach: "Rebecca",
-    rating: 4.9,
-    location: "Srinivas garden, Bangalore",
-    time: "8:00 AM - 10:00 PM",
-    availability: "15 April 2023",
-    coach_image:"featured-08.jpg",
-
+    title: "Armor",
+    category: "Archery",
+    description: "Training center for Archery Classes, Archery Bow Dealers",
+    image: "https://content.jdmagicbox.com/comp/pune/s1/020pxx20.xx20.211119044115.q1s1/catalogue/swarajya-archery-academy-pimpri-pune-archery-classes-d82h2b7ear.jpg?w=3840&q=75",
+    coach: "Not Provided",
+    rating: 4.8,
+    location: "Andheri West, Mumbai",
+    time: "Opens at 9:00 am tomorrow"
   },
   {
     id: 3,
-    title: "Manchester Academy",
-    category: "Badminton",
-    description: "Manchester Academy: Where dreams meet excellence in sports education and training.",
-    image: "/acadmy-03.jpg?height=200&width=400",
-    coach: "Andriya",
-    rating: 4.8,
-    location: "Guysville, OH",
-    time: "7:00 AM - 9:00 PM",
-    availability: "15 May 2023",
-    coach_image:"featured-06.jpg",
-
-  },
+    title: "Twj Archery Academy",
+    category: "Archery",
+    description: "Training center for Sports Clubs, Archery Classes",
+    image:  "https://content.jdmagicbox.com/v2/comp/jodhpur/e1/0291px291.x291.230807154022.l7e1/catalogue/archery-academy-jodhpur-kamla-nehru-nagar-jodhpur-sports-classes-pt7ek9hv7r.jpg?w=3840&q=75",
+    coach: "Not Provided",
+    rating: 4.9,
+    location: "Nagar Road, Pune",
+    time: "Opens at 08:00 AM"
+  }
 ]
+
 
 export const featuredCoaches = [
   {
