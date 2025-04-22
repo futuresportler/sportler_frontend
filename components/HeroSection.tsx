@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import { Search, ChevronDown, MapPin, Activity } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -14,17 +14,17 @@ const heroImages = [
 ]
 
 // Sample sport options with icons
-const sportOptions = [
-  { name: "Badminton", icon: "🏸" },
-  { name: "Tennis", icon: "🎾" },
-  { name: "Football", icon: "⚽" },
-  { name: "Basketball", icon: "🏀" },
-  { name: "Swimming", icon: "🏊‍♂️" },
-  { name: "Cricket", icon: "🏏" },
-]
+// const sportOptions = [
+//   { name: "Badminton", icon: "🏸" },
+//   { name: "Tennis", icon: "🎾" },
+//   { name: "Football", icon: "⚽" },
+//   { name: "Basketball", icon: "🏀" },
+//   { name: "Swimming", icon: "🏊‍♂️" },
+//   { name: "Cricket", icon: "🏏" },
+// ]
 
 // Sample city options
-const cityOptions = ["New York", "London", "Mumbai", "Tokyo", "Sydney", "Paris", "Berlin"]
+// const cityOptions = ["New York", "London", "Mumbai", "Tokyo", "Sydney", "Paris", "Berlin"]
 
 export default function HeroSection() {
   const [currentImage, setCurrentImage] = useState(0)
@@ -39,6 +39,11 @@ export default function HeroSection() {
   const cityDropdownRef = useRef(null)
   const carouselRef = useRef(null)
   const router = useRouter()
+
+  const [sportOptions, setSportOptions] = useState([])
+  const [cityOptions, setCityOptions] = useState([])
+  const [isLoadingSports, setIsLoadingSports] = useState(true)
+  const [isLoadingCities, setIsLoadingCities] = useState(true)
 
   // Handle carousel image change
   useEffect(() => {
@@ -62,6 +67,94 @@ export default function HeroSection() {
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    // Fetch sports data
+    const fetchSports = async () => {
+      setIsLoadingSports(true)
+      try {
+        // Replace with your actual API endpoint
+        const response = await fetch("/api/sports")
+        if (response.ok) {
+          const data = await response.json()
+          // Map the data to the format we need
+          const formattedSports = data.map((sport) => ({
+            name: sport.name,
+            icon: getSportIcon(sport.name), // Helper function to get icon
+          }))
+          setSportOptions(formattedSports)
+        } else {
+          console.error("Failed to fetch sports")
+          // Fallback to default sports if API fails
+          setSportOptions([
+            { name: "Badminton", icon: "🏸" },
+            { name: "Tennis", icon: "🎾" },
+            { name: "Football", icon: "⚽" },
+            { name: "Basketball", icon: "🏀" },
+            { name: "Swimming", icon: "🏊‍♂️" },
+            { name: "Cricket", icon: "🏏" },
+          ])
+        }
+      } catch (error) {
+        console.error("Error fetching sports:", error)
+        // Fallback to default sports if API fails
+        setSportOptions([
+          { name: "Badminton", icon: "🏸" },
+          { name: "Tennis", icon: "🎾" },
+          { name: "Football", icon: "⚽" },
+          { name: "Basketball", icon: "🏀" },
+          { name: "Swimming", icon: "🏊‍♂️" },
+          { name: "Cricket", icon: "🏏" },
+        ])
+      } finally {
+        setIsLoadingSports(false)
+      }
+    }
+
+    // Fetch cities data
+    const fetchCities = async () => {
+      setIsLoadingCities(true)
+      try {
+        // Replace with your actual API endpoint
+        const response = await fetch("/api/cities")
+        if (response.ok) {
+          const data = await response.json()
+          setCityOptions(data.map((city) => city.name))
+        } else {
+          console.error("Failed to fetch cities")
+          // Fallback to default cities if API fails
+          setCityOptions(["New York", "London", "Mumbai", "Tokyo", "Sydney", "Paris", "Berlin"])
+        }
+      } catch (error) {
+        console.error("Error fetching cities:", error)
+        // Fallback to default cities if API fails
+        setCityOptions(["New York", "London", "Mumbai", "Tokyo", "Sydney", "Paris", "Berlin"])
+      } finally {
+        setIsLoadingCities(false)
+      }
+    }
+
+    fetchSports()
+    fetchCities()
+  }, [])
+
+  const getSportIcon = useCallback((sportName) => {
+    const sportIcons = {
+      Badminton: "🏸",
+      Tennis: "🎾",
+      Football: "⚽",
+      Basketball: "🏀",
+      Swimming: "🏊‍♂️",
+      Cricket: "🏏",
+      Golf: "⛳",
+      "Table Tennis": "🏓",
+      Volleyball: "🏐",
+      Rugby: "🏉",
+      Baseball: "⚾",
+      Hockey: "🏑",
+    }
+    return sportIcons[sportName] || "🎯" // Default icon if not found
   }, [])
 
   const handleSearchTypeChange = (type) => {
@@ -226,19 +319,28 @@ export default function HeroSection() {
                     {/* Dropdown now opens UPWARD instead of downward */}
                     {showSportDropdown && (
                       <div className="absolute bottom-full left-0 right-0 bg-white z-50 shadow-xl rounded-t-xl border border-gray-100 max-h-60 overflow-y-auto">
-                        {sportOptions.map((sport) => (
-                          <div
-                            key={sport.name}
-                            className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 flex items-center gap-3 transition-colors"
-                            onClick={() => {
-                              setSelectedSport(sport.name)
-                              setShowSportDropdown(false)
-                            }}
-                          >
-                            <span className="text-xl">{sport.icon}</span>
-                            <span>{sport.name}</span>
+                        {isLoadingSports ? (
+                          <div className="px-4 py-3 text-gray-500 text-center">
+                            <div className="inline-block h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Loading sports...
                           </div>
-                        ))}
+                        ) : sportOptions.length > 0 ? (
+                          sportOptions.map((sport) => (
+                            <div
+                              key={sport.name}
+                              className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 flex items-center gap-3 transition-colors"
+                              onClick={() => {
+                                setSelectedSport(sport.name)
+                                setShowSportDropdown(false)
+                              }}
+                            >
+                              <span className="text-xl">{sport.icon}</span>
+                              <span>{sport.name}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-gray-500 text-center">No sports available</div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -271,18 +373,27 @@ export default function HeroSection() {
                     {/* Dropdown now opens UPWARD instead of downward */}
                     {showCityDropdown && (
                       <div className="absolute bottom-full left-0 right-0 bg-white z-50 shadow-xl rounded-t-xl max-h-60 overflow-y-auto">
-                        {cityOptions.map((city) => (
-                          <div
-                            key={city}
-                            className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 transition-colors"
-                            onClick={() => {
-                              setSelectedCity(city)
-                              setShowCityDropdown(false)
-                            }}
-                          >
-                            {city}
+                        {isLoadingCities ? (
+                          <div className="px-4 py-3 text-gray-500 text-center">
+                            <div className="inline-block h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Loading locations...
                           </div>
-                        ))}
+                        ) : cityOptions.length > 0 ? (
+                          cityOptions.map((city) => (
+                            <div
+                              key={city}
+                              className="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 transition-colors"
+                              onClick={() => {
+                                setSelectedCity(city)
+                                setShowCityDropdown(false)
+                              }}
+                            >
+                              {city}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-gray-500 text-center">No locations available</div>
+                        )}
                       </div>
                     )}
                   </div>
