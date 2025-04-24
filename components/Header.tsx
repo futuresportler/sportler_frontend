@@ -1,55 +1,57 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCoachDropdownOpen, setIsCoachDropdownOpen] = useState(false);
-  const mobileMenuRef = useRef(null);
-  const coachDropdownRef = useRef(null);
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isCoachDropdownOpen, setIsCoachDropdownOpen] = useState(false)
+  const mobileMenuRef = useRef(null)
+  const coachDropdownRef = useRef(null)
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
-        setIsScrolled(true);
+        setIsScrolled(true)
       } else {
-        setIsScrolled(false);
+        setIsScrolled(false)
       }
-    };
+    }
 
     // Close mobile menu when clicking outside
     const handleClickOutside = (event) => {
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target)
-      ) {
-        setIsMobileMenuOpen(false);
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false)
       }
-      if (
-        coachDropdownRef.current &&
-        !coachDropdownRef.current.contains(event.target)
-      ) {
-        setIsCoachDropdownOpen(false);
+      if (coachDropdownRef.current && !coachDropdownRef.current.contains(event.target)) {
+        setIsCoachDropdownOpen(false)
       }
-    };
+    }
 
-    window.addEventListener("scroll", handleScroll);
-    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll)
+    document.addEventListener("mousedown", handleClickOutside)
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+      window.removeEventListener("scroll", handleScroll)
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
 
   // Toggle coach dropdown
   const toggleCoachDropdown = (e) => {
-    e.stopPropagation();
-    setIsCoachDropdownOpen(!isCoachDropdownOpen);
-  };
+    e.stopPropagation()
+    setIsCoachDropdownOpen(!isCoachDropdownOpen)
+  }
+
+  // Handle join now button click
+  const handleJoinNow = () => {
+    router.push("/auth/signin")
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <header
@@ -58,13 +60,9 @@ export default function Header() {
       } text-white py-3 px-4 md:px-8 lg:px-16 flex items-center justify-between fixed top-0 left-0 right-0 z-50 transition-all duration-300`}
     >
       <div className="flex items-center">
-        <Image
-          src="/Logo.svg"
-          alt="DreamSports"
-          width={130}
-          height={24}
-          priority
-        />
+        <Link href="/">
+          <Image src="/Logo.svg" alt="DreamSports" width={130} height={24} priority />
+        </Link>
       </div>
 
       {/* Mobile menu backdrop */}
@@ -108,7 +106,7 @@ export default function Header() {
         </button>
 
         <Link
-          href="#"
+          href="/"
           className="text-sm font-medium transition-all duration-200 hover:text-emerald-200 
           relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-emerald-200 
           after:left-0 after:bottom-0 after:transition-all hover:after:w-full md:text-center"
@@ -117,7 +115,7 @@ export default function Header() {
           Home
         </Link>
         <Link
-          href="#"
+          href="/coaches"
           className="text-sm font-medium transition-all duration-200 hover:text-emerald-200 
           relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-emerald-200 
           after:left-0 after:bottom-0 after:transition-all hover:after:w-full md:text-center"
@@ -126,13 +124,22 @@ export default function Header() {
           Coaches
         </Link>
         <Link
-          href="#"
+          href="/academies"
           className="text-sm font-medium transition-all duration-200 hover:text-emerald-200 
           relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-emerald-200 
           after:left-0 after:bottom-0 after:transition-all hover:after:w-full md:text-center"
           onClick={() => setIsMobileMenuOpen(false)}
         >
           Academy
+        </Link>
+        <Link
+          href="/courts"
+          className="text-sm font-medium transition-all duration-200 hover:text-emerald-200 
+          relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-emerald-200 
+          after:left-0 after:bottom-0 after:transition-all hover:after:w-full md:text-center"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          Courts
         </Link>
         <Link
           href="#"
@@ -171,9 +178,7 @@ export default function Header() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={`transition-transform duration-200 ${
-                isCoachDropdownOpen ? "rotate-180" : ""
-              }`}
+              className={`transition-transform duration-200 ${isCoachDropdownOpen ? "rotate-180" : ""}`}
             >
               <path d="m6 9 6 6 6-6" />
             </svg>
@@ -181,37 +186,42 @@ export default function Header() {
 
           {isCoachDropdownOpen && (
             <div className="bg-gray-700 rounded-lg p-2 mb-4 transition-all animate-fadeIn">
-              <a
-                href="#"
+              <Link
+                href="/auth/multi-role-signup"
                 className="block px-3 py-3 text-sm rounded-md hover:bg-gray-600 transition-colors duration-200 mb-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Register as Coach
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href="/auth/multi-role-signup"
                 className="block px-3 py-3 text-sm rounded-md hover:bg-gray-600 transition-colors duration-200 mb-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Register as Academy
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href="/auth/multi-role-signup"
                 className="block px-3 py-3 text-sm rounded-md hover:bg-gray-600 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 List Your Turf
-              </a>
+              </Link>
             </div>
           )}
 
-          <button
-            className="w-full bg-white text-emerald-600 px-4 py-3 rounded-lg text-sm font-medium 
-            transition-all duration-200 hover:bg-emerald-50 shadow-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >a
-            Login / Register
-          </button>
+          {/* Mobile Join Now button */}
+          <div className="relative">
+            <Link
+              href="/auth/signin"
+              className="w-full bg-white text-emerald-600 px-4 py-3 rounded-lg text-sm font-medium 
+      transition-all duration-300 hover:bg-emerald-50 shadow-sm flex items-center justify-center"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <span className="mr-1">✨</span>
+              Join Now
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -234,9 +244,7 @@ export default function Header() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={`transition-transform duration-200 ${
-                isCoachDropdownOpen ? "rotate-180" : ""
-              }`}
+              className={`transition-transform duration-200 ${isCoachDropdownOpen ? "rotate-180" : ""}`}
             >
               <path d="m6 9 6 6 6-6" />
             </svg>
@@ -246,35 +254,40 @@ export default function Header() {
               className="absolute top-full right-0 mt-1 bg-gray-800 text-white rounded-lg shadow-lg w-52 py-2 z-50 
               transition-all duration-200 animate-fadeIn"
             >
-              <a
-                href="#"
+              <Link
+                href="/auth/multi-role-signup"
                 className="block px-4 py-3 text-sm hover:bg-gray-700 transition-colors duration-200"
               >
                 Register as Coach
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href="/auth/multi-role-signup"
                 className="block px-4 py-3 text-sm hover:bg-gray-700 transition-colors duration-200"
               >
                 Register as Academy
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href="/auth/multi-role-signup"
                 className="block px-4 py-3 text-sm hover:bg-gray-700 transition-colors duration-200"
               >
                 List Your Turf
-              </a>
+              </Link>
             </div>
           )}
         </div>
 
+        {/* Desktop Join Now button */}
         {/* Login button (hidden on smallest screens) */}
-        <button
-          className="hidden sm:block bg-white text-emerald-600 px-4 py-2 rounded text-sm font-medium 
-          transition-all duration-200 hover:bg-emerald-50 hover:shadow-md"
-        >
-          Login / Register
-        </button>
+        <div className="hidden sm:block">
+          <Link
+            href="/auth/signin"
+            className="bg-white text-emerald-600 px-5 py-2.5 rounded-md text-sm font-medium 
+    transition-all duration-300 hover:bg-emerald-50 hover:shadow-md transform hover:scale-105 flex items-center"
+          >
+            <span className="mr-1">✨</span>
+            Join Now
+          </Link>
+        </div>
 
         {/* Mobile menu toggle */}
         <button
@@ -300,5 +313,7 @@ export default function Header() {
         </button>
       </div>
     </header>
-  );
+  )
 }
+
+export { Header }

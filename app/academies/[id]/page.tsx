@@ -1,15 +1,14 @@
+import AcademyDetail from "@/components/academies/AcademyDetail"
+import { dummyAcademies } from "@/data/new-academies-data"
 import { notFound } from "next/navigation"
-import AcademyDetail from "@/components/academies/AcademiesDetails"
-import { newAcademies } from "@/data/new-academies-data"
 
-export default async function AcademyDetailPage({ params }: { params: { id: string } }) {
-  const id = params.id
-  const academyId = Number.parseInt(id)
+export default function AcademyDetailPage({ params }: { params: { id: string } }) {
+  const academyId = Number.parseInt(params.id)
 
-  // In a real application, you would fetch the specific academy by ID
-  // For now, we're using the sample data
-  const academy = newAcademies.find((a) => a.id === academyId)
+  // Find the academy by ID
+  const academy = dummyAcademies.find((a) => a.id === academyId)
 
+  // If academy not found, return 404
   if (!academy) {
     notFound()
   }
