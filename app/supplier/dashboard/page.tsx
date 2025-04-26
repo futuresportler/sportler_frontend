@@ -253,7 +253,10 @@ export default function SupplierDashboard() {
         },
         turf: {
           enabled: true,
-          entities: [{ id: 1, name: "Green Field Turf", location: "Bangalore" }],
+          entities: [
+            { id: 1, name: "Green Field Turf", location: "Bangalore" },
+            { id: 2, name: "Sunset Sports Arena", location: "Chennai" },
+          ],
         },
         coach: {
           enabled: true,
@@ -573,13 +576,18 @@ function TurfOverview({ turfs, router }) {
                   </div>
                 </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full bg-white hover:bg-green-50"
-                  onClick={() => router.push(`/supplier/turf/${turf.id}`)}
-                >
-                  Manage Turf
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-1/2 bg-white hover:bg-green-50"
+                    onClick={() => router.push(`/supplier/turf/${turf.id}`)}
+                  >
+                    Manage
+                  </Button>
+                  <Button className="w-1/2" onClick={() => router.push(`/supplier/turf/bookings`)}>
+                    Bookings
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
