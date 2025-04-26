@@ -372,9 +372,9 @@ export default function SupplierLayout({
                   <ul className="space-y-1">
                     <li>
                       <Link
-                        href="/supplier/coach/details"
+                        href="/supplier/coach/profile"
                         className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/coach/details")
+                          pathname.startsWith("/supplier/coach/profile")
                             ? "bg-emerald-50 text-emerald-700"
                             : "text-gray-700 hover:bg-gray-100"
                         }`}
@@ -398,9 +398,9 @@ export default function SupplierLayout({
                     </li>
                     <li>
                       <Link
-                        href="/supplier/coach/players"
+                        href="/supplier/coach/player-performance"
                         className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/coach/players")
+                          pathname.startsWith("/supplier/coach/player-performance")
                             ? "bg-emerald-50 text-emerald-700"
                             : "text-gray-700 hover:bg-gray-100"
                         }`}
