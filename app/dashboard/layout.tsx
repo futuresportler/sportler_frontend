@@ -23,6 +23,7 @@ import {
   Users,
 } from "lucide-react"
 import { getUserAcademies } from "@/services/dashboardService"
+import ChatbotButton from "@/components/ChatbotButton"
 
 export default function DashboardLayout({
   children,
@@ -271,6 +272,8 @@ export default function DashboardLayout({
           </button>
           <Image src="/Logo.svg" alt="DreamSports" width={130} height={24} />
         </div>
+        <ChatbotButton />
+
 
         {/* Main content area */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">{children}</main>
