@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
+import { ForgotPasswordForm } from "@/components/auth/forgot-password"
 
 export default function ForgotPassword() {
   return (

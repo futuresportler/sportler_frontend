@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Calendar, DollarSign, Users, Plus, Building2, MapPin, Clock, Star, Activity, User } from "lucide-react"
+import { Calendar, DollarSign, Users, Plus, Building2, MapPin, Clock, Star, Activity } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,6 +14,8 @@ import { QuickActions } from "@/components/dashboard/supplier/quick-actions"
 import { RevenueChart } from "@/components/dashboard/supplier/revenue-chart"
 import { BookingSourcesChart } from "@/components/dashboard/supplier/booking-sources-chart"
 import { PeakHoursChart } from "@/components/dashboard/supplier/peak-hours-chart"
+import { Check, RefreshCw, MessageSquare, User, ImageIcon, BookOpen, Video, HelpCircle } from "lucide-react"
+import { getOnboardingState } from "@/services/authService"
 
 function RecentActivities() {
   return (
@@ -226,6 +228,8 @@ function AcademyOverview({ academies, router }) {
   )
 }
 
+// Mock function for getOnboardingState
+
 export default function SupplierDashboard() {
   const router = useRouter()
   const [supplierModules, setSupplierModules] = useState({
@@ -235,6 +239,11 @@ export default function SupplierDashboard() {
   })
 
   const [activeTab, setActiveTab] = useState("overview")
+  const [onboardingState, setOnboardingState] = useState({
+    profileCompleted: false,
+    academyAdded: false,
+    academyVerified: false,
+  })
 
   useEffect(() => {
     // Get supplier modules from localStorage
@@ -264,9 +273,29 @@ export default function SupplierDashboard() {
         },
       })
     }
+
+    // Get onboarding state
+    const state = getOnboardingState()
+    setOnboardingState(state)
   }, [])
 
   const hasNoEntities = supplierModules.academy.entities.length === 0 && supplierModules.turf.entities.length === 0
+
+  // If academy is added but not verified, show verification pending message
+  if (onboardingState.academyAdded && !onboardingState.academyVerified) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Supplier Dashboard</h1>
+            <p className="text-gray-600">Your business is under review.</p>
+          </div>
+        </div>
+
+        <VerificationPendingDashboard />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -324,6 +353,164 @@ export default function SupplierDashboard() {
           </Tabs>
         </>
       )}
+    </div>
+  )
+}
+
+// Add a new component for the verification pending dashboard
+function VerificationPendingDashboard() {
+  return (
+    <div className="space-y-6">
+      <Card className="border-none shadow-lg bg-gradient-to-br from-amber-50 to-orange-50">
+        <CardHeader className="pb-2">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Clock size={32} className="text-amber-600" />
+          </div>
+          <CardTitle className="text-xl text-center">Verification in Progress</CardTitle>
+          <CardDescription className="text-center">Your business is currently under review by our team</CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <h3 className="font-medium text-gray-800 mb-3">What happens during verification?</h3>
+            <ul className="space-y-2 text-gray-600">
+              <li className="flex items-start">
+                <div className="mr-2 mt-1 bg-amber-100 rounded-full p-1">
+                  <Check size={12} className="text-amber-600" />
+                </div>
+                Our team reviews your business details for accuracy and completeness
+              </li>
+              <li className="flex items-start">
+                <div className="mr-2 mt-1 bg-amber-100 rounded-full p-1">
+                  <Check size={12} className="text-amber-600" />
+                </div>
+                We may contact you for additional information if needed
+              </li>
+              <li className="flex items-start">
+                <div className="mr-2 mt-1 bg-amber-100 rounded-full p-1">
+                  <Check size={12} className="text-amber-600" />
+                </div>
+                Once verified, you'll gain full access to all dashboard features
+              </li>
+            </ul>
+          </div>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600 mb-4">
+              Verification typically takes 1-2 business days. You'll receive a notification once complete.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Check Status
+              </Button>
+              <Button>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Contact Support
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Complete Your Profile</CardTitle>
+            <CardDescription>Enhance your business profile while you wait</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                    <User className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Personal Information</h4>
+                    <p className="text-sm text-gray-500">Update your contact details</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Edit
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                    <ImageIcon className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Upload Photos</h4>
+                    <p className="text-sm text-gray-500">Add photos of your facilities</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Upload
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
+                    <DollarSign className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Payment Details</h4>
+                    <p className="text-sm text-gray-500">Set up your payment information</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Configure
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Resources & Support</CardTitle>
+            <CardDescription>Helpful information to get you started</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-700 flex items-center">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Supplier Guidelines
+                </h4>
+                <p className="text-sm text-blue-600 mt-1">Learn about our policies and best practices for suppliers</p>
+                <Button variant="link" className="text-blue-700 p-0 h-auto mt-2">
+                  Read Guidelines
+                </Button>
+              </div>
+
+              <div className="p-4 bg-emerald-50 rounded-lg">
+                <h4 className="font-medium text-emerald-700 flex items-center">
+                  <Video className="h-4 w-4 mr-2" />
+                  Tutorial Videos
+                </h4>
+                <p className="text-sm text-emerald-600 mt-1">Watch tutorials on how to use the supplier dashboard</p>
+                <Button variant="link" className="text-emerald-700 p-0 h-auto mt-2">
+                  Watch Videos
+                </Button>
+              </div>
+
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <h4 className="font-medium text-purple-700 flex items-center">
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  FAQ
+                </h4>
+                <p className="text-sm text-purple-600 mt-1">Find answers to commonly asked questions</p>
+                <Button variant="link" className="text-purple-700 p-0 h-auto mt-2">
+                  View FAQ
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

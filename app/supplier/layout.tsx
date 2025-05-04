@@ -26,6 +26,7 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react"
+import { getOnboardingState } from "../../services/authService"
 
 export default function SupplierLayout({
   children,
@@ -33,19 +34,10 @@ export default function SupplierLayout({
   children: React.ReactNode
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [supplierModules, setSupplierModules] = useState({
-    academy: {
-      enabled: false,
-      entities: [],
-    },
-    turf: {
-      enabled: false,
-      entities: [],
-    },
-    coach: {
-      enabled: false,
-      entities: [],
-    },
+  const [onboardingState, setOnboardingState] = useState({
+    profileCompleted: false,
+    academyAdded: false,
+    academyVerified: false,
   })
   const pathname = usePathname()
   const router = useRouter()
@@ -65,37 +57,35 @@ export default function SupplierLayout({
   }>({ type: "", id: null })
 
   useEffect(() => {
-    // Get supplier modules from localStorage
-    const storedModules = localStorage.getItem("supplierModules")
-    if (storedModules) {
-      setSupplierModules(JSON.parse(storedModules))
-    } else {
-      // Mock data for development - in production this would come from API
-      setSupplierModules({
-        academy: {
-          enabled: true,
-          entities: [
-            { id: 1, name: "Premier Cricket Academy", location: "Mumbai" },
-            { id: 2, name: "Elite Tennis School", location: "Delhi" },
-          ],
-        },
-        turf: {
-          enabled: true,
-          entities: [{ id: 1, name: "Green Field Turf", location: "Bangalore" }],
-        },
-        coach: {
-          enabled: true,
-          entities: [],
-        },
-      })
-      // If no supplier modules found in production, redirect to login
-      // router.push("/auth/supplier-signin");
+    if (typeof window === "undefined") return
+
+    // Get current onboarding state
+    const currentState = getOnboardingState()
+    setOnboardingState(currentState)
+
+    // Check onboarding state and redirect if needed
+    if (currentState.profileCompleted && !currentState.academyAdded && !pathname.includes("/supplier/academy/add")) {
+      router.push("/supplier/academy/add")
     }
-  }, [])
+  }, [pathname, router])
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
   }
+
+  // Determine if academy entities exist (for verified academies)
+  const hasAcademyEntities = onboardingState.academyVerified
+
+  // Sample academy entities for verified academies
+  const academyEntities = hasAcademyEntities
+    ? [
+        { id: 1, name: "Premier Cricket Academy", location: "Mumbai" },
+        { id: 2, name: "Elite Tennis School", location: "Delhi" },
+      ]
+    : []
+
+  // Sample turf entities for verified academies
+  const turfEntities = hasAcademyEntities ? [{ id: 1, name: "Green Field Turf", location: "Bangalore" }] : []
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -125,19 +115,23 @@ export default function SupplierLayout({
             <div>
               <h4 className="text-xs font-bold text-gray-500 uppercase px-3 mb-2">Main Navigation</h4>
               <ul className="space-y-1">
-                <li>
-                  <Link
-                    href="/supplier/dashboard"
-                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
-                      pathname === "/supplier/dashboard"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Home size={18} className="mr-3" />
-                    Dashboard
-                  </Link>
-                </li>
+                {/* Dashboard - Only show if academy is added */}
+                {onboardingState.academyAdded && (
+                  <li>
+                    <Link
+                      href="/supplier/dashboard"
+                      className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
+                        pathname === "/supplier/dashboard"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Home size={18} className="mr-3" />
+                      Dashboard
+                    </Link>
+                  </li>
+                )}
+                {/* Profile - Always show */}
                 <li>
                   <Link
                     href="/supplier/profile"
@@ -154,8 +148,8 @@ export default function SupplierLayout({
               </ul>
             </div>
 
-            {/* Conditional Navigation based on supplier type */}
-            {supplierModules.academy.enabled && (
+            {/* Academy Management - Only show if profile is completed */}
+            {onboardingState.profileCompleted && (
               <div>
                 <div className="flex items-center justify-between px-3 mb-1">
                   <h4 className="text-xs font-bold text-gray-500 uppercase">Academy Management</h4>
@@ -178,9 +172,9 @@ export default function SupplierLayout({
                     </button>
                   </div>
 
-                  {supplierModules.academy.entities.length > 0 ? (
+                  {academyEntities.length > 0 ? (
                     <ul className="space-y-1">
-                      {supplierModules.academy.entities.map((academy) => (
+                      {academyEntities.map((academy) => (
                         <li key={`academy-${academy.id}`}>
                           <div className="space-y-1">
                             <Link
@@ -228,14 +222,18 @@ export default function SupplierLayout({
                       ))}
                     </ul>
                   ) : (
-                    <div className="px-3 py-2 text-sm text-gray-500">No academies yet. Add your first academy!</div>
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      {onboardingState.academyAdded
+                        ? "Your academy is pending verification."
+                        : "Please add your first academy to continue."}
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Turf Module */}
-            {supplierModules.turf.enabled && (
+            {/* Turf Module - Only show if profile is completed */}
+            {onboardingState.profileCompleted && (
               <div>
                 <div className="flex items-center justify-between px-3 mb-1">
                   <h4 className="text-xs font-bold text-gray-500 uppercase">Turf Management</h4>
@@ -253,14 +251,15 @@ export default function SupplierLayout({
                     <button
                       onClick={() => router.push("/supplier/turf/add")}
                       className="p-1 rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+                      disabled={!onboardingState.academyVerified}
                     >
                       <Plus size={16} />
                     </button>
                   </div>
 
-                  {supplierModules.turf.entities.length > 0 ? (
+                  {turfEntities.length > 0 ? (
                     <ul className="space-y-1">
-                      {supplierModules.turf.entities.map((turf) => (
+                      {turfEntities.map((turf) => (
                         <li key={`turf-${turf.id}`}>
                           <Link
                             href={`/supplier/turf/${turf.id}`}
@@ -281,82 +280,88 @@ export default function SupplierLayout({
                       ))}
                     </ul>
                   ) : (
-                    <div className="px-3 py-2 text-sm text-gray-500">No turfs yet. Add your first turf!</div>
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      {!onboardingState.academyVerified
+                        ? "Academy verification required to add turfs."
+                        : "No turfs yet. Add your first turf!"}
+                    </div>
                   )}
 
-                  <ul className="space-y-1 border-t border-gray-100 pt-2 mt-2">
-                    <li>
-                      <Link
-                        href="/supplier/turf/details"
-                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/turf/details")
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <MapPin size={16} className="mr-2" />
-                        Turf Details
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/supplier/turf/calendar"
-                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/turf/calendar")
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <Calendar size={16} className="mr-2" />
-                        Booking Calendar
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/supplier/turf/slots"
-                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/turf/slots")
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <Clock size={16} className="mr-2" />
-                        Time Slots
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/supplier/turf/payments"
-                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/turf/payments")
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <DollarSign size={16} className="mr-2" />
-                        Payments
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/supplier/turf/analytics"
-                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-                          pathname.startsWith("/supplier/turf/analytics")
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        <BarChart2 size={16} className="mr-2" />
-                        Analytics
-                      </Link>
-                    </li>
-                  </ul>
+                  {onboardingState.academyVerified && (
+                    <ul className="space-y-1 border-t border-gray-100 pt-2 mt-2">
+                      <li>
+                        <Link
+                          href="/supplier/turf/details"
+                          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                            pathname.startsWith("/supplier/turf/details")
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <MapPin size={16} className="mr-2" />
+                          Turf Details
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/supplier/turf/calendar"
+                          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                            pathname.startsWith("/supplier/turf/calendar")
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Calendar size={16} className="mr-2" />
+                          Booking Calendar
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/supplier/turf/slots"
+                          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                            pathname.startsWith("/supplier/turf/slots")
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Clock size={16} className="mr-2" />
+                          Time Slots
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/supplier/turf/payments"
+                          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                            pathname.startsWith("/supplier/turf/payments")
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <DollarSign size={16} className="mr-2" />
+                          Payments
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/supplier/turf/analytics"
+                          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                            pathname.startsWith("/supplier/turf/analytics")
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <BarChart2 size={16} className="mr-2" />
+                          Analytics
+                        </Link>
+                      </li>
+                    </ul>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Coach Module */}
-            {supplierModules.coach.enabled && (
+            {/* Coach Module - Only show if profile is completed */}
+            {onboardingState.profileCompleted && (
               <div>
                 <div className="flex items-center justify-between px-3 mb-1">
                   <h4 className="text-xs font-bold text-gray-500 uppercase">Coach Management</h4>
@@ -427,52 +432,56 @@ export default function SupplierLayout({
               </div>
             )}
 
-            {/* Common Navigation */}
-            <div className="border-t border-gray-200 pt-2">
-              <h4 className="text-xs font-bold text-gray-500 uppercase px-3 mb-2">Business</h4>
-              <ul className="space-y-1">
-                <li>
-                  <Link
-                    href="/supplier/bookings"
-                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
-                      pathname.startsWith("/supplier/bookings")
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Calendar size={18} className="mr-3" />
-                    Bookings
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/supplier/messages"
-                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
-                      pathname.startsWith("/supplier/messages")
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <MessageSquare size={18} className="mr-3" />
-                    Messages
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/supplier/notifications"
-                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
-                      pathname.startsWith("/supplier/notifications")
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Bell size={18} className="mr-3" />
-                    <span>Notifications</span>
-                    <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">3</span>
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            {/* Common Navigation - Only show if academy is added */}
+            {onboardingState.academyAdded && (
+              <div className="border-t border-gray-200 pt-2">
+                <h4 className="text-xs font-bold text-gray-500 uppercase px-3 mb-2">Business</h4>
+                <ul className="space-y-1">
+                  <li>
+                    <Link
+                      href="/supplier/bookings"
+                      className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
+                        pathname.startsWith("/supplier/bookings")
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Calendar size={18} className="mr-3" />
+                      Bookings
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/supplier/messages"
+                      className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
+                        pathname.startsWith("/supplier/messages")
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <MessageSquare size={18} className="mr-3" />
+                      Messages
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/supplier/notifications"
+                      className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg ${
+                        pathname.startsWith("/supplier/notifications")
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Bell size={18} className="mr-3" />
+                      <span>Notifications</span>
+                      <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        3
+                      </span>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            )}
           </nav>
 
           <div className="p-4 border-t border-gray-200">
