@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -20,6 +20,7 @@ import {
   Plus,
   Minus,
   CheckCircle2,
+  Loader2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -30,12 +31,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { PhoneInput } from "@/components/ui/phone-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { needsProfileCompletion, updateOnboardingState } from "@/services/authService"
+import { createAcademy } from "@/services/supplierService"
+import type { Academy } from "@/types/supplier"
+import { toast } from "@/components/ui/use-toast"
 
 export default function AddAcademy() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [previewImages, setPreviewImages] = useState<string[]>([])
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
@@ -46,8 +53,7 @@ export default function AddAcademy() {
 
   const totalSteps = 6
 
-  const [formData, setFormData] = useState({
-    // Basic Information
+  const [formData, setFormData] = useState<Omit<Academy, "id" | "verificationStatus">>({
     name: "",
     location: "",
     address: "",
@@ -134,6 +140,16 @@ export default function AddAcademy() {
       upiId: "",
     },
   })
+
+  useEffect(() => {
+    // Check if profile is completed
+    if (needsProfileCompletion()) {
+      router.push("/supplier/profile?newUser=true")
+      return
+    }
+
+    setLoading(false)
+  }, [router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -311,45 +327,64 @@ export default function AddAcademy() {
     }
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSaving(true)
 
     try {
-      // In a real app, you would send this data to your API
-      console.log("Submitting academy data:", formData)
+      // Create form data for the API request
+      const formDataToSend = new FormData()
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Add all form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (typeof value === "object") {
+          formDataToSend.append(key, JSON.stringify(value))
+        } else if (value !== null && value !== undefined) {
+          formDataToSend.append(key, value.toString())
+        }
+      })
 
-      // Get existing modules from localStorage
-      const storedModules = localStorage.getItem("supplierModules")
-      const supplierModules = storedModules
-        ? JSON.parse(storedModules)
-        : {
-            academy: { enabled: true, entities: [] },
-            turf: { enabled: false, entities: [] },
-            coach: { enabled: false, entities: [] },
-          }
+      // Add isOwnerManager flag
+      formDataToSend.append("isOwnerManager", isOwnerManager.toString())
 
-      // Add new academy
-      const newAcademy = {
-        id: Date.now(),
-        name: formData.name,
-        location: formData.location,
-        sports: Object.keys(formData.sports).filter((sport) => formData.sports[sport as keyof typeof formData.sports]),
-        yearEstablished: formData.yearEstablished,
+      setIsSubmitting(true)
+      const result = await createAcademy(formDataToSend)
+
+      if (!result.success) {
+        throw new Error(
+          typeof result.message === "object"
+            ? JSON.stringify(result.message)
+            : result.message || "Failed to create academy",
+        )
       }
 
-      supplierModules.academy.enabled = true
-      supplierModules.academy.entities.push(newAcademy)
+      // Update onboarding state
+      updateOnboardingState({ academyAdded: true })
 
-      // Save updated modules to localStorage
-      localStorage.setItem("supplierModules", JSON.stringify(supplierModules))
+      toast({
+        title: "Academy created successfully",
+        description: "Your academy has been submitted for verification.",
+        variant: "success",
+      })
 
-      // Redirect to dashboard
+      // Redirect to dashboard which will show verification pending
       router.push("/supplier/dashboard")
-    } catch (error) {
-      console.error("Error adding academy:", error)
+
+      setIsSubmitting(false)
+    } catch (error: any) {
+      console.error("Error details:", error)
+      toast({
+        title: "Error creating academy",
+        description:
+          typeof error.message === "object"
+            ? "Invalid data format. Please check your form entries."
+            : error.message || "There was a problem creating your academy. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -381,6 +416,14 @@ export default function AddAcademy() {
             </span>
           </div>
         ))}
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={40} className="animate-spin text-emerald-600" />
       </div>
     )
   }
@@ -711,7 +754,7 @@ export default function AddAcademy() {
                         {previewImages.map((src, index) => (
                           <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
                             <Image
-                              src={src || "/placeholder.svg"}
+                              src={src || "/placeholder.svg?height=100&width=100&text=Preview"}
                               alt={`Academy preview ${index + 1}`}
                               fill
                               className="object-cover"
@@ -1390,7 +1433,15 @@ export default function AddAcademy() {
               <Button type="button" variant="outline" onClick={prevStep}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Previous
               </Button>
-              <Button type="submit">Create Academy</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  "Create Academy"
+                )}
+              </Button>
             </CardFooter>
           </Card>
         )}
