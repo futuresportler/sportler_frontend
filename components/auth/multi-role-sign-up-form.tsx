@@ -5,9 +5,8 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Loader2 } from "lucide-react"
 import { PhoneInput } from "@/components/ui/phone-input"
-import Image from "next/image"
 import { auth } from "@/lib/firebase"
-import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth"
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { supplierSignup, saveAuthTokens } from "@/services/authService"
 
 // Set this to true for development/testing, false for production
@@ -31,7 +30,7 @@ export function MultiRoleSignUpForm() {
   const [verifyingOtp, setVerifyingOtp] = useState(false)
   const [error, setError] = useState("")
   const [countdown, setCountdown] = useState(0)
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  const [confirmationResult, setConfirmationResult] = useState(null)
   const recaptchaVerifierRef = useRef(null)
   const router = useRouter()
 
@@ -95,7 +94,6 @@ export function MultiRoleSignUpForm() {
       }
 
       // Create a new div element for the recaptcha container
-      // This helps avoid the "DUPE" error by creating a fresh container each time
       const recaptchaContainer = document.getElementById("recaptcha-container")
       if (recaptchaContainer) {
         // Clear previous content
@@ -107,12 +105,11 @@ export function MultiRoleSignUpForm() {
         newRecaptchaElement.id = uniqueId
         recaptchaContainer.appendChild(newRecaptchaElement)
 
-        // Create a visible reCAPTCHA with a longer timeout
+        // Create a visible reCAPTCHA
         recaptchaVerifierRef.current = new RecaptchaVerifier(auth, uniqueId, {
           size: "normal",
           callback: (response) => {
             console.log("reCAPTCHA verified:", response)
-            // Proceed with sending OTP after reCAPTCHA is solved
             sendOtpAfterRecaptcha()
           },
           "expired-callback": () => {
@@ -120,14 +117,11 @@ export function MultiRoleSignUpForm() {
             if (recaptchaVerifierRef.current) {
               recaptchaVerifierRef.current.clear()
               recaptchaVerifierRef.current = null
-              // Don't automatically set up a new recaptcha here
-              // Let the user click "Send OTP" again
               setSendingOtp(false)
             }
           },
         })
 
-        // Render the reCAPTCHA with error handling
         recaptchaVerifierRef.current.render().catch((error) => {
           console.error("Error rendering reCAPTCHA:", error)
           setError("Failed to load verification. Please refresh and try again.")
@@ -153,7 +147,7 @@ export function MultiRoleSignUpForm() {
         throw new Error("reCAPTCHA not initialized")
       }
 
-      // Send OTP via Firebase with better error handling
+      // Send OTP via Firebase
       const confirmation = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifierRef.current).catch(
         (error) => {
           console.error("Error in signInWithPhoneNumber:", error)
@@ -182,7 +176,6 @@ export function MultiRoleSignUpForm() {
       setError(err.message || "Failed to send OTP. Please try again.")
       setSendingOtp(false)
 
-      // Clear the recaptcha to allow the user to try again
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear()
         recaptchaVerifierRef.current = null
@@ -204,7 +197,7 @@ export function MultiRoleSignUpForm() {
     setError("")
     setSendingOtp(true)
 
-    // Setup reCAPTCHA with a slight delay to ensure DOM is ready
+    // Setup reCAPTCHA with a slight delay
     setTimeout(() => {
       setupRecaptcha()
     }, 100)
@@ -344,11 +337,10 @@ export function MultiRoleSignUpForm() {
   }
 
   const handleGoogleSignUp = async () => {
-    // Placeholder for Google Sign-Up logic
     console.log("Google Sign-Up initiated")
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
 
@@ -395,23 +387,29 @@ export function MultiRoleSignUpForm() {
   }, [otp, showOtpInput])
 
   return (
-    <div className="flex h-full w-full overflow-hidden rounded-2xl bg-white shadow-xl">
-      <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-12">
-        <div className="mx-auto w-full max-w-sm">
-          <h2 className="mb-2 text-3xl font-bold tracking-tight text-gray-900">Join as a Partner</h2>
-          <p className="mb-8 text-sm text-gray-600">Create your account to offer your sports services</p>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Form */}
+      <div className="flex flex-1 flex-col justify-center py-12 px-8">
+        <div className="mx-auto w-full max-w-md">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Join as a Partner</h2>
+          <p className="text-gray-600 mb-8">Create your account to offer your sports services</p>
 
-          {error && <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           {IS_DEVELOPMENT && (
-            <div className="mb-6 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">
+            <div className="mb-6 p-4 rounded-lg bg-blue-50 text-blue-700 text-sm">
               Development mode: reCAPTCHA verification and OTP will be auto-completed
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+            {/* Full Name */}
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
               </label>
               <input
@@ -420,16 +418,17 @@ export function MultiRoleSignUpForm() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="Enter your full name"
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+            {/* Phone Number */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                 Phone Number
               </label>
-              <div className="relative">
+              <div className="relative mb-2">
                 <PhoneInput
                   country={countryCode}
                   value={phoneNumber}
@@ -441,8 +440,7 @@ export function MultiRoleSignUpForm() {
                   inputProps={{
                     id: "phone",
                     required: true,
-                    className:
-                      "w-full rounded-lg border border-gray-300 bg-white px-3 py-3 pl-[90px] text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500",
+                    className: "w-full px-3 py-3 pl-[90px] rounded-lg border border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500",
                     placeholder: "Enter your phone number",
                   }}
                   containerClass="w-full"
@@ -450,7 +448,7 @@ export function MultiRoleSignUpForm() {
                   disabled={showOtpInput || isPhoneVerified}
                 />
                 {isPhoneVerified && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center rounded-full bg-emerald-50 px-2 py-1 text-emerald-500">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center px-2 py-1 bg-emerald-50 text-emerald-500 rounded-full">
                     <Check size={16} className="mr-1" />
                     <span className="text-xs font-medium">Verified</span>
                   </div>
@@ -462,11 +460,11 @@ export function MultiRoleSignUpForm() {
                   type="button"
                   onClick={handleSendOtp}
                   disabled={sendingOtp || !phoneNumber || phoneNumber.length < 10}
-                  className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-2 w-full py-3 px-4 bg-emerald-600 text-white font-medium rounded-lg shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {sendingOtp ? (
                     <>
-                      <Loader2 size={18} className="mr-2 inline animate-spin" />
+                      <Loader2 size={18} className="inline mr-2 animate-spin" />
                       {IS_DEVELOPMENT ? "Auto-verifying..." : "Preparing verification..."}
                     </>
                   ) : (
@@ -476,23 +474,21 @@ export function MultiRoleSignUpForm() {
               )}
             </div>
 
-            {/* reCAPTCHA container - always visible when sending OTP */}
+            {/* reCAPTCHA container */}
             {sendingOtp && !showOtpInput && (
               <div className="flex justify-center my-4">
                 <div id="recaptcha-container" className="min-h-[78px] w-full flex justify-center"></div>
               </div>
             )}
 
-            {/* Remove or comment out the hidden reCAPTCHA container */}
-            {/* <div id="recaptcha-container" className="hidden"></div> */}
-
+            {/* OTP Input */}
             {showOtpInput && !isPhoneVerified && (
-              <div className="space-y-4 rounded-lg border border-gray-100 bg-gray-50 p-5">
-                <label className="block text-center text-sm font-medium text-gray-700">
+              <div className="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+                <label className="block text-center text-sm font-medium text-gray-700 mb-4">
                   Enter the 6-digit code sent to {IS_DEVELOPMENT ? "+15555555555 (Test)" : formatPhoneWithCountryCode()}
                 </label>
 
-                <div className="flex justify-center gap-2">
+                <div className="flex justify-center gap-3 mb-6">
                   {otp.map((digit, index) => (
                     <input
                       key={index}
@@ -502,12 +498,12 @@ export function MultiRoleSignUpForm() {
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
-                      className="h-12 w-10 rounded-md border border-gray-300 text-center text-lg font-semibold shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-12 h-14 text-center text-lg font-semibold rounded-md border border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center justify-between">
                   <button
                     type="button"
                     onClick={handleResendOtp}
@@ -521,11 +517,11 @@ export function MultiRoleSignUpForm() {
                     type="button"
                     onClick={handleVerifyOtp}
                     disabled={verifyingOtp || otp.join("").length !== 6}
-                    className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {verifyingOtp ? (
                       <>
-                        <Loader2 size={16} className="mr-2 inline animate-spin" />
+                        <Loader2 size={16} className="inline mr-2 animate-spin" />
                         Verifying...
                       </>
                     ) : (
@@ -536,65 +532,48 @@ export function MultiRoleSignUpForm() {
               </div>
             )}
 
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">Register as:</label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div
-                  className={`flex items-center p-4 rounded-lg border shadow-sm transition-all duration-200 ${roles.coach ? "bg-emerald-50 border-emerald-300" : "bg-white border-gray-200 hover:border-emerald-300"}`}
-                >
-                  <input
-                    id="coach"
-                    type="checkbox"
-                    className="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    checked={roles.coach}
-                    onChange={() => handleRoleChange("coach")}
-                    disabled={showOtpInput}
-                  />
-                  <label htmlFor="coach" className="ml-3 text-sm font-medium text-gray-700">
-                    Coach
-                  </label>
-                </div>
-                <div
-                  className={`flex items-center p-4 rounded-lg border shadow-sm transition-all duration-200 ${roles.academy ? "bg-emerald-50 border-emerald-300" : "bg-white border-gray-200 hover:border-emerald-300"}`}
-                >
-                  <input
-                    id="academy"
-                    type="checkbox"
-                    className="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    checked={roles.academy}
-                    onChange={() => handleRoleChange("academy")}
-                    disabled={showOtpInput}
-                  />
-                  <label htmlFor="academy" className="ml-3 text-sm font-medium text-gray-700">
-                    Academy
-                  </label>
-                </div>
-                <div
-                  className={`flex items-center p-4 rounded-lg border shadow-sm transition-all duration-200 ${roles.turf ? "bg-emerald-50 border-emerald-300" : "bg-white border-gray-200 hover:border-emerald-300"}`}
-                >
-                  <input
-                    id="turf"
-                    type="checkbox"
-                    className="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    checked={roles.turf}
-                    onChange={() => handleRoleChange("turf")}
-                    disabled={showOtpInput}
-                  />
-                  <label htmlFor="turf" className="ml-3 text-sm font-medium text-gray-700">
-                    Turf
-                  </label>
-                </div>
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Register as:</label>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { id: "coach", label: "Coach" },
+                  { id: "academy", label: "Academy" },
+                  { id: "turf", label: "Turf" }
+                ].map((role) => (
+                  <div
+                    key={role.id}
+                    className={`flex items-center p-4 rounded-lg border transition-all duration-200 ${
+                      roles[role.id] 
+                        ? "bg-emerald-50 border-emerald-300" 
+                        : "bg-white border-gray-200 hover:border-emerald-200"
+                    }`}
+                  >
+                    <input
+                      id={role.id}
+                      type="checkbox"
+                      className="h-5 w-5 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                      checked={roles[role.id]}
+                      onChange={() => handleRoleChange(role.id)}
+                      disabled={showOtpInput}
+                    />
+                    <label htmlFor={role.id} className="ml-3 text-sm font-medium text-gray-700">
+                      {role.label}
+                    </label>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="flex items-center rounded-lg bg-gray-50 p-4">
+            {/* Terms Agreement */}
+            <div className="flex items-center p-4 bg-gray-50 rounded-lg">
               <input
                 id="terms"
                 name="terms"
                 type="checkbox"
                 checked={agreeToTerms}
                 onChange={(e) => setAgreeToTerms(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                className="h-5 w-5 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
               />
               <label htmlFor="terms" className="ml-3 block text-sm text-gray-700">
                 I agree to the{" "}
@@ -608,56 +587,55 @@ export function MultiRoleSignUpForm() {
               </label>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading || !isPhoneVerified || !agreeToTerms}
-              className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full py-3 px-4 bg-emerald-600 text-white font-medium rounded-lg shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
                 <>
-                  <Loader2 size={18} className="mr-2 inline animate-spin" />
+                  <Loader2 size={18} className="inline mr-2 animate-spin" />
                   Creating account...
                 </>
               ) : (
                 "Create account"
               )}
             </button>
+
+            {/* Social Login Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-4 bg-white text-sm text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Social Login Buttons */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={handleGoogleSignUp}
+                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              >
+                <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+                </svg>
+                Google
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              >
+                <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
+                </svg>
+                Apple
+              </button>
+            </div>
           </form>
-
-          <div className="my-8 flex items-center">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="mx-4 flex-shrink text-sm text-gray-400">Or continue with</span>
-            <div className="flex-grow border-t border-gray-200"></div>
-          </div>
-
-          <div className="flex space-x-4">
-            <button
-              type="button"
-              onClick={handleGoogleSignUp}
-              className="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-            >
-              <svg className="mr-2 h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-              </svg>
-              Google
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-            >
-              <svg className="mr-2 h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
-              </svg>
-              Apple
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="hidden relative lg:block lg:w-1/2">
-        <Image src="/images/auth/multi-role-illustration.jpg" alt="Sports illustration" fill className="object-cover" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-black/60 to-transparent p-12 text-center text-white">
-          <h3 className="mb-2 text-2xl font-bold">Build Your Sports Business</h3>
-          <p className="text-lg">Share your expertise and facilities with passionate athletes.</p>
         </div>
       </div>
     </div>

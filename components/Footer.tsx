@@ -124,7 +124,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start">
                 <span className="mr-2">✉️</span>
-                <span>info@dreamsports.com</span>
+                <span>support@futuresportler.com</span>
               </li>
             </ul>
           </div>
