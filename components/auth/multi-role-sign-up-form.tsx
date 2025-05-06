@@ -1,6 +1,4 @@
 "use client"
-
-import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Loader2 } from "lucide-react"
@@ -9,7 +7,7 @@ import { auth } from "@/lib/firebase"
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { supplierSignup, saveAuthTokens } from "@/services/authService"
 
-// Set this to true for development/testing, false for production
+// Development mode detection
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development"
 
 export function MultiRoleSignUpForm() {
@@ -32,18 +30,24 @@ export function MultiRoleSignUpForm() {
   const [countdown, setCountdown] = useState(0)
   const [confirmationResult, setConfirmationResult] = useState(null)
   const recaptchaVerifierRef = useRef(null)
+  const recaptchaContainerRef = useRef(null)
   const router = useRouter()
 
+  // Clear reCAPTCHA when component unmounts
   useEffect(() => {
-    // Cleanup function to clear recaptcha when component unmounts
     return () => {
       if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear()
+        try {
+          recaptchaVerifierRef.current.clear()
+        } catch (error) {
+          console.error("Error clearing reCAPTCHA:", error)
+        }
         recaptchaVerifierRef.current = null
       }
     }
   }, [])
 
+  // Countdown timer for OTP resend
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
@@ -51,7 +55,7 @@ export function MultiRoleSignUpForm() {
     }
   }, [countdown])
 
-  // Get the country dial code from the countryCodes object
+  // Get the country dial code
   const getCountryDialCode = (code) => {
     const countryCodes = {
       in: "91",
@@ -62,21 +66,18 @@ export function MultiRoleSignUpForm() {
       de: "49",
       fr: "33",
     }
-    return countryCodes[code] || "91" // Default to India if code not found
+    return countryCodes[code] || "91"
   }
 
-  // Format phone number with country code if not already included
+  // Format phone number with country code
   const formatPhoneWithCountryCode = () => {
     if (phoneNumber.startsWith("+")) {
-      return phoneNumber // Already has country code
+      return phoneNumber
     }
 
     const dialCode = getCountryDialCode(countryCode)
-
-    // Remove leading zeros if any
     const cleanNumber = phoneNumber.replace(/^0+/, "")
 
-    // Check if number already includes the country code
     if (cleanNumber.startsWith(dialCode)) {
       return `+${cleanNumber}`
     }
@@ -84,105 +85,83 @@ export function MultiRoleSignUpForm() {
     return `+${dialCode}${cleanNumber}`
   }
 
-  // Setup reCAPTCHA verifier
-  const setupRecaptcha = () => {
+  // Initialize reCAPTCHA verifier
+  const initializeRecaptcha = () => {
     try {
-      // Clear existing recaptcha if any
+      // Clear existing verifier if any
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear()
         recaptchaVerifierRef.current = null
       }
 
-      // Create a new div element for the recaptcha container
-      const recaptchaContainer = document.getElementById("recaptcha-container")
-      if (recaptchaContainer) {
-        // Clear previous content
-        recaptchaContainer.innerHTML = ""
-
-        // Create a new div with a unique ID
-        const newRecaptchaElement = document.createElement("div")
-        const uniqueId = `recaptcha-${Date.now()}`
-        newRecaptchaElement.id = uniqueId
-        recaptchaContainer.appendChild(newRecaptchaElement)
-
-        // Create a visible reCAPTCHA
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, uniqueId, {
-          size: "normal",
-          callback: (response) => {
-            console.log("reCAPTCHA verified:", response)
-            sendOtpAfterRecaptcha()
-          },
-          "expired-callback": () => {
-            setError("reCAPTCHA expired. Please solve the reCAPTCHA again.")
-            if (recaptchaVerifierRef.current) {
-              recaptchaVerifierRef.current.clear()
-              recaptchaVerifierRef.current = null
-              setSendingOtp(false)
-            }
-          },
-        })
-
-        recaptchaVerifierRef.current.render().catch((error) => {
-          console.error("Error rendering reCAPTCHA:", error)
-          setError("Failed to load verification. Please refresh and try again.")
+      // Create a new RecaptchaVerifier
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+        callback: () => {
+          // This callback is triggered when reCAPTCHA is solved
+          console.log("reCAPTCHA verified")
+          sendOtp()
+        },
+        "expired-callback": () => {
+          setError("reCAPTCHA verification expired. Please try again.")
           setSendingOtp(false)
-        })
-      } else {
-        throw new Error("Recaptcha container not found")
-      }
-    } catch (err) {
-      console.error("Error setting up reCAPTCHA:", err)
-      setError("Failed to initialize verification. Please refresh and try again.")
+        },
+      })
+
+      return true
+    } catch (error) {
+      console.error("Failed to initialize reCAPTCHA:", error)
+      setError(`reCAPTCHA initialization failed: ${error.message}`)
       setSendingOtp(false)
+      return false
     }
   }
 
-  const sendOtpAfterRecaptcha = async () => {
+  // Send OTP using Firebase Phone Auth
+  const sendOtp = async () => {
     try {
-      // Format phone number with country code
       const formattedPhoneNumber = formatPhoneWithCountryCode()
       console.log("Sending OTP to:", formattedPhoneNumber)
 
-      if (!recaptchaVerifierRef.current) {
-        throw new Error("reCAPTCHA not initialized")
-      }
+      // Send verification code
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifierRef.current)
 
-      // Send OTP via Firebase
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifierRef.current).catch(
-        (error) => {
-          console.error("Error in signInWithPhoneNumber:", error)
-
-          // Handle specific Firebase errors
-          if (error.code === "auth/invalid-app-credential") {
-            throw new Error("Verification failed. Please try again in a few minutes.")
-          } else if (error.code === "auth/captcha-check-failed") {
-            throw new Error("reCAPTCHA verification failed. Please solve the reCAPTCHA again.")
-          } else if (error.code === "auth/quota-exceeded") {
-            throw new Error("SMS quota exceeded. Please try again tomorrow.")
-          } else if (error.code === "auth/invalid-phone-number") {
-            throw new Error("Invalid phone number format. Please check and try again.")
-          } else {
-            throw error
-          }
-        },
-      )
-
-      setConfirmationResult(confirmation)
+      console.log("OTP sent successfully")
+      setConfirmationResult(confirmationResult)
       setShowOtpInput(true)
       setCountdown(30)
       setSendingOtp(false)
-    } catch (err) {
-      console.error("Error sending OTP:", err)
-      setError(err.message || "Failed to send OTP. Please try again.")
-      setSendingOtp(false)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
 
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear()
-        recaptchaVerifierRef.current = null
+      let errorMessage = "Failed to send verification code."
+
+      // Handle specific Firebase errors
+      if (error.code) {
+        switch (error.code) {
+          case "auth/invalid-phone-number":
+            errorMessage = "Invalid phone number format. Please check and try again."
+            break
+          case "auth/quota-exceeded":
+            errorMessage = "Too many requests. Please try again later."
+            break
+          case "auth/captcha-check-failed":
+            errorMessage = "reCAPTCHA verification failed. Please try again."
+            break
+          case "auth/invalid-app-credential":
+            errorMessage = "The reCAPTCHA verification is invalid. This may be due to domain restrictions."
+            break
+          default:
+            errorMessage = `Error: ${error.message || error.code}`
+        }
       }
+
+      setError(errorMessage)
+      setSendingOtp(false)
     }
   }
 
+  // Handle Send OTP button click
   const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Please enter a valid phone number")
@@ -194,15 +173,27 @@ export function MultiRoleSignUpForm() {
       return
     }
 
+    // Clear previous errors
     setError("")
     setSendingOtp(true)
 
-    // Setup reCAPTCHA with a slight delay
-    setTimeout(() => {
-      setupRecaptcha()
-    }, 100)
+    // Initialize reCAPTCHA and render it
+    if (initializeRecaptcha()) {
+      try {
+        // This render function will display the invisible reCAPTCHA
+        await recaptchaVerifierRef.current.render()
+
+        // In invisible reCAPTCHA, we need to explicitly verify
+        recaptchaVerifierRef.current.verify()
+      } catch (error) {
+        console.error("Error rendering reCAPTCHA:", error)
+        setError("Failed to initialize verification. Please refresh and try again.")
+        setSendingOtp(false)
+      }
+    }
   }
 
+  // Handle OTP input change
   const handleOtpChange = (index, value) => {
     if (value.length > 1) {
       value = value.slice(0, 1)
@@ -225,6 +216,7 @@ export function MultiRoleSignUpForm() {
     }
   }
 
+  // Verify the OTP
   const handleVerifyOtp = async () => {
     const otpValue = otp.join("")
     if (otpValue.length !== 6) {
@@ -240,7 +232,7 @@ export function MultiRoleSignUpForm() {
         throw new Error("Verification session expired. Please request a new OTP.")
       }
 
-      // Verify OTP with Firebase
+      // Confirm the verification code
       const userCredential = await confirmationResult.confirm(otpValue)
 
       // Get Firebase ID token
@@ -248,87 +240,78 @@ export function MultiRoleSignUpForm() {
 
       // Format phone number with country code for API
       const formattedPhoneNumber = formatPhoneWithCountryCode()
-      console.log("Calling API with phone:", formattedPhoneNumber)
 
-      // Mock API response for development
-      if (IS_DEVELOPMENT) {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Mock response
-        const mockResponse = {
-          success: true,
-          message: "Supplier created successfully",
-          data: {
-            supplier: {
-              isVerified: false,
-              isOAuth: false,
-              module: [],
-              status: "active",
-              role: "owner",
-              mobile_number: formattedPhoneNumber,
-              supplierId: "dev-supplier-id-" + Math.random().toString(36).substring(2, 9),
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
-              email: null,
-              profilePicture: null,
-              firebaseUID: null,
-              location: null,
-              gstNumber: null,
-              bankAccountNumber: null,
-              accountHolderName: null,
-              ifscCode: null,
-              upiId: null,
-              deletedAt: null,
-            },
-            tokens: {
-              accessToken: "dev-access-token-" + Math.random().toString(36).substring(2, 15),
-              refreshToken: "dev-refresh-token-" + Math.random().toString(36).substring(2, 15),
-            },
-          },
-        }
-
-        // Save tokens to localStorage
-        saveAuthTokens(mockResponse.data.tokens.accessToken, mockResponse.data.tokens.refreshToken)
-      } else {
-        // Call actual supplier signup API in production
+      try {
+        // Call supplier signup API
         const response = await supplierSignup(formattedPhoneNumber, idToken)
 
         // Save tokens to localStorage
         saveAuthTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken)
+
+        // Store supplier types in localStorage for dashboard to use
+        localStorage.setItem("supplierTypes", JSON.stringify(roles))
+
+        setIsPhoneVerified(true)
+        setShowOtpInput(false)
+      } catch (apiError) {
+        console.error("API Error:", apiError)
+
+        // In development mode, we can proceed anyway with mock data
+        if (IS_DEVELOPMENT) {
+          console.log("Development mode: Proceeding despite API error")
+          setIsPhoneVerified(true)
+          setShowOtpInput(false)
+        } else {
+          throw apiError
+        }
+      }
+    } catch (error) {
+      console.error("Error verifying OTP:", error)
+
+      let errorMessage = "Invalid verification code. Please try again."
+
+      if (error.code) {
+        switch (error.code) {
+          case "auth/invalid-verification-code":
+            errorMessage = "The verification code you entered is invalid. Please try again."
+            break
+          case "auth/code-expired":
+            errorMessage = "The verification code has expired. Please request a new code."
+            break
+          default:
+            errorMessage = `Verification failed: ${error.message || error.code}`
+        }
+      } else if (error.message) {
+        errorMessage = error.message
       }
 
-      // Store supplier types in localStorage for dashboard to use
-      localStorage.setItem("supplierTypes", JSON.stringify(roles))
-
-      setIsPhoneVerified(true)
-      setShowOtpInput(false)
-    } catch (err) {
-      console.error("Error verifying OTP:", err)
-      setError(`Verification failed: ${err.message || "Invalid OTP. Please try again."}`)
+      setError(errorMessage)
     } finally {
       setVerifyingOtp(false)
     }
   }
 
+  // Handle resend OTP
   const handleResendOtp = async () => {
     if (countdown > 0) return
 
     setSendingOtp(true)
     setError("")
 
-    // Clear any existing verification first
-    if (recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current.clear()
-      recaptchaVerifierRef.current = null
+    // Start the reCAPTCHA verification process again
+    if (initializeRecaptcha()) {
+      try {
+        await recaptchaVerifierRef.current.render()
+        recaptchaVerifierRef.current.verify()
+      } catch (error) {
+        console.error("Error rendering reCAPTCHA for resend:", error)
+        setError("Failed to initialize verification. Please refresh and try again.")
+        setSendingOtp(false)
+      }
     }
-
-    // Setup reCAPTCHA again for resending OTP with a slight delay
-    setTimeout(() => {
-      setupRecaptcha()
-    }, 100)
   }
 
+  // Handle role selection change
   const handleRoleChange = (role) => {
     setRoles((prevRoles) => ({
       ...prevRoles,
@@ -336,10 +319,13 @@ export function MultiRoleSignUpForm() {
     }))
   }
 
+  // Handle Google Sign-Up
   const handleGoogleSignUp = async () => {
     console.log("Google Sign-Up initiated")
+    // Implement Google Sign-Up logic here
   }
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
@@ -368,18 +354,18 @@ export function MultiRoleSignUpForm() {
     setIsLoading(true)
 
     try {
-      // User is already registered at this point through the OTP verification
+      // User is already registered through OTP verification
       // Just redirect to supplier dashboard
       router.push("/supplier/dashboard")
-    } catch (err) {
-      console.error("Error during sign up:", err)
+    } catch (error) {
+      console.error("Error during sign up:", error)
       setError("An error occurred during sign up. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Auto-verify OTP in development mode
+  // Auto-verify OTP in development mode for testing
   useEffect(() => {
     if (IS_DEVELOPMENT && showOtpInput && otp.join("") === "123456") {
       handleVerifyOtp()
@@ -394,17 +380,7 @@ export function MultiRoleSignUpForm() {
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Join as a Partner</h2>
           <p className="text-gray-600 mb-8">Create your account to offer your sports services</p>
 
-          {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          {IS_DEVELOPMENT && (
-            <div className="mb-6 p-4 rounded-lg bg-blue-50 text-blue-700 text-sm">
-              Development mode: reCAPTCHA verification and OTP will be auto-completed
-            </div>
-          )}
+          {error && <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Full Name */}
@@ -440,7 +416,8 @@ export function MultiRoleSignUpForm() {
                   inputProps={{
                     id: "phone",
                     required: true,
-                    className: "w-full px-3 py-3 pl-[90px] rounded-lg border border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500",
+                    className:
+                      "w-full px-3 py-3 pl-[90px] rounded-lg border border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500",
                     placeholder: "Enter your phone number",
                   }}
                   containerClass="w-full"
@@ -465,7 +442,7 @@ export function MultiRoleSignUpForm() {
                   {sendingOtp ? (
                     <>
                       <Loader2 size={18} className="inline mr-2 animate-spin" />
-                      {IS_DEVELOPMENT ? "Auto-verifying..." : "Preparing verification..."}
+                      Preparing verification...
                     </>
                   ) : (
                     "Send OTP"
@@ -474,18 +451,19 @@ export function MultiRoleSignUpForm() {
               )}
             </div>
 
-            {/* reCAPTCHA container */}
-            {sendingOtp && !showOtpInput && (
-              <div className="flex justify-center my-4">
-                <div id="recaptcha-container" className="min-h-[78px] w-full flex justify-center"></div>
-              </div>
-            )}
+            {/* reCAPTCHA container - Invisible but always present in the DOM */}
+            <div
+              id="recaptcha-container"
+              ref={recaptchaContainerRef}
+              className="recaptcha-container"
+              style={{ visibility: "hidden", position: "fixed", bottom: "0", right: "0" }}
+            ></div>
 
             {/* OTP Input */}
             {showOtpInput && !isPhoneVerified && (
               <div className="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
                 <label className="block text-center text-sm font-medium text-gray-700 mb-4">
-                  Enter the 6-digit code sent to {IS_DEVELOPMENT ? "+15555555555 (Test)" : formatPhoneWithCountryCode()}
+                  Enter the 6-digit code sent to {formatPhoneWithCountryCode()}
                 </label>
 
                 <div className="flex justify-center gap-3 mb-6">
@@ -539,13 +517,13 @@ export function MultiRoleSignUpForm() {
                 {[
                   { id: "coach", label: "Coach" },
                   { id: "academy", label: "Academy" },
-                  { id: "turf", label: "Turf" }
+                  { id: "turf", label: "Turf" },
                 ].map((role) => (
                   <div
                     key={role.id}
                     className={`flex items-center p-4 rounded-lg border transition-all duration-200 ${
-                      roles[role.id] 
-                        ? "bg-emerald-50 border-emerald-300" 
+                      roles[role.id]
+                        ? "bg-emerald-50 border-emerald-300"
                         : "bg-white border-gray-200 hover:border-emerald-200"
                     }`}
                   >

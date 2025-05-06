@@ -21,12 +21,12 @@ export default function AuthLayoutClient({
         <Image src="/images/auth-background.jpg" alt="Sports background" fill className="object-cover" priority />
         <div className="absolute top-8 left-8 z-20">
           <Link href="/">
-            <Image src="/Logo.svg" alt="DreamSports" width={150} height={40} className="h-auto" />
+            <Image src="/Logo.svg" alt="Future Sportler" width={150} height={40} className="h-auto" />
           </Link>
         </div>
         <div className="absolute bottom-12 left-8 right-8 text-white z-20">
           <h2 className="text-3xl font-bold mb-4">
-            {isSignUp ? "Join our sports community" : "Welcome back to DreamSports"}
+            {isSignUp ? "Join our sports community" : "Welcome back to Future Sportler"}
           </h2>
           <p className="text-white/80">
             {isSignUp
@@ -43,7 +43,7 @@ export default function AuthLayoutClient({
           <div className="md:hidden">
             <div className="flex justify-center mb-8">
               <Link href="/">
-                <Image src="/Logo.svg" alt="DreamSports" width={150} height={40} className="h-auto" />
+                <Image src="/Logo.svg" alt="Future Sportler" width={150} height={40} className="h-auto" />
               </Link>
             </div>
 
