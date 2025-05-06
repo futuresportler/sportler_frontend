@@ -19,7 +19,7 @@ const TEST_REFRESH_TOKEN =
 // Function to call the supplier signup API
 export const supplierSignup = async (mobileNumber: string, firebaseIdToken: string) => {
   try {
-    const response = await fetch("https://api-primary.futuresportler.com//api/suppliers/signup", {
+    const response = await fetch("https://api-primary.futuresportler.com/api/suppliers/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export const refreshAccessToken = async () => {
   }
 
   try {
-    const response = await fetch("https://api-primary.futuresportler.com//api/auth/refresh", {
+    const response = await fetch("https://api-primary.futuresportler.com/api/auth/refresh", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
