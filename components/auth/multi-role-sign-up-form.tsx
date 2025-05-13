@@ -93,14 +93,12 @@ export function MultiRoleSignUpForm() {
         recaptchaVerifierRef.current.clear()
         recaptchaVerifierRef.current = null
       }
-
       // Create a new RecaptchaVerifier
       recaptchaVerifierRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
         size: "invisible",
         callback: () => {
           // This callback is triggered when reCAPTCHA is solved
           console.log("reCAPTCHA verified")
-          sendOtp()
         },
         "expired-callback": () => {
           setError("reCAPTCHA verification expired. Please try again.")
@@ -108,7 +106,7 @@ export function MultiRoleSignUpForm() {
         },
       })
 
-      return true
+      return recaptchaVerifierRef.current
     } catch (error) {
       console.error("Failed to initialize reCAPTCHA:", error)
       setError(`reCAPTCHA initialization failed: ${error.message}`)
@@ -118,19 +116,18 @@ export function MultiRoleSignUpForm() {
   }
 
   // Send OTP using Firebase Phone Auth
-  const sendOtp = async () => {
+  const sendOtp = async (verifier) => {
     try {
       const formattedPhoneNumber = formatPhoneWithCountryCode()
       console.log("Sending OTP to:", formattedPhoneNumber)
 
       // Send verification code
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifierRef.current)
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier)
 
       console.log("OTP sent successfully")
       setConfirmationResult(confirmationResult)
       setShowOtpInput(true)
       setCountdown(30)
-      setSendingOtp(false)
     } catch (error) {
       console.error("Error sending OTP:", error)
 
@@ -157,6 +154,7 @@ export function MultiRoleSignUpForm() {
       }
 
       setError(errorMessage)
+    } finally {
       setSendingOtp(false)
     }
   }
@@ -177,19 +175,23 @@ export function MultiRoleSignUpForm() {
     setError("")
     setSendingOtp(true)
 
-    // Initialize reCAPTCHA and render it
-    if (initializeRecaptcha()) {
-      try {
-        // This render function will display the invisible reCAPTCHA
-        await recaptchaVerifierRef.current.render()
+    try {
+      // Initialize reCAPTCHA
+      const verifier = initializeRecaptcha()
 
-        // In invisible reCAPTCHA, we need to explicitly verify
-        recaptchaVerifierRef.current.verify()
-      } catch (error) {
-        console.error("Error rendering reCAPTCHA:", error)
-        setError("Failed to initialize verification. Please refresh and try again.")
-        setSendingOtp(false)
+      if (!verifier) {
+        throw new Error("Failed to initialize reCAPTCHA verifier")
       }
+
+      // Make sure the reCAPTCHA verifier is rendered before proceeding
+      await verifier.render()
+
+      // Send OTP after reCAPTCHA is ready
+      await sendOtp(verifier)
+    } catch (error) {
+      console.error("Error in handleSendOtp:", error)
+      setError("Failed to initialize verification. Please refresh and try again.")
+      setSendingOtp(false)
     }
   }
 
@@ -298,16 +300,23 @@ export function MultiRoleSignUpForm() {
     setSendingOtp(true)
     setError("")
 
-    // Start the reCAPTCHA verification process again
-    if (initializeRecaptcha()) {
-      try {
-        await recaptchaVerifierRef.current.render()
-        recaptchaVerifierRef.current.verify()
-      } catch (error) {
-        console.error("Error rendering reCAPTCHA for resend:", error)
-        setError("Failed to initialize verification. Please refresh and try again.")
-        setSendingOtp(false)
+    try {
+      // Re-initialize reCAPTCHA for resending OTP
+      const verifier = initializeRecaptcha()
+
+      if (!verifier) {
+        throw new Error("Failed to initialize reCAPTCHA verifier")
       }
+
+      // Make sure the reCAPTCHA verifier is rendered before proceeding
+      await verifier.render()
+
+      // Send OTP after reCAPTCHA is ready
+      await sendOtp(verifier)
+    } catch (error) {
+      console.error("Error in handleResendOtp:", error)
+      setError("Failed to resend verification code. Please refresh and try again.")
+      setSendingOtp(false)
     }
   }
 
@@ -454,9 +463,8 @@ export function MultiRoleSignUpForm() {
             {/* reCAPTCHA container - Invisible but always present in the DOM */}
             <div
               id="recaptcha-container"
-              ref={recaptchaContainerRef}
+              style={{ visibility: "hidden" }}
               className="recaptcha-container"
-              style={{ visibility: "hidden", position: "fixed", bottom: "0", right: "0" }}
             ></div>
 
             {/* OTP Input */}

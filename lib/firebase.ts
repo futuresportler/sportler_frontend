@@ -1,25 +1,25 @@
+
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps } from "firebase/app"
-import { getAuth } from "firebase/auth"
-// import { getAnalytics } from "firebase/analytics";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app"
+import { getAuth, Auth } from "firebase/auth"
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDuKIj8vPuYujWdbfPVkyYQie9FerBwiCY",
-  authDomain: "di-twin.firebaseapp.com",
-  projectId: "di-twin",
-  storageBucket: "di-twin.appspot.com",
-  messagingSenderId: "235797705732",
-  appId: "1:235797705732:web:ebac0839cad13ba17f3151",
-  measurementId: "G-64SEMKFMSG",
+  apiKey: "AIzaSyAxZz8Q8lKLhPNE0GP9xpPIsMui-72LavM",
+  authDomain: "future-sportler-459115.firebaseapp.com",
+  projectId: "future-sportler-459115",
+  storageBucket: "future-sportler-459115.firebasestorage.app",
+  messagingSenderId: "183840114821",
+  appId: "1:183840114821:web:40dc4e8124428f9a8f81ec",
+  measurementId: "G-EPSS0BEW2S"
 }
 
 // Initialize Firebase only if it hasn't been initialized already
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0]
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0]
 
 // Initialize Firebase Authentication
-export const auth = getAuth(app)
+export const auth: Auth = getAuth(app)
 
 // Add this to the global window object for TypeScript
 declare global {

@@ -32,8 +32,18 @@ export default function RootLayout({
             `,
           }}
         />
+        <Script
+          // src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
+          src="https://www.google.com/recaptcha/api.js"
+          strategy="afterInteractive"
+          // You can add an onLoad callback here if needed, but initializing RecaptchaVerifier
+          // in the component's useEffect after the DOM element is ready is often cleaner.
+          // onLoad={() => console.log('reCAPTCHA script is loaded and ready!')}
+        />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        </body>
     </html>
   )
 }
