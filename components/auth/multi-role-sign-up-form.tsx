@@ -1,14 +1,37 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Loader2 } from "lucide-react"
 import { PhoneInput } from "@/components/ui/phone-input"
-import { auth } from "@/lib/firebase"
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { supplierSignup, saveAuthTokens } from "@/services/authService"
 
 // Development mode detection
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development"
+
+// Backend API endpoints that will handle Twilio integration
+const BACKEND_SEND_OTP_ENDPOINT = "/api/auth/send-otp"
+const BACKEND_VERIFY_OTP_ENDPOINT = "/api/auth/verify-otp"
+
+interface TwilioVerificationResponse {
+  sid: string
+  service_sid: string
+  account_sid: string
+  to: string
+  channel: string
+  status: string
+  date_created: string
+}
+
+interface TwilioVerificationCheckResponse {
+  sid: string
+  service_sid: string
+  account_sid: string
+  to: string
+  channel: string
+  status: string
+  valid: boolean
+  date_created: string
+}
 
 export function MultiRoleSignUpForm() {
   const [fullName, setFullName] = useState("")
@@ -28,24 +51,8 @@ export function MultiRoleSignUpForm() {
   const [verifyingOtp, setVerifyingOtp] = useState(false)
   const [error, setError] = useState("")
   const [countdown, setCountdown] = useState(0)
-  const [confirmationResult, setConfirmationResult] = useState(null)
-  const recaptchaVerifierRef = useRef(null)
-  const recaptchaContainerRef = useRef(null)
+  const [verificationSid, setVerificationSid] = useState<string | null>(null)
   const router = useRouter()
-
-  // Clear reCAPTCHA when component unmounts
-  useEffect(() => {
-    return () => {
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear()
-        } catch (error) {
-          console.error("Error clearing reCAPTCHA:", error)
-        }
-        recaptchaVerifierRef.current = null
-      }
-    }
-  }, [])
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -56,8 +63,8 @@ export function MultiRoleSignUpForm() {
   }, [countdown])
 
   // Get the country dial code
-  const getCountryDialCode = (code) => {
-    const countryCodes = {
+  const getCountryDialCode = (code: string): string => {
+    const countryCodes: Record<string, string> = {
       in: "91",
       us: "1",
       gb: "44",
@@ -69,8 +76,8 @@ export function MultiRoleSignUpForm() {
     return countryCodes[code] || "91"
   }
 
-  // Format phone number with country code
-  const formatPhoneWithCountryCode = () => {
+  // Format phone number with country code (E.164 format for Twilio)
+  const formatPhoneWithCountryCode = (): string => {
     if (phoneNumber.startsWith("+")) {
       return phoneNumber
     }
@@ -85,71 +92,57 @@ export function MultiRoleSignUpForm() {
     return `+${dialCode}${cleanNumber}`
   }
 
-  // Initialize reCAPTCHA verifier
-  const initializeRecaptcha = () => {
-    try {
-      // Clear existing verifier if any
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear()
-        recaptchaVerifierRef.current = null
-      }
-      // Create a new RecaptchaVerifier
-      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => {
-          // This callback is triggered when reCAPTCHA is solved
-          console.log("reCAPTCHA verified")
-        },
-        "expired-callback": () => {
-          setError("reCAPTCHA verification expired. Please try again.")
-          setSendingOtp(false)
-        },
-      })
-
-      return recaptchaVerifierRef.current
-    } catch (error) {
-      console.error("Failed to initialize reCAPTCHA:", error)
-      setError(`reCAPTCHA initialization failed: ${error.message}`)
-      setSendingOtp(false)
-      return false
-    }
-  }
-
-  // Send OTP using Firebase Phone Auth
-  const sendOtp = async (verifier) => {
+  // Send OTP using Twilio (via backend)
+  const sendOtp = async (): Promise<void> => {
     try {
       const formattedPhoneNumber = formatPhoneWithCountryCode()
       console.log("Sending OTP to:", formattedPhoneNumber)
 
-      // Send verification code
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier)
+      const response = await fetch(BACKEND_SEND_OTP_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phoneNumber: formattedPhoneNumber,
+          channel: "sms" // Can be 'sms', 'call', 'whatsapp', etc.
+        }),
+      })
 
-      console.log("OTP sent successfully")
-      setConfirmationResult(confirmationResult)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error?.message || "Failed to send OTP")
+      }
+
+      console.log("OTP sent successfully:", data)
+      
+      // Twilio returns verification details including sid
+      if (data.verification) {
+        setVerificationSid(data.verification.sid)
+      } else {
+        setVerificationSid(data.sid) // Fallback if direct response
+      }
+      
       setShowOtpInput(true)
       setCountdown(30)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending OTP:", error)
 
       let errorMessage = "Failed to send verification code."
 
-      // Handle specific Firebase errors
-      if (error.code) {
-        switch (error.code) {
-          case "auth/invalid-phone-number":
-            errorMessage = "Invalid phone number format. Please check and try again."
-            break
-          case "auth/quota-exceeded":
-            errorMessage = "Too many requests. Please try again later."
-            break
-          case "auth/captcha-check-failed":
-            errorMessage = "reCAPTCHA verification failed. Please try again."
-            break
-          case "auth/invalid-app-credential":
-            errorMessage = "The reCAPTCHA verification is invalid. This may be due to domain restrictions."
-            break
-          default:
-            errorMessage = `Error: ${error.message || error.code}`
+      // Handle Twilio-specific errors
+      if (error.message) {
+        if (error.message.includes("20003") || error.message.includes("Unable to create record")) {
+          errorMessage = "Invalid phone number. Please check and try again."
+        } else if (error.message.includes("20004") || error.message.includes("phone number")) {
+          errorMessage = "Invalid phone number format. Please enter a valid phone number."
+        } else if (error.message.includes("20009") || error.message.includes("Geographic permissions")) {
+          errorMessage = "Unable to send OTP to this country. Please contact support."
+        } else if (error.message.includes("20429") || error.message.includes("rate limit")) {
+          errorMessage = "Too many requests. Please wait a moment and try again."
+        } else {
+          errorMessage = error.message
         }
       }
 
@@ -160,7 +153,7 @@ export function MultiRoleSignUpForm() {
   }
 
   // Handle Send OTP button click
-  const handleSendOtp = async () => {
+  const handleSendOtp = async (): Promise<void> => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Please enter a valid phone number")
       return
@@ -175,28 +168,11 @@ export function MultiRoleSignUpForm() {
     setError("")
     setSendingOtp(true)
 
-    try {
-      // Initialize reCAPTCHA
-      const verifier = initializeRecaptcha()
-
-      if (!verifier) {
-        throw new Error("Failed to initialize reCAPTCHA verifier")
-      }
-
-      // Make sure the reCAPTCHA verifier is rendered before proceeding
-      await verifier.render()
-
-      // Send OTP after reCAPTCHA is ready
-      await sendOtp(verifier)
-    } catch (error) {
-      console.error("Error in handleSendOtp:", error)
-      setError("Failed to initialize verification. Please refresh and try again.")
-      setSendingOtp(false)
-    }
+    await sendOtp()
   }
 
   // Handle OTP input change
-  const handleOtpChange = (index, value) => {
+  const handleOtpChange = (index: number, value: string): void => {
     if (value.length > 1) {
       value = value.slice(0, 1)
     }
@@ -218,8 +194,8 @@ export function MultiRoleSignUpForm() {
     }
   }
 
-  // Verify the OTP
-  const handleVerifyOtp = async () => {
+  // Verify the OTP using Twilio (via backend)
+  const handleVerifyOtp = async (): Promise<void> => {
     const otpValue = otp.join("")
     if (otpValue.length !== 6) {
       setError("Please enter a valid 6-digit OTP")
@@ -230,61 +206,74 @@ export function MultiRoleSignUpForm() {
     setVerifyingOtp(true)
 
     try {
-      if (!confirmationResult) {
-        throw new Error("Verification session expired. Please request a new OTP.")
-      }
-
-      // Confirm the verification code
-      const userCredential = await confirmationResult.confirm(otpValue)
-
-      // Get Firebase ID token
-      const idToken = await userCredential.user.getIdToken()
-
-      // Format phone number with country code for API
       const formattedPhoneNumber = formatPhoneWithCountryCode()
 
-      try {
-        // Call supplier signup API
-        const response = await supplierSignup(formattedPhoneNumber, idToken)
+      // Verify OTP through your backend
+      const response = await fetch(BACKEND_VERIFY_OTP_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phoneNumber: formattedPhoneNumber,
+          code: otpValue,
+        }),
+      })
 
-        // Save tokens to localStorage
-        saveAuthTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken)
+      const data = await response.json()
 
-        // Store supplier types in localStorage for dashboard to use
-        localStorage.setItem("supplierTypes", JSON.stringify(roles))
+      if (!response.ok) {
+        throw new Error(data.message || data.error?.message || "Verification failed")
+      }
 
-        setIsPhoneVerified(true)
-        setShowOtpInput(false)
-      } catch (apiError) {
-        console.error("API Error:", apiError)
+      // Check if Twilio verification was successful
+      const verificationResult = data.verificationCheck || data
+      
+      if (verificationResult.status === "approved" && verificationResult.valid === true) {
+        try {
+          // Call supplier signup API
+          const signupResponse = await supplierSignup(formattedPhoneNumber, "twilio-verified")
 
-        // In development mode, we can proceed anyway with mock data
-        if (IS_DEVELOPMENT) {
-          console.log("Development mode: Proceeding despite API error")
+          // Save tokens to localStorage
+          saveAuthTokens(signupResponse.data.tokens.accessToken, signupResponse.data.tokens.refreshToken)
+
+          // Store supplier types in localStorage for dashboard to use
+          localStorage.setItem("supplierTypes", JSON.stringify(roles))
+
           setIsPhoneVerified(true)
           setShowOtpInput(false)
-        } else {
-          throw apiError
+        } catch (apiError: any) {
+          console.error("API Error:", apiError)
+
+          // In development mode, we can proceed anyway with mock data
+          if (IS_DEVELOPMENT) {
+            console.log("Development mode: Proceeding despite API error")
+            setIsPhoneVerified(true)
+            setShowOtpInput(false)
+          } else {
+            throw apiError
+          }
         }
+      } else {
+        throw new Error("Invalid verification code")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying OTP:", error)
 
       let errorMessage = "Invalid verification code. Please try again."
 
-      if (error.code) {
-        switch (error.code) {
-          case "auth/invalid-verification-code":
-            errorMessage = "The verification code you entered is invalid. Please try again."
-            break
-          case "auth/code-expired":
-            errorMessage = "The verification code has expired. Please request a new code."
-            break
-          default:
-            errorMessage = `Verification failed: ${error.message || error.code}`
+      if (error.message) {
+        if (error.message.includes("20404") || error.message.includes("Verification code expired")) {
+          errorMessage = "The verification code has expired. Please request a new code."
+        } else if (error.message.includes("20008") || error.message.includes("Max send attempts reached")) {
+          errorMessage = "Maximum attempts reached. Please request a new verification code."
+        } else if (error.message.includes("20404") || error.message.includes("resource was not found")) {
+          errorMessage = "Verification session not found. Please request a new code."
+        } else if (error.message.includes("invalid") || error.message.includes("incorrect")) {
+          errorMessage = "The verification code you entered is invalid. Please try again."
+        } else {
+          errorMessage = error.message
         }
-      } else if (error.message) {
-        errorMessage = error.message
       }
 
       setError(errorMessage)
@@ -294,34 +283,17 @@ export function MultiRoleSignUpForm() {
   }
 
   // Handle resend OTP
-  const handleResendOtp = async () => {
+  const handleResendOtp = async (): Promise<void> => {
     if (countdown > 0) return
 
     setSendingOtp(true)
     setError("")
 
-    try {
-      // Re-initialize reCAPTCHA for resending OTP
-      const verifier = initializeRecaptcha()
-
-      if (!verifier) {
-        throw new Error("Failed to initialize reCAPTCHA verifier")
-      }
-
-      // Make sure the reCAPTCHA verifier is rendered before proceeding
-      await verifier.render()
-
-      // Send OTP after reCAPTCHA is ready
-      await sendOtp(verifier)
-    } catch (error) {
-      console.error("Error in handleResendOtp:", error)
-      setError("Failed to resend verification code. Please refresh and try again.")
-      setSendingOtp(false)
-    }
+    await sendOtp()
   }
 
   // Handle role selection change
-  const handleRoleChange = (role) => {
+  const handleRoleChange = (role: keyof typeof roles): void => {
     setRoles((prevRoles) => ({
       ...prevRoles,
       [role]: !prevRoles[role],
@@ -329,13 +301,13 @@ export function MultiRoleSignUpForm() {
   }
 
   // Handle Google Sign-Up
-  const handleGoogleSignUp = async () => {
+  const handleGoogleSignUp = async (): Promise<void> => {
     console.log("Google Sign-Up initiated")
     // Implement Google Sign-Up logic here
   }
 
   // Handle form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setError("")
 
@@ -354,7 +326,7 @@ export function MultiRoleSignUpForm() {
       return
     }
 
-    const selectedRoles = Object.keys(roles).filter((role) => roles[role])
+    const selectedRoles = Object.keys(roles).filter((role) => roles[role as keyof typeof roles])
     if (selectedRoles.length === 0) {
       setError("Please select at least one role")
       return
@@ -366,7 +338,7 @@ export function MultiRoleSignUpForm() {
       // User is already registered through OTP verification
       // Just redirect to supplier dashboard
       router.push("/supplier/dashboard")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during sign up:", error)
       setError("An error occurred during sign up. Please try again.")
     } finally {
@@ -451,7 +423,7 @@ export function MultiRoleSignUpForm() {
                   {sendingOtp ? (
                     <>
                       <Loader2 size={18} className="inline mr-2 animate-spin" />
-                      Preparing verification...
+                      Sending OTP...
                     </>
                   ) : (
                     "Send OTP"
@@ -459,13 +431,6 @@ export function MultiRoleSignUpForm() {
                 </button>
               )}
             </div>
-
-            {/* reCAPTCHA container - Invisible but always present in the DOM */}
-            <div
-              id="recaptcha-container"
-              style={{ visibility: "hidden" }}
-              className="recaptcha-container"
-            ></div>
 
             {/* OTP Input */}
             {showOtpInput && !isPhoneVerified && (
@@ -530,7 +495,7 @@ export function MultiRoleSignUpForm() {
                   <div
                     key={role.id}
                     className={`flex items-center p-4 rounded-lg border transition-all duration-200 ${
-                      roles[role.id]
+                      roles[role.id as keyof typeof roles]
                         ? "bg-emerald-50 border-emerald-300"
                         : "bg-white border-gray-200 hover:border-emerald-200"
                     }`}
@@ -539,8 +504,8 @@ export function MultiRoleSignUpForm() {
                       id={role.id}
                       type="checkbox"
                       className="h-5 w-5 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
-                      checked={roles[role.id]}
-                      onChange={() => handleRoleChange(role.id)}
+                      checked={roles[role.id as keyof typeof roles]}
+                      onChange={() => handleRoleChange(role.id as keyof typeof roles)}
                       disabled={showOtpInput}
                     />
                     <label htmlFor={role.id} className="ml-3 text-sm font-medium text-gray-700">
