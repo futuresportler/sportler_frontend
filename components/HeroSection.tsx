@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { Activity, ChevronDown, MapPin, Search } from "lucide-react"
 import Image from "next/image"
-import { Search, ChevronDown, MapPin, Activity } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 // Sample images for carousel
 const heroImages = [
@@ -13,18 +13,8 @@ const heroImages = [
   "/pexels-victorfreitas-841130.jpg?height=500&width=500",
 ]
 
-// Sample sport options with icons
-// const sportOptions = [
-//   { name: "Badminton", icon: "🏸" },
-//   { name: "Tennis", icon: "🎾" },
-//   { name: "Football", icon: "⚽" },
-//   { name: "Basketball", icon: "🏀" },
-//   { name: "Swimming", icon: "🏊‍♂️" },
-//   { name: "Cricket", icon: "🏏" },
-// ]
-
-// Sample city options
-// const cityOptions = ["New York", "London", "Mumbai", "Tokyo", "Sydney", "Paris", "Berlin"]
+// API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 export default function HeroSection() {
   const [currentImage, setCurrentImage] = useState(0)
@@ -74,8 +64,7 @@ export default function HeroSection() {
     const fetchSports = async () => {
       setIsLoadingSports(true)
       try {
-        // Replace with your actual API endpoint
-        const response = await fetch("/api/sports")
+        const response = await fetch(`${API_BASE_URL}/api/sports`)
         if (response.ok) {
           const data = await response.json()
           // Map the data to the format we need
@@ -116,8 +105,7 @@ export default function HeroSection() {
     const fetchCities = async () => {
       setIsLoadingCities(true)
       try {
-        // Replace with your actual API endpoint
-        const response = await fetch("/api/cities")
+        const response = await fetch(`${API_BASE_URL}/api/cities`)
         if (response.ok) {
           const data = await response.json()
           setCityOptions(data.map((city) => city.name))
@@ -161,7 +149,7 @@ export default function HeroSection() {
     setSearchType(type)
   }
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault()
 
     // Validate that at least one filter is selected
@@ -173,33 +161,62 @@ export default function HeroSection() {
 
     setIsSearching(true)
 
-    // Build query parameters
-    const queryParams = new URLSearchParams()
-    if (selectedSport) queryParams.set("sport", selectedSport.toLowerCase())
-    if (selectedCity) queryParams.set("location", selectedCity)
-    queryParams.set("type", searchType)
-
-    // Determine the target page based on search type
+    // Determine the API endpoint and target page based on search type
+    let apiEndpoint
     let targetPage
+
     switch (searchType) {
       case "coach":
+        apiEndpoint = `${API_BASE_URL}/api/coaches`
         targetPage = "/coaches"
         break
       case "academy":
+        apiEndpoint = `${API_BASE_URL}/api/academies`
         targetPage = "/academies"
         break
       case "turf":
+        apiEndpoint = `${API_BASE_URL}/api/turfs`
         targetPage = "/courts"
         break
       default:
+        apiEndpoint = `${API_BASE_URL}/api/coaches`
         targetPage = "/coaches"
     }
 
-    // Navigate to the appropriate page with query parameters
-    setTimeout(() => {
-      setIsSearching(false)
+    // Build query parameters for API call
+    const queryParams = new URLSearchParams()
+    if (selectedCity) queryParams.append("city", selectedCity)
+    if (selectedSport) queryParams.append("sport", selectedSport)
+
+    try {
+      // Make API call to get search results
+      const response = await fetch(`${apiEndpoint}?${queryParams.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Check if we have results
+      const hasResults =
+        data.success &&
+        data.data &&
+        ((data.data.coaches && data.data.coaches.length > 0) ||
+          (data.data.academies && data.data.academies.length > 0) ||
+          (data.data.turfs && data.data.turfs.length > 0))
+
+      console.log("Search results:", data)
+
+      // Navigate to the appropriate page with query parameters
       router.push(`${targetPage}?${queryParams.toString()}`)
-    }, 800) // Short delay for loading animation
+    } catch (error) {
+      console.error("Error searching:", error)
+      // Still navigate to the page even if the API call fails
+      router.push(`${targetPage}?${queryParams.toString()}`)
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   return (
@@ -251,9 +268,8 @@ export default function HeroSection() {
             >
               <button
                 onClick={() => handleSearchTypeChange("coach")}
-                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  searchType === "coach" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
-                }`}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${searchType === "coach" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
+                  }`}
                 role="tab"
                 aria-selected={searchType === "coach"}
                 aria-controls="search-form"
@@ -262,9 +278,8 @@ export default function HeroSection() {
               </button>
               <button
                 onClick={() => handleSearchTypeChange("academy")}
-                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  searchType === "academy" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
-                }`}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${searchType === "academy" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
+                  }`}
                 role="tab"
                 aria-selected={searchType === "academy"}
                 aria-controls="search-form"
@@ -273,9 +288,8 @@ export default function HeroSection() {
               </button>
               <button
                 onClick={() => handleSearchTypeChange("turf")}
-                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  searchType === "turf" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
-                }`}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${searchType === "turf" ? "bg-white text-emerald-600 shadow-md" : "text-white hover:bg-white/10"
+                  }`}
                 role="tab"
                 aria-selected={searchType === "turf"}
                 aria-controls="search-form"
@@ -309,9 +323,8 @@ export default function HeroSection() {
                         </span>
                         <ChevronDown
                           size={16}
-                          className={`text-gray-400 transition-transform duration-300 ${
-                            showSportDropdown ? "rotate-180" : ""
-                          }`}
+                          className={`text-gray-400 transition-transform duration-300 ${showSportDropdown ? "rotate-180" : ""
+                            }`}
                         />
                       </div>
                     </div>
@@ -363,9 +376,8 @@ export default function HeroSection() {
                         </span>
                         <ChevronDown
                           size={16}
-                          className={`text-gray-400 transition-transform duration-300 ${
-                            showCityDropdown ? "rotate-180" : ""
-                          }`}
+                          className={`text-gray-400 transition-transform duration-300 ${showCityDropdown ? "rotate-180" : ""
+                            }`}
                         />
                       </div>
                     </div>
@@ -454,9 +466,8 @@ export default function HeroSection() {
               {heroImages.map((src, index) => (
                 <div
                   key={`main-${index}`}
-                  className={`absolute w-[90%] h-[90%] overflow-hidden transition-all duration-700 ease-in-out ${
-                    currentImage === index ? "opacity-100 z-10 right-0 scale-100" : "opacity-0 z-0 right-8 scale-95"
-                  }`}
+                  className={`absolute w-[90%] h-[90%] overflow-hidden transition-all duration-700 ease-in-out ${currentImage === index ? "opacity-100 z-10 right-0 scale-100" : "opacity-0 z-0 right-8 scale-95"
+                    }`}
                   style={{
                     borderRadius: "24px",
                     boxShadow: "0 20px 50px -15px rgba(0, 0, 0, 0.6)",
@@ -484,28 +495,15 @@ export default function HeroSection() {
                 </div>
               ))}
 
-              {/* Enhanced decorative element */}
-              {/* <div className="absolute -bottom-6 -left-6 w-20 sm:w-24 h-20 sm:h-24 z-20 drop-shadow-xl">
-                <div className="absolute inset-0 bg-white/15 backdrop-blur-md rounded-2xl -z-10 border border-white/20"></div>
-                <Image
-                  src="/badminton-icon.svg"
-                  alt="Badminton"
-                  width={60}
-                  height={60}
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-                />
-              </div> */}
-
               {/* Image indicator dots */}
               <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
                 {heroImages.map((_, index) => (
                   <button
                     key={`dot-${index}`}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      currentImage === index
+                    className={`w-2 h-2 rounded-full transition-all ${currentImage === index
                         ? "bg-yellow-400 w-4 h-2 rounded-full"
                         : "bg-white/40 hover:bg-white/70 w-2 h-2 rounded-full"
-                    }`}
+                      }`}
                     onClick={() => setCurrentImage(index)}
                     aria-label={`View image ${index + 1}`}
                   />
