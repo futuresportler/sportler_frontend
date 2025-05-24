@@ -53,25 +53,7 @@ export default function AuthLayoutClient({
 
           {/* Auth form */}
           <div>{children}</div>
-
-          {/* Toggle between sign in and sign up */}
-          <div className="mt-8 text-center">
-            {isSignUp ? (
-              <p className="text-gray-600">
-                Already have an account?{" "}
-                <Link href="/auth/signin" className="text-emerald-600 hover:text-emerald-700 font-medium">
-                  Sign in
-                </Link>
-              </p>
-            ) : (
-              <p className="text-gray-600">
-                Don't have an account?{" "}
-                <Link href="/auth/signup" className="text-emerald-600 hover:text-emerald-700 font-medium">
-                  Sign up
-                </Link>
-              </p>
-            )}
-          </div>
+              
         </div>
       </div>
     </div>

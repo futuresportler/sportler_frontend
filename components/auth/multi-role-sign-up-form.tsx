@@ -1,11 +1,11 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
-import { Check, Loader2 } from "lucide-react"
 import { PhoneInput } from "@/components/ui/phone-input"
 import { auth } from "@/lib/firebase"
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
-import { supplierSignup, saveAuthTokens } from "@/services/authService"
+import { saveAuthTokens, supplierSignup } from "@/services/authService"
+import { GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, signInWithPopup } from "firebase/auth"
+import { Check, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
 // Development mode detection
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development"
@@ -330,8 +330,97 @@ export function MultiRoleSignUpForm() {
 
   // Handle Google Sign-Up
   const handleGoogleSignUp = async () => {
-    console.log("Google Sign-Up initiated")
-    // Implement Google Sign-Up logic here
+    setError("")
+    setIsLoading(true)
+
+    try {
+      // Create a Google auth provider
+      const provider = new GoogleAuthProvider()
+
+      // Add scopes if needed
+      provider.addScope("email")
+      provider.addScope("profile")
+
+      // Sign in with popup
+      const result = await signInWithPopup(auth, provider)
+
+      // Get the Google Access Token
+      const credential = GoogleAuthProvider.credentialFromResult(result)
+      const idToken = await result.user.getIdToken()
+
+      // Get user info
+      const user = result.user
+      console.log("Google sign in successful:", user.displayName)
+
+      // Set the full name from Google profile if available
+      if (user.displayName) {
+        setFullName(user.displayName)
+      }
+
+      // Set phone number if available
+      if (user.phoneNumber) {
+        setPhoneNumber(user.phoneNumber)
+        setIsPhoneVerified(true)
+      }
+
+      try {
+        // Call supplier signup API with the Firebase ID token
+        const response = await supplierSignup(user.phoneNumber || "", idToken)
+
+        // Save tokens to localStorage
+        saveAuthTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken)
+
+        // Store supplier types in localStorage for dashboard to use
+        localStorage.setItem("supplierTypes", JSON.stringify(roles))
+
+        // Redirect to dashboard if phone is verified, otherwise prompt for phone verification
+        if (user.phoneNumber) {
+          router.push("/supplier/dashboard")
+        } else {
+          // If Google account doesn't have a phone number, we need to collect it
+          setError("Please verify your phone number to continue")
+        }
+      } catch (apiError) {
+        console.error("API Error:", apiError)
+
+        // In development mode, we can proceed anyway with mock data
+        if (IS_DEVELOPMENT) {
+          console.log("Development mode: Proceeding despite API error")
+          if (user.phoneNumber) {
+            router.push("/supplier/dashboard")
+          }
+        } else {
+          throw apiError
+        }
+      }
+    } catch (error) {
+      console.error("Google Sign-In Error:", error)
+
+      let errorMessage = "Failed to sign in with Google. Please try again."
+
+      if (error.code) {
+        switch (error.code) {
+          case "auth/popup-closed-by-user":
+            errorMessage = "Sign-in popup was closed before completing the sign-in."
+            break
+          case "auth/popup-blocked":
+            errorMessage = "Sign-in popup was blocked by your browser. Please allow popups for this site."
+            break
+          case "auth/cancelled-popup-request":
+            errorMessage = "Multiple popup requests were triggered. Only the latest one will be processed."
+            break
+          case "auth/account-exists-with-different-credential":
+            errorMessage = "An account already exists with the same email address but different sign-in credentials."
+            break
+          default:
+            errorMessage = `Google sign-in failed: ${error.message || error.code}`
+        }
+      }
+
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Handle form submission
@@ -461,11 +550,7 @@ export function MultiRoleSignUpForm() {
             </div>
 
             {/* reCAPTCHA container - Invisible but always present in the DOM */}
-            <div
-              id="recaptcha-container"
-              style={{ visibility: "hidden" }}
-              className="recaptcha-container"
-            ></div>
+            <div id="recaptcha-container" style={{ visibility: "hidden" }} className="recaptcha-container"></div>
 
             {/* OTP Input */}
             {showOtpInput && !isPhoneVerified && (
@@ -529,11 +614,10 @@ export function MultiRoleSignUpForm() {
                 ].map((role) => (
                   <div
                     key={role.id}
-                    className={`flex items-center p-4 rounded-lg border transition-all duration-200 ${
-                      roles[role.id]
+                    className={`flex items-center p-4 rounded-lg border transition-all duration-200 ${roles[role.id]
                         ? "bg-emerald-50 border-emerald-300"
                         : "bg-white border-gray-200 hover:border-emerald-200"
-                    }`}
+                      }`}
                   >
                     <input
                       id={role.id}
@@ -599,26 +683,17 @@ export function MultiRoleSignUpForm() {
               </div>
             </div>
 
-            {/* Social Login Buttons */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Social Login Button */}
+            <div>
               <button
                 type="button"
                 onClick={handleGoogleSignUp}
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
               >
                 <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
                 </svg>
-                Google
-              </button>
-              <button
-                type="button"
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-              >
-                <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
-                </svg>
-                Apple
+                Sign up with Google
               </button>
             </div>
           </form>

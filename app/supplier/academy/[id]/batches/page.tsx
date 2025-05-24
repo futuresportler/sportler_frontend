@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createBatch } from "@/services/academyService"
 
 export default function BatchesPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -227,7 +228,13 @@ export default function BatchesPage({ params }: { params: { id: string } }) {
           <h1 className="text-2xl font-bold text-gray-800">Batches</h1>
         </div>
         <div className="flex items-center gap-2">
-          <AddBatchDialog isOpen={isAddBatchOpen} setIsOpen={setIsAddBatchOpen} onAddBatch={handleAddBatch} />
+          <AddBatchDialog
+            isOpen={isAddBatchOpen}
+            setIsOpen={setIsAddBatchOpen}
+            onAddBatch={handleAddBatch}
+            params={params}
+            setBatches={setBatches}
+          />
         </div>
       </div>
 
@@ -407,7 +414,7 @@ export default function BatchesPage({ params }: { params: { id: string } }) {
   )
 }
 
-function AddBatchDialog({ isOpen, setIsOpen, onAddBatch }) {
+function AddBatchDialog({ isOpen, setIsOpen, onAddBatch, params, setBatches }) {
   const [formData, setFormData] = useState({
     name: "",
     sport: "",
@@ -417,25 +424,69 @@ function AddBatchDialog({ isOpen, setIsOpen, onAddBatch }) {
     capacity: "",
     fee: "",
     paymentType: "",
+    ageGroup: "",
   })
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onAddBatch(formData)
-    setFormData({
-      name: "",
-      sport: "",
-      level: "",
-      schedule: "",
-      coach: "",
-      capacity: "",
-      fee: "",
-      paymentType: "",
-    })
+
+    try {
+      // Format the data for the API
+      const batchData = {
+        name: formData.name,
+        academyId: params.id,
+        sport: formData.sport,
+        level: formData.level,
+        schedule: formData.schedule,
+        coach: formData.coach,
+        capacity: Number.parseInt(formData.capacity),
+        fee: formData.fee,
+        paymentType: formData.paymentType,
+        ageGroup: formData.ageGroup || "All ages", // Add this field
+      }
+
+      // Call the API to create the batch
+      const result = await createBatch(batchData)
+
+      if (result.success) {
+        // Add the new batch to the local state with a temporary ID
+        const newBatch = {
+          id: `temp-${Date.now()}`,
+          ...formData,
+          status: "Active",
+          enrolled: 0,
+        }
+
+        setBatches((prev) => [...prev, newBatch])
+
+        // Reset the form
+        setFormData({
+          name: "",
+          sport: "",
+          level: "",
+          schedule: "",
+          coach: "",
+          capacity: "",
+          fee: "",
+          paymentType: "",
+          ageGroup: "",
+        })
+
+        // Close the dialog
+        setIsOpen(false)
+      } else {
+        // Handle error
+        console.error("Failed to create batch:", result.error)
+        alert(`Failed to create batch: ${result.error}`)
+      }
+    } catch (error) {
+      console.error("Error creating batch:", error)
+      alert("An error occurred while creating the batch")
+    }
   }
 
   return (
@@ -551,6 +602,15 @@ function AddBatchDialog({ isOpen, setIsOpen, onAddBatch }) {
                     <SelectItem value="Yearly">Yearly</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ageGroup">Age Group</Label>
+                <Input
+                  id="ageGroup"
+                  value={formData.ageGroup}
+                  onChange={(e) => handleChange("ageGroup", e.target.value)}
+                  placeholder="e.g. 10-12 years"
+                />
               </div>
             </div>
             <DialogFooter>
