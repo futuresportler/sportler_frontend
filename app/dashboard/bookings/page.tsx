@@ -8,7 +8,6 @@ import {
   MapPin,
   User,
   CalendarIcon,
-  Filter,
   Search,
   CheckCircle,
   XCircle,
@@ -158,6 +157,7 @@ export default function BookingsPage() {
       selectedDate.getDate() === i &&
       selectedDate.getMonth() === month &&
       selectedDate.getFullYear() === year
+    const isToday = new Date().getDate() === i && new Date().getMonth() === month && new Date().getFullYear() === year
 
     days.push({
       day: i,
@@ -167,6 +167,7 @@ export default function BookingsPage() {
       bookingType: hasBooking ? bookingDates[dateString].type : null,
       bookingCount: hasBooking ? bookingDates[dateString].count : 0,
       isSelected,
+      isToday,
     })
   }
 
@@ -319,109 +320,126 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Your Bookings</h1>
-          <p className="text-gray-600">Manage your training sessions and bookings</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setView("calendar")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              view === "calendar" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            } transition-colors`}
-          >
-            Calendar View
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              view === "list" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            } transition-colors`}
-          >
-            List View
-          </button>
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            Book New Session
-          </button>
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-4 md:px-6 py-6 md:py-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Your Bookings</h1>
+              <p className="text-gray-600 text-sm md:text-base">
+                Manage your training sessions and track your progress
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setView("calendar")}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  view === "calendar"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                📅 Calendar View
+              </button>
+              <button
+                onClick={() => setView("list")}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  view === "list" ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                📋 List View
+              </button>
+              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm">
+                ➕ Book New Session
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {view === "calendar" ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Calendar</h2>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={prevMonth}
-                  className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-
-                <span className="text-lg font-medium">
+        <>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Calendar Header */}
+            <div className="bg-gray-50 border-b border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">
                   {monthName} {year}
-                </span>
-
-                <button
-                  onClick={nextMonth}
-                  className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
-                  aria-label="Next month"
-                >
-                  <ChevronRight size={18} />
-                </button>
+                </h2>
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={prevMonth}
+                    className="p-2 rounded-full hover:bg-gray-200 transition-colors"
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft size={16} className="text-gray-600" />
+                  </button>
+                  <button
+                    onClick={nextMonth}
+                    className="p-2 rounded-full hover:bg-gray-200 transition-colors"
+                    aria-label="Next month"
+                  >
+                    <ChevronRight size={16} className="text-gray-600" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-2 text-center mb-2">
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                <div key={day} className="text-xs font-medium text-white/80">
-                  {day}
-                </div>
-              ))}
-            </div>
+            {/* Calendar Grid */}
+            <div className="p-4">
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                  <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
 
-            <div className="grid grid-cols-7 gap-2">
-              {days.map((day, index) => (
-                <div key={index} className="aspect-square">
-                  {day !== null && (
-                    <button
-                      onClick={() => setSelectedDate(day.date)}
-                      className={`w-full h-full flex flex-col items-center justify-center rounded-lg text-sm relative transition-all ${
-                        day.isSelected
-                          ? "bg-white text-blue-600 font-bold shadow-lg transform scale-105"
-                          : day.hasBooking
-                            ? day.bookingType === "training"
-                              ? "bg-blue-400/30 text-white hover:bg-blue-400/50"
-                              : "bg-purple-400/30 text-white hover:bg-purple-400/50"
-                            : "hover:bg-white/10 text-white"
-                      }`}
-                    >
-                      <span>{day.day}</span>
-                      {day.hasBooking && (
-                        <div className="absolute bottom-1 flex space-x-0.5">
-                          {Array.from({ length: day.bookingCount }).map((_, i) => (
-                            <div
-                              key={i}
-                              className={`w-1 h-1 rounded-full ${
-                                day.bookingType === "training" ? "bg-blue-300" : "bg-purple-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ))}
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((day, index) => (
+                  <div key={index} className="aspect-square">
+                    {day !== null && (
+                      <button
+                        onClick={() => setSelectedDate(day.date)}
+                        className={`w-full h-full flex flex-col items-center justify-center rounded-lg text-sm relative transition-all ${
+                          day.isSelected
+                            ? "bg-indigo-600 text-white font-medium shadow-sm"
+                            : day.isToday
+                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              : day.hasBooking
+                                ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                : "hover:bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        <span>{day.day}</span>
+                        {day.hasBooking && (
+                          <div className="absolute bottom-1 flex space-x-0.5">
+                            {Array.from({ length: day.bookingCount }).map((_, i) => (
+                              <div
+                                key={i}
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  day.isSelected
+                                    ? "bg-white"
+                                    : day.bookingType === "training"
+                                      ? "bg-blue-500"
+                                      : "bg-purple-500"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-800">
+              <h3 className="font-semibold text-gray-900">
                 {selectedDate.toLocaleDateString("en-US", {
                   weekday: "long",
                   month: "long",
@@ -429,14 +447,14 @@ export default function BookingsPage() {
                   year: "numeric",
                 })}
               </h3>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-4 text-xs">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-blue-400 mr-1"></div>
-                  <span className="text-xs text-gray-500">Training</span>
+                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                  <span className="text-gray-600">Training</span>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-purple-400 mr-1"></div>
-                  <span className="text-xs text-gray-500">Fitness</span>
+                  <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                  <span className="text-gray-600">Fitness</span>
                 </div>
               </div>
             </div>
@@ -564,26 +582,26 @@ export default function BookingsPage() {
               </div>
             </div>
           </div>
-        </div>
+        </>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-slate-900">All Bookings</h2>
+              <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search bookings..."
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
+                    className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 w-full md:w-64 text-sm"
                   />
                 </div>
                 <div className="relative">
-                  <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none bg-white text-sm"
                   >
                     <option value="all">All Status</option>
                     <option value="upcoming">Upcoming</option>
@@ -595,7 +613,7 @@ export default function BookingsPage() {
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none bg-white text-sm"
                   >
                     <option value="all">All Types</option>
                     <option value="training">Training</option>
@@ -606,22 +624,13 @@ export default function BookingsPage() {
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-slate-100">
             {filteredBookings.length > 0 ? (
               filteredBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className={`p-6 hover:bg-gray-50 transition-colors ${
-                    booking.status === "upcoming"
-                      ? "border-l-4 border-blue-500"
-                      : booking.status === "completed"
-                        ? "border-l-4 border-green-500"
-                        : "border-l-4 border-red-500"
-                  }`}
-                >
+                <div key={booking.id} className="p-6 hover:bg-slate-50 transition-colors">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-100">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-100">
                         <Image
                           src={booking.coachAvatar || "/placeholder.svg"}
                           alt={booking.coach}
@@ -630,98 +639,116 @@ export default function BookingsPage() {
                         />
                       </div>
 
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h3 className="font-medium text-gray-800">{booking.title}</h3>
-                          <div className="flex gap-1">
-                            {getStatusBadge(booking.status)}
-                            {getTypeBadge(booking.type)}
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                          <h3 className="font-medium text-slate-900">{booking.title}</h3>
+                          <div className="flex gap-2">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                booking.status === "upcoming"
+                                  ? "bg-sky-100 text-sky-700 border border-sky-200"
+                                  : booking.status === "completed"
+                                    ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                    : "bg-slate-100 text-slate-700 border border-slate-200"
+                              }`}
+                            >
+                              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                booking.type === "training"
+                                  ? "bg-violet-100 text-violet-700 border border-violet-200"
+                                  : "bg-amber-100 text-amber-700 border border-amber-200"
+                              }`}
+                            >
+                              {booking.type.charAt(0).toUpperCase() + booking.type.slice(1)}
+                            </span>
                           </div>
                         </div>
 
-                        <p className="text-gray-600 text-sm">
+                        <p className="text-slate-600 text-sm mb-3">
                           {booking.coach} • {booking.academy}
                         </p>
 
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-slate-600">
                           <div className="flex items-center">
-                            <CalendarIcon size={14} className="mr-2 text-blue-600 flex-shrink-0" />
+                            <CalendarIcon size={14} className="mr-2 text-slate-400 flex-shrink-0" />
                             <span>{booking.date}</span>
                           </div>
-
                           <div className="flex items-center">
-                            <Clock size={14} className="mr-2 text-blue-600 flex-shrink-0" />
+                            <Clock size={14} className="mr-2 text-slate-400 flex-shrink-0" />
                             <span>{booking.time}</span>
                           </div>
-
                           <div className="flex items-center">
-                            <MapPin size={14} className="mr-2 text-blue-600 flex-shrink-0" />
+                            <MapPin size={14} className="mr-2 text-slate-400 flex-shrink-0" />
                             <span className="truncate">{booking.location}</span>
                           </div>
                         </div>
 
                         {booking.status === "cancelled" && booking.cancellationReason && (
-                          <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded-md inline-block">
-                            Reason: {booking.cancellationReason}
+                          <div className="mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                            <span className="font-medium">Cancelled:</span> {booking.cancellationReason}
                           </div>
                         )}
 
                         {booking.status === "completed" && booking.feedback && (
-                          <div className="mt-2 text-sm bg-green-50 px-3 py-1.5 rounded-md inline-block">
-                            <div className="flex items-center text-green-700">
+                          <div className="mt-3 text-sm bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                            <div className="flex items-center text-emerald-700 mb-1">
                               <span className="font-medium mr-1">Your Rating:</span>
-                              {booking.feedback.rating}/5
+                              <span className="font-semibold">{booking.feedback.rating}/5</span>
                             </div>
-                            <div className="text-gray-600 mt-1">{booking.feedback.comment}</div>
+                            <div className="text-slate-600">{booking.feedback.comment}</div>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex gap-2 md:flex-col lg:flex-row">
-                      <div className="text-right mb-2 md:mb-0">
-                        <div className="text-sm text-gray-500">Price</div>
-                        <div className="font-bold text-gray-800">₹{booking.price}</div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-sm text-slate-500">Price</div>
+                        <div className="font-semibold text-slate-900">₹{booking.price}</div>
                       </div>
 
-                      {booking.status === "upcoming" && (
-                        <div className="flex gap-2">
-                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                            {booking.isPaid ? "View Details" : "Complete Payment"}
-                          </button>
-                          <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                            Reschedule
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        {booking.status === "upcoming" && (
+                          <>
+                            <button className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                              {booking.isPaid ? "View Details" : "Complete Payment"}
+                            </button>
+                            <button className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                              Reschedule
+                            </button>
+                          </>
+                        )}
 
-                      {booking.status === "completed" && (
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                          {booking.feedback ? "View Feedback" : "Leave Feedback"}
-                        </button>
-                      )}
+                        {booking.status === "completed" && (
+                          <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            {booking.feedback ? "View Feedback" : "Leave Feedback"}
+                          </button>
+                        )}
 
-                      {booking.status === "cancelled" && (
-                        <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                          Book Again
-                        </button>
-                      )}
+                        {booking.status === "cancelled" && (
+                          <button className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Book Again
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="p-12 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CalendarIcon size={24} className="text-gray-400" />
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CalendarIcon size={24} className="text-slate-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-800 mb-2">No bookings found</h3>
-                <p className="text-gray-500 mb-6">
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No bookings found</h3>
+                <p className="text-slate-600 mb-6">
                   {filterStatus !== "all" || filterType !== "all"
                     ? "No bookings match your filter criteria"
                     : "You haven't made any bookings yet"}
                 </p>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                <button className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
                   Book a Session
                 </button>
               </div>
@@ -729,12 +756,12 @@ export default function BookingsPage() {
           </div>
 
           {filteredBookings.length > 0 && (
-            <div className="p-6 bg-gray-50 border-t border-gray-200">
+            <div className="p-6 bg-slate-50 border-t border-slate-200">
               <div className="flex flex-col sm:flex-row justify-between items-center">
-                <div className="text-sm text-gray-500 mb-4 sm:mb-0">
+                <div className="text-sm text-slate-500 mb-4 sm:mb-0">
                   Showing {filteredBookings.length} of {allBookings.length} bookings
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                <button className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
                   Book a New Session
                 </button>
               </div>
