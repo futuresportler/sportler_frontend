@@ -9,7 +9,7 @@ interface PaginationProps {
   onPageChange: (page: number) => void
 }
 
-export default function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   const [animating, setAnimating] = useState(false)
 
   const handlePageChange = (page: number) => {
@@ -111,3 +111,4 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
   )
 }
 
+export default Pagination

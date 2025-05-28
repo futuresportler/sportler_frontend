@@ -4,6 +4,7 @@ import { Activity, ChevronDown, MapPin, Search } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { generateSlug } from "@/utils/slug"
 
 // Sample images for carousel
 const heroImages = [
@@ -209,11 +210,13 @@ export default function HeroSection() {
       console.log("Search results:", data)
 
       // Navigate to the appropriate page with query parameters
-      router.push(`${targetPage}?${queryParams.toString()}`)
+      const citySlug = generateSlug(selectedCity)
+      router.push(`/${citySlug}${targetPage}?${queryParams.toString()}`)
     } catch (error) {
       console.error("Error searching:", error)
       // Still navigate to the page even if the API call fails
-      router.push(`${targetPage}?${queryParams.toString()}`)
+      const citySlug = generateSlug(selectedCity)
+      router.push(`/${citySlug}${targetPage}?${queryParams.toString()}`)
     } finally {
       setIsSearching(false)
     }
