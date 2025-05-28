@@ -1,325 +1,194 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { Pagination } from "@/components/ui/pagination"
+import { fetchAcademiesByCity, transformApiAcademyToAcademy } from "@/services/apiService"
+import type { Academy, AcademyFilterOptions } from "@/types/academy"
+import { applySearchFilters, extractSearchParams } from "@/utils/search-params"
 import { useSearchParams } from "next/navigation"
-import AcademiesHeader from "./AcademiesHeader"
+import { useEffect, useMemo, useState } from "react"
 import AcademiesFilter from "./AcademiesFilter"
 import AcademiesGrid from "./AcademiesGrid"
+import AcademiesHeader from "./AcademiesHeader"
 import AcademiesList from "./AcademiesList"
 import AcademiesSearchBar from "./AcademiesSearchBar"
-import Pagination from "@/components/coaches/Pagination"
-import type { Academy, AcademyFilterOptions } from "@/types/academy"
-import { newAcademies } from "@/data/new-academies-data"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
-import { extractSearchParams } from "@/utils/search-params"
 
-export default function AcademiesLayout() {
+interface AcademiesLayoutProps {
+  city: string
+}
+
+export default function AcademiesLayout({ city }: AcademiesLayoutProps) {
   const searchParams = useSearchParams()
-  // Make sure we're using academiesData consistently
-  const [academies] = useState<Academy[]>(newAcademies)
-  const [filteredAcademies, setFilteredAcademies] = useState<Academy[]>(newAcademies)
+  const [academies, setAcademies] = useState<Academy[]>([])
+  const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [currentPage, setCurrentPage] = useState(1)
-  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [sortBy, setSortBy] = useState("relevance")
-  const [filterSectionHeight, setFilterSectionHeight] = useState(0)
-  const filterRef = useRef<HTMLDivElement>(null)
-  const [filterOptions, setFilterOptions] = useState<AcademyFilterOptions>({
-    price: { min: 50, max: 500 },
-    rating: 0,
-    certificationLevel: [],
-    sessionType: [],
-    availabilityTimeSlots: [],
-    amenities: [],
-    languages: [],
-    category: "",
-    searchQuery: "",
-  })
+  const [filters, setFilters] = useState<AcademyFilterOptions>({})
+  const itemsPerPage = 6
 
-  // Extract search parameters from URL
+  // Load academies from API
   useEffect(() => {
-    if (searchParams) {
-      const { sport, location } = extractSearchParams(searchParams)
-
-      // Update filter options based on search parameters
-      if (sport || location) {
-        setFilterOptions((prev) => ({
-          ...prev,
-          category: sport || prev.category,
-          searchQuery: location || prev.searchQuery,
-        }))
+    async function loadAcademies() {
+      setLoading(true)
+      try {
+        const apiAcademies = await fetchAcademiesByCity(city)
+        const transformedAcademies = apiAcademies.map(transformApiAcademyToAcademy)
+        setAcademies(transformedAcademies)
+      } catch (error) {
+        console.error("Error loading academies:", error)
+        setAcademies([])
+      } finally {
+        setLoading(false)
       }
     }
-  }, [searchParams])
 
-  const academiesPerPage = 6
-  const totalPages = Math.ceil(filteredAcademies.length / academiesPerPage)
-
-  // Get current academies for pagination
-  const indexOfLastAcademy = currentPage * academiesPerPage
-  const indexOfFirstAcademy = indexOfLastAcademy - academiesPerPage
-  const currentAcademies = filteredAcademies.slice(indexOfFirstAcademy, indexOfLastAcademy)
-
-  // Measure filter section height for matching scroll area
-  useEffect(() => {
-    if (filterRef.current) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          setFilterSectionHeight(entry.contentRect.height)
-        }
-      })
-
-      resizeObserver.observe(filterRef.current)
-      return () => {
-        resizeObserver.disconnect()
-      }
+    if (city) {
+      loadAcademies()
     }
-  }, [])
+  }, [city])
 
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+  // Extract search parameters
+  const searchFilters = useMemo(() => {
+    return extractSearchParams(searchParams, city)
+  }, [searchParams, city])
 
-  // Filter academies based on filter options
-  useEffect(() => {
-    // Always start with the full list of academies
-    let result = [...academies]
+  // Apply filters and search
+  const filteredAcademies = useMemo(() => {
+    let filtered = [...academies]
 
-    console.log("Filtering academies with options:", filterOptions)
-    console.log("Starting with", result.length, "academies")
-
-    // Filter by category (case insensitive)
-    if (filterOptions.category && filterOptions.category !== "All Categories") {
-      result = result.filter((academy) => {
-        // Check if category matches (case insensitive)
-        const categoryMatch = academy.category?.toLowerCase().includes(filterOptions.category.toLowerCase())
-
-        // Check if any sport matches (case insensitive)
-        const sportsMatch = academy.sports?.some((sport) =>
-          sport.toLowerCase().includes(filterOptions.category.toLowerCase()),
-        )
-
-        return categoryMatch || sportsMatch
-      })
-      console.log("After category filter:", result.length, "academies")
-    }
-
-    // Filter by price range if hourlyRate exists
-    result = result.filter((academy) => {
-      // If hourlyRate doesn't exist, don't filter it out
-      if (academy.hourlyRate === undefined) return true
-      return academy.hourlyRate >= filterOptions.price.min && academy.hourlyRate <= filterOptions.price.max
+    // Apply search filters
+    filtered = applySearchFilters(filtered, {
+      sport: searchFilters.sport,
+      location: searchFilters.location,
     })
-    console.log("After price filter:", result.length, "academies")
 
-    // Filter by rating if rating exists
-    if (filterOptions.rating > 0) {
-      result = result.filter((academy) => {
-        // If rating doesn't exist, don't filter it out
-        if (academy.rating === undefined) return false
-        return academy.rating >= filterOptions.rating
-      })
-      console.log("After rating filter:", result.length, "academies")
-    }
-
-    // Filter by certification level if it exists
-    if (filterOptions.certificationLevel.length > 0) {
-      result = result.filter((academy) => {
-        // If certificationLevel doesn't exist, don't filter it out
-        if (!academy.certificationLevel) return false
-        return filterOptions.certificationLevel.includes(academy.certificationLevel)
-      })
-      console.log("After certification filter:", result.length, "academies")
-    }
-
-    // Filter by session type if it exists
-    if (filterOptions.sessionType.length > 0) {
-      result = result.filter((academy) => {
-        // If sessionTypes doesn't exist, don't filter it out
-        if (!academy.sessionTypes || academy.sessionTypes.length === 0) return false
-        return academy.sessionTypes.some((type) => filterOptions.sessionType.includes(type))
-      })
-      console.log("After session type filter:", result.length, "academies")
-    }
-
-    // Filter by search query (case insensitive) - this will handle location searches
-    if (filterOptions.searchQuery) {
-      const query = filterOptions.searchQuery.toLowerCase()
-      result = result.filter(
+    // Apply additional filters
+    if (filters.price) {
+      filtered = filtered.filter(
         (academy) =>
-          (academy.title && academy.title.toLowerCase().includes(query)) ||
-          (academy.location && academy.location.toLowerCase().includes(query)) ||
-          (academy.description && academy.description.toLowerCase().includes(query)) ||
-          (academy.category && academy.category.toLowerCase().includes(query)),
+          academy.hourlyRate && academy.hourlyRate >= filters.price!.min && academy.hourlyRate <= filters.price!.max,
       )
-      console.log("After search query filter:", result.length, "academies")
     }
 
-    // Filter by amenities if they exist
-    if (filterOptions.amenities.length > 0) {
-      result = result.filter((academy) => {
-        // If amenities doesn't exist, don't filter it out
-        if (!academy.amenities || academy.amenities.length === 0) return false
-        return academy.amenities.some((amenity) => filterOptions.amenities.includes(amenity))
-      })
-      console.log("After amenities filter:", result.length, "academies")
+    if (filters.rating) {
+      filtered = filtered.filter((academy) => academy.rating && academy.rating >= filters.rating!)
     }
 
-    // Filter by languages if they exist
-    if (filterOptions.languages.length > 0) {
-      result = result.filter((academy) => {
-        // If languages doesn't exist, don't filter it out
-        if (!academy.languages || academy.languages.length === 0) return false
-        return academy.languages.some((lang) => filterOptions.languages.includes(lang))
-      })
-      console.log("After languages filter:", result.length, "academies")
+    if (filters.certificationLevel && filters.certificationLevel.length > 0) {
+      filtered = filtered.filter(
+        (academy) => academy.certificationLevel && filters.certificationLevel!.includes(academy.certificationLevel),
+      )
     }
 
-    // Sort academies
-    if (sortBy === "price-low") {
-      result.sort((a, b) => (a.hourlyRate || 0) - (b.hourlyRate || 0))
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => (b.hourlyRate || 0) - (a.hourlyRate || 0))
-    } else if (sortBy === "rating") {
-      result.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    if (filters.sessionType && filters.sessionType.length > 0) {
+      filtered = filtered.filter(
+        (academy) => academy.sessionTypes && academy.sessionTypes.some((type) => filters.sessionType!.includes(type)),
+      )
     }
 
-    console.log("Final filtered academies:", result.length)
-    setFilteredAcademies(result)
-    // Reset to first page when filters change
+    if (filters.languages && filters.languages.length > 0) {
+      filtered = filtered.filter(
+        (academy) => academy.languages && academy.languages.some((lang) => filters.languages!.includes(lang)),
+      )
+    }
+
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (academy) =>
+          academy.title.toLowerCase().includes(query) ||
+          academy.description.toLowerCase().includes(query) ||
+          academy.location.toLowerCase().includes(query) ||
+          (academy.sports && academy.sports.some((sport) => sport.toLowerCase().includes(query))),
+      )
+    }
+
+    return filtered
+  }, [academies, searchFilters, filters])
+
+  // Pagination
+  const totalPages = Math.ceil(filteredAcademies.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedAcademies = filteredAcademies.slice(startIndex, startIndex + itemsPerPage)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleFiltersChange = (newFilters: AcademyFilterOptions) => {
+    setFilters(newFilters)
     setCurrentPage(1)
-  }, [filterOptions, sortBy, academies])
-
-  const handleFilterChange = (newOptions: Partial<AcademyFilterOptions>) => {
-    console.log("Filter changed:", newOptions)
-    setFilterOptions((prev) => ({ ...prev, ...newOptions }))
   }
 
-  const toggleFilterSidebar = () => {
-    setIsFilterOpen(!isFilterOpen)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading academies...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
-
-  useEffect(() => {
-    // Add custom scrollbar styling and animations
-    const style = document.createElement("style")
-    style.textContent = `
-      html {
-        scroll-behavior: smooth;
-      }
-      
-      @keyframes heartbeat {
-        0% { transform: scale(1); }
-        25% { transform: scale(1.2); }
-        50% { transform: scale(1); }
-        75% { transform: scale(1.2); }
-        100% { transform: scale(1); }
-      }
-      
-      .animate-heartbeat {
-        animation: heartbeat 0.8s ease-in-out;
-      }
-      
-      @keyframes ping-once {
-        0% { transform: scale(0.8); opacity: 1; }
-        100% { transform: scale(2); opacity: 0; }
-      }
-      
-      .animate-ping-once {
-        animation: ping-once 0.8s cubic-bezier(0, 0, 0.2, 1) forwards;
-      }
-    `
-    document.head.appendChild(style)
-
-    return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <Header />
-      <AcademiesHeader />
+    <div className="min-h-screen bg-gray-50">
+      <AcademiesHeader city={city} />
+      <div className="container mx-auto px-4 py-8">
+        <AcademiesSearchBar onFiltersChange={handleFiltersChange} city={city} />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <AcademiesSearchBar
-          onFilterChange={handleFilterChange}
-          filterOptions={filterOptions}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          toggleFilterSidebar={toggleFilterSidebar}
-        />
-
-        <div className="flex mt-6 gap-6">
-          <div
-            ref={filterRef}
-            className={`${isFilterOpen ? "block" : "hidden"} md:block w-full md:w-72 lg:w-80 flex-shrink-0`}
-          >
-            <AcademiesFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="lg:w-1/4">
+            <AcademiesFilter onFiltersChange={handleFiltersChange} />
           </div>
 
-          <div className="flex-1 flex flex-col">
-            <div className="mb-4 flex justify-between items-center">
-              <p className="text-gray-700 font-medium">{filteredAcademies.length} academies are listed</p>
-              <button
-                className="md:hidden bg-emerald-600 text-white px-3 py-1 rounded-md text-sm"
-                onClick={toggleFilterSidebar}
-              >
-                {isFilterOpen ? "Hide Filters" : "Show Filters"}
-              </button>
-            </div>
-
-            <div className="pb-6 flex-1">
-              {filteredAcademies.length > 0 ? (
-                viewMode === "grid" ? (
-                  <AcademiesGrid academies={currentAcademies} currentPage={currentPage} />
-                ) : viewMode === "list" ? (
-                  <AcademiesList academies={currentAcademies} currentPage={currentPage} />
-                ) : (
-                  <div className="h-[600px] bg-gray-200 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500">Map view coming soon</p>
-                  </div>
-                )
-              ) : (
-                <div className="bg-white rounded-lg p-8 text-center shadow-sm">
-                  <p className="text-gray-600 mb-2">No academies found matching your filters.</p>
-                  <button
-                    onClick={() =>
-                      setFilterOptions({
-                        price: { min: 50, max: 500 },
-                        rating: 0,
-                        certificationLevel: [],
-                        sessionType: [],
-                        availabilityTimeSlots: [],
-                        amenities: [],
-                        languages: [],
-                        category: "",
-                        searchQuery: "",
-                      })
-                    }
-                    className="text-emerald-600 hover:text-emerald-700 font-medium"
-                  >
-                    Clear all filters
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {filteredAcademies.length > 0 && (
-              <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
-                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
+          <div className="lg:w-3/4">
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-gray-600">
+                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAcademies.length)} of{" "}
+                {filteredAcademies.length} academies in {city}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded ${viewMode === "grid" ? "bg-emerald-600 text-white" : "bg-white text-gray-600"}`}
+                >
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded ${viewMode === "list" ? "bg-emerald-600 text-white" : "bg-white text-gray-600"}`}
+                >
+                  List
+                </button>
               </div>
+            </div>
+
+            {paginatedAcademies.length === 0 ? (
+              <div className="bg-white rounded-lg p-8 text-center">
+                <h3 className="text-xl font-semibold mb-2">No academies found</h3>
+                <p className="text-gray-600">Try adjusting your filters or search criteria</p>
+              </div>
+            ) : (
+              <>
+                {viewMode === "grid" ? (
+                  <AcademiesGrid academies={paginatedAcademies} currentPage={currentPage} city={city} />
+                ) : (
+                  <AcademiesList academies={paginatedAcademies} currentPage={currentPage} city={city} />
+                )}
+
+                {totalPages > 1 && (
+                  <div className="mt-8 flex justify-center">
+                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
-
-      {/* Floating background elements */}
-      <div className="fixed top-1/4 left-10 w-32 h-32 bg-emerald-50 rounded-full opacity-20 blur-xl z-0"></div>
-      <div className="fixed bottom-1/4 right-10 w-40 h-40 bg-blue-50 rounded-full opacity-20 blur-xl z-0"></div>
-
-      <Footer />
     </div>
   )
 }

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const city = searchParams.get("city")
 
     // Build the external API URL
-    const apiUrl = new URL(`${API_BASE_URL}/api/academies`)
+    const apiUrl = new URL(`${API_BASE_URL}/api/coaches`)
     if (city) {
       apiUrl.searchParams.append("city", city)
     }
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error fetching academies:", error)
-    return NextResponse.json({ error: "Failed to fetch academies" }, { status: 500 })
+    console.error("Error fetching coaches:", error)
+    return NextResponse.json({ error: "Failed to fetch coaches" }, { status: 500 })
   }
 }
