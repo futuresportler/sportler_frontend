@@ -1,495 +1,718 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
 import {
-  ChevronLeft,
-  Edit,
-  Save,
-  Plus,
-  Trash2,
-  Phone,
-  Mail,
-  Calendar,
-  Award,
-  FileText,
-  Star,
-  Users,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Edit, Mail, Save, User, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  getCoachById,
+  updateCoach,
+  getCoachAssignments,
+  type Coach,
+  type CoachAssignments,
+} from "@/services/coachService";
+import {
+  getCoachSchedule,
+  type CoachScheduleResponse,
+} from "@/services/scheduleService";
+import {
+  getRecentFeedback,
+  getAcademyCoachFeedback,
+  type FeedbackItem,
+  type CoachFeedbackSummary,
+} from "@/services/feedbackService";
+import { useEffect } from "react";
 
-export default function CoachProfilePage({ params }: { params: { id: string; coachId: string } }) {
-  const academyId = params.id
-  const coachId = params.coachId
-  const [isEditing, setIsEditing] = useState(false)
+interface Params {
+  id: string;
+  coachId: string;
+}
 
-  // Mock coach data - in a real app, you would fetch this based on the ID
-  const [coach, setCoach] = useState({
-    id: coachId,
-    name: "Ajay Patel",
-    role: "Head Coach",
-    specialization: "Batting Technique",
-    bio: "Ajay Patel is a former state-level cricket player with over 15 years of coaching experience. He specializes in batting technique and has trained several players who have gone on to play at the state and national levels. His coaching philosophy emphasizes technical excellence, mental strength, and disciplined practice.",
-    experience: "15+ years",
-    qualifications: [
-      "Level 3 Cricket Coach Certification",
-      "Former State-Level Player",
-      "Sports Science Diploma",
-      "First Aid Certified",
-    ],
-    contact: {
-      phone: "+91 98765 43210",
-      email: "ajay.patel@premiercricket.com",
-      address: "Mumbai, Maharashtra",
-    },
-    joinDate: "March 2015",
-    rating: 4.8,
-    reviews: 45,
-    image: "/cricket-coach-demonstration.png",
-    achievements: [
-      "Coach of the Year 2020 - Mumbai Cricket Association",
-      "Produced 5 state-level players in the last 3 years",
-      "Led academy team to victory in Inter-Academy Tournament 2022",
-    ],
-    programs: [
-      { id: "1", name: "Junior Cricket Program", ageGroup: "8-12 years", students: 24 },
-      { id: "2", name: "Advanced Batting Technique", ageGroup: "13-16 years", students: 18 },
-      { id: "3", name: "Cricket Fitness Program", ageGroup: "All ages", students: 15 },
-    ],
-    schedule: [
-      { day: "Monday", time: "5:00 PM - 7:00 PM", program: "Junior Cricket Program" },
-      { day: "Tuesday", time: "5:00 PM - 7:00 PM", program: "Advanced Batting Technique" },
-      { day: "Wednesday", time: "5:00 PM - 7:00 PM", program: "Junior Cricket Program" },
-      { day: "Thursday", time: "5:00 PM - 7:00 PM", program: "Advanced Batting Technique" },
-      { day: "Friday", time: "5:00 PM - 7:00 PM", program: "Cricket Fitness Program" },
-      { day: "Saturday", time: "9:00 AM - 12:00 PM", program: "All Programs" },
-    ],
-    studentReviews: [
-      {
-        id: "1",
-        name: "Rahul Sharma",
-        rating: 5,
-        comment:
-          "Coach Ajay has transformed my batting technique. His attention to detail and personalized coaching has helped me improve significantly.",
-      },
-      {
-        id: "2",
-        name: "Priya Patel",
-        rating: 4,
-        comment: "Very knowledgeable and patient coach. Always motivates students to do their best.",
-      },
-      {
-        id: "3",
-        name: "Arjun Singh",
-        rating: 5,
-        comment: "The best cricket coach I've trained with. His technical insights are exceptional.",
-      },
-    ],
-  })
+type SearchParams = {};
 
-  const [newQualification, setNewQualification] = useState("")
-  const [newAchievement, setNewAchievement] = useState("")
+interface Props {
+  params: Params;
+  searchParams: SearchParams;
+}
 
-  const handleSaveChanges = () => {
-    // In a real app, you would save the changes to the database
-    setIsEditing(false)
-    // Show success message
-    alert("Coach profile updated successfully!")
+const CoachProfilePage = ({ params }: Props) => {
+  const { id: academyId, coachId } = params;
+  const router = useRouter();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [coach, setCoach] = useState<Coach | null>(null);
+  const [assignments, setAssignments] = useState<CoachAssignments | null>(null);
+  const [isLoadingCoach, setIsLoadingCoach] = useState(true);
+  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [schedule, setSchedule] = useState<CoachScheduleResponse | null>(null);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(true);
+  const [coachRating, setCoachRating] = useState<CoachFeedbackSummary | null>(
+    null
+  );
+  const [isLoadingRating, setIsLoadingRating] = useState(true);
+
+  const fetchCoach = async () => {
+    setIsLoadingCoach(true);
+    try {
+      const result = await getCoachById(coachId);
+      if (result.success && result.coach) {
+        setCoach(result.coach);
+      } else {
+        console.error("Failed to fetch coach:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching coach:", error);
+    } finally {
+      setIsLoadingCoach(false);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    setIsLoadingAssignments(true);
+    try {
+      const result = await getCoachAssignments(coachId);
+      if (result.success && result.assignments) {
+        setAssignments(result.assignments);
+      } else {
+        console.error("Failed to fetch assignments:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+    } finally {
+      setIsLoadingAssignments(false);
+    }
+  };
+
+  const fetchSchedule = async () => {
+    setIsLoadingSchedule(true);
+    try {
+      const result = await getCoachSchedule(coachId);
+      if (result.success && result.data) {
+        setSchedule(result.data);
+      } else {
+        console.error("Failed to fetch schedule:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+    } finally {
+      setIsLoadingSchedule(false);
+    }
+  };
+
+  const fetchFeedback = async () => {
+    setIsLoadingFeedback(true);
+    try {
+      const result = await getRecentFeedback("coach", coachId);
+      if (result.success && result.data) {
+        setFeedback(result.data);
+      } else {
+        console.error("Failed to fetch feedback:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+    } finally {
+      setIsLoadingFeedback(false);
+    }
+  };
+
+  const fetchCoachRating = async () => {
+    setIsLoadingRating(true);
+    try {
+      const result = await getAcademyCoachFeedback(academyId);
+      if (result.success && result.data) {
+        const coachFeedback = result.data.find(
+          (item) => item.coachId === coachId
+        );
+        setCoachRating(coachFeedback || null);
+      } else {
+        console.error("Failed to fetch coach rating:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching coach rating:", error);
+    } finally {
+      setIsLoadingRating(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCoach();
+    fetchAssignments();
+    fetchSchedule();
+    fetchFeedback();
+    fetchCoachRating();
+  }, [coachId]);
+
+  const handleSaveChanges = async () => {
+    if (!coach) return;
+
+    setIsSaving(true);
+    try {
+      const updateData = {
+        name: coach.name,
+        email: coach.email,
+        mobileNumber: coach.mobileNumber,
+        bio: coach.bio,
+        hourlyRate: coach.hourlyRate,
+        experienceLevel: coach.experienceLevel,
+        sport: coach.sport,
+      };
+
+      const result = await updateCoach(coachId, updateData);
+      if (result.success) {
+        setIsEditing(false);
+        alert("Coach profile updated successfully!");
+      } else {
+        alert(`Failed to update coach: ${result.error}`);
+      }
+    } catch (error) {
+      alert("An error occurred while updating the coach profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoadingCoach) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading coach profile...</p>
+        </div>
+      </div>
+    );
   }
 
-  const handleAddQualification = () => {
-    if (newQualification) {
-      setCoach({
-        ...coach,
-        qualifications: [...coach.qualifications, newQualification],
-      })
-      setNewQualification("")
-    }
-  }
-
-  const handleAddAchievement = () => {
-    if (newAchievement) {
-      setCoach({
-        ...coach,
-        achievements: [...coach.achievements, newAchievement],
-      })
-      setNewAchievement("")
-    }
+  if (!coach) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-gray-500">Coach not found</p>
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="mt-4"
+          >
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/supplier/academy/${academyId}`}>
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Academy
-            </Link>
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="container mx-auto py-10">
+      <Card className="w-full max-w-4xl mx-auto bg-white">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-2xl font-bold">Coach Profile</CardTitle>
           {isEditing ? (
-            <>
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setIsEditing(false)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleSaveChanges}>
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {isSaving ? "Saving..." : "Save Changes"}
               </Button>
-            </>
+            </div>
           ) : (
             <Button size="sm" onClick={() => setIsEditing(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Profile
             </Button>
           )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <Card className="bg-white">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="relative mb-4">
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden">
-                    <Image src={coach.image || "/placeholder.svg"} alt={coach.name} fill className="object-cover" />
-                  </div>
-                  {isEditing && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-sm"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Name</p>
+                  {isEditing ? (
+                    <Input
+                      value={coach.name}
+                      onChange={(e) =>
+                        setCoach({
+                          ...coach,
+                          name: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {coach.name}
+                    </p>
                   )}
                 </div>
-                {isEditing ? (
-                  <Input
-                    value={coach.name}
-                    onChange={(e) => setCoach({ ...coach, name: e.target.value })}
-                    className="text-2xl font-bold text-center mb-1"
-                  />
-                ) : (
-                  <h2 className="text-2xl font-bold">{coach.name}</h2>
-                )}
-                {isEditing ? (
-                  <Input
-                    value={coach.role}
-                    onChange={(e) => setCoach({ ...coach, role: e.target.value })}
-                    className="text-lg text-muted-foreground text-center mb-2"
-                  />
-                ) : (
-                  <p className="text-lg text-muted-foreground">{coach.role}</p>
-                )}
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={16}
-                        className={star <= coach.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-muted-foreground">({coach.reviews} reviews)</span>
-                </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    {coach.specialization}
-                  </Badge>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                    {coach.experience}
-                  </Badge>
-                </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t space-y-4">
-                <div className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Phone</p>
-                    {isEditing ? (
-                      <Input
-                        value={coach.contact.phone}
-                        onChange={(e) =>
-                          setCoach({
-                            ...coach,
-                            contact: { ...coach.contact, phone: e.target.value },
-                          })
-                        }
-                        className="mt-1"
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{coach.contact.phone}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Email</p>
-                    {isEditing ? (
-                      <Input
-                        value={coach.contact.email}
-                        onChange={(e) =>
-                          setCoach({
-                            ...coach,
-                            contact: { ...coach.contact, email: e.target.value },
-                          })
-                        }
-                        className="mt-1"
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{coach.contact.email}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Joined</p>
-                    {isEditing ? (
-                      <Input
-                        value={coach.joinDate}
-                        onChange={(e) => setCoach({ ...coach, joinDate: e.target.value })}
-                        className="mt-1"
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{coach.joinDate}</p>
-                    )}
-                  </div>
+              <div className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Email</p>
+                  {isEditing ? (
+                    <Input
+                      value={coach.email}
+                      onChange={(e) =>
+                        setCoach({
+                          ...coach,
+                          email: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {coach.email}
+                    </p>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Qualifications</CardTitle>
-              <CardDescription>Certifications and credentials</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isEditing && (
-                <div className="flex items-center gap-2 mb-4">
-                  <Input
-                    placeholder="Add qualification"
-                    value={newQualification}
-                    onChange={(e) => setNewQualification(e.target.value)}
-                  />
-                  <Button size="sm" onClick={handleAddQualification}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-phone h-5 w-5 text-muted-foreground mt-0.5"
+                >
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 0 0 1-8.63-3.07 19.5 0 0 1-6-6 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.08 2h3a2 2 0 0 1 2 2 15.71 0 0 0 .94 4.31 2.2 2.2 0 0 0 .7 1.21l.27.27a2.39 2.39 0 0 1 .7.7 2.39 2.39 0 0 1 .7.7l.27.27a2.22 0 0 0 1.21.7 15.71 0 0 0 4.31.94 2 2 0 0 1 2 2Z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium">Contact Information</p>
+                  {isEditing ? (
+                    <Input
+                      value={coach.mobileNumber}
+                      onChange={(e) =>
+                        setCoach({
+                          ...coach,
+                          mobileNumber: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {coach.mobileNumber}
+                    </p>
+                  )}
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex items-start gap-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-info h-5 w-5 text-muted-foreground mt-0.5"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" x2="12" y1="16" y2="12" />
+                  <line x1="12" x2="12.01" y1="8" y2="8" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium">About</p>
+                  {isEditing ? (
+                    <Input
+                      value={coach.bio || ""}
+                      onChange={(e) =>
+                        setCoach({
+                          ...coach,
+                          bio: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {coach.bio || "No bio available."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-3">
+              <Badge
+                variant="outline"
+                className="bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {coach.sport}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="bg-emerald-50 text-emerald-700 border-emerald-200"
+              >
+                {coach.experienceLevel} years exp
+              </Badge>
+              <Badge
+                variant="outline"
+                className="bg-purple-50 text-purple-700 border-purple-200"
+              >
+                ₹{coach.hourlyRate}/hr
+              </Badge>
+              {coachRating && (
+                <Badge
+                  variant="outline"
+                  className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                >
+                  ⭐ {coachRating.averageRating.toFixed(1)} (
+                  {coachRating.totalReviews} reviews)
+                </Badge>
               )}
-              <div className="space-y-2">
-                {coach.qualifications.map((qualification, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-gray-50">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                      <FileText className="h-3 w-3" />
-                    </div>
-                    <span className="text-sm">{qualification}</span>
-                    {isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 ml-auto"
-                        onClick={() => {
-                          const updatedQualifications = [...coach.qualifications]
-                          updatedQualifications.splice(index, 1)
-                          setCoach({ ...coach, qualifications: updatedQualifications })
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
+      <Tabs defaultValue="programs" className="w-full max-w-4xl mx-auto mt-6">
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="programs">Programs</TabsTrigger>
+          <TabsTrigger value="batches">Batches</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
+        </TabsList>
+        <TabsContent value="programs" className="space-y-4">
           <Card className="bg-white">
             <CardHeader>
-              <CardTitle>Achievements</CardTitle>
-              <CardDescription>Notable accomplishments</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isEditing && (
-                <div className="flex items-center gap-2 mb-4">
-                  <Input
-                    placeholder="Add achievement"
-                    value={newAchievement}
-                    onChange={(e) => setNewAchievement(e.target.value)}
-                  />
-                  <Button size="sm" onClick={handleAddAchievement}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-              <div className="space-y-2">
-                {coach.achievements.map((achievement, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 rounded-md bg-yellow-50">
-                    <Award className="h-5 w-5 text-yellow-600" />
-                    <span className="text-sm">{achievement}</span>
-                    {isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 ml-auto"
-                        onClick={() => {
-                          const updatedAchievements = [...coach.achievements]
-                          updatedAchievements.splice(index, 1)
-                          setCoach({ ...coach, achievements: updatedAchievements })
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="md:col-span-2 space-y-6">
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Coach Bio</CardTitle>
-              <CardDescription>Professional background and expertise</CardDescription>
+              <CardTitle>Assigned Programs</CardTitle>
+              <CardDescription>Programs assigned to this coach</CardDescription>
             </CardHeader>
             <CardContent>
-              {isEditing ? (
-                <Textarea
-                  value={coach.bio}
-                  onChange={(e) => setCoach({ ...coach, bio: e.target.value })}
-                  className="min-h-[150px]"
-                />
+              {isLoadingAssignments ? (
+                <div className="text-center py-8">Loading assignments...</div>
+              ) : assignments?.programs && assignments.programs.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assignments.programs.map((program) => (
+                    <Card
+                      key={program.id}
+                      className="bg-white hover:shadow-md transition-shadow"
+                    >
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">
+                          {program.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardFooter className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          asChild
+                        >
+                          <Link
+                            href={`/supplier/academy/${academyId}/programs/${program.id}`}
+                          >
+                            View Program
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
               ) : (
-                <p className="text-sm text-gray-600">{coach.bio}</p>
+                <div className="text-center py-8 text-gray-500">
+                  No programs assigned to this coach.
+                </div>
               )}
             </CardContent>
           </Card>
-
-          <Tabs defaultValue="programs" className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="programs">Programs</TabsTrigger>
-              <TabsTrigger value="schedule">Schedule</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="programs" className="space-y-4">
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle>Training Programs</CardTitle>
-                  <CardDescription>Programs taught by this coach</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {coach.programs.map((program) => (
-                      <Card key={program.id} className="bg-white hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">{program.name}</CardTitle>
-                          <CardDescription>Age Group: {program.ageGroup}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                              <Users className="h-3 w-3" />
-                            </div>
-                            <span className="text-sm">{program.students} Students</span>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="pt-2">
-                          <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href={`/supplier/academy/${academyId}/programs/${program.id}`}>View Program</Link>
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="schedule" className="space-y-4">
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle>Weekly Schedule</CardTitle>
-                  <CardDescription>Coach's training schedule</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-md border">
-                    <div className="grid grid-cols-12 gap-2 p-4 bg-muted/50 text-sm font-medium">
-                      <div className="col-span-3">Day</div>
-                      <div className="col-span-4">Time</div>
-                      <div className="col-span-5">Program</div>
-                    </div>
-                    <div className="divide-y">
-                      {coach.schedule.map((item, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-12 gap-2 p-4 items-center hover:bg-muted/30 transition-colors"
+        </TabsContent>
+        <TabsContent value="batches" className="space-y-4">
+          <Card className="bg-white">
+            <CardHeader>
+              <CardTitle>Assigned Batches</CardTitle>
+              <CardDescription>Batches assigned to this coach</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAssignments ? (
+                <div className="text-center py-8">Loading assignments...</div>
+              ) : assignments?.batches && assignments.batches.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assignments.batches.map((batch) => (
+                    <Card
+                      key={batch.id}
+                      className="bg-white hover:shadow-md transition-shadow"
+                    >
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{batch.name}</CardTitle>
+                      </CardHeader>
+                      <CardFooter className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          asChild
                         >
-                          <div className="col-span-3">
-                            <div className="font-medium">{item.day}</div>
+                          <Link
+                            href={`/supplier/academy/${academyId}/batches/${batch.id}`}
+                          >
+                            View Batch
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No batches assigned to this coach.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="schedule">
+          <Card className="bg-white">
+            <CardHeader>
+              <CardTitle>Weekly Schedule</CardTitle>
+              <CardDescription>Coach's training schedule</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSchedule ? (
+                <div className="text-center py-8">Loading schedule...</div>
+              ) : schedule ? (
+                <div className="space-y-6">
+                  {/* Personal Schedule */}
+                  <div>
+                    <h3 className="font-medium mb-3">Personal Schedule</h3>
+                    <div className="rounded-md border">
+                      <div className="grid grid-cols-8 gap-2 p-4 bg-muted/50 text-sm font-medium">
+                        <div className="col-span-1">Day</div>
+                        <div className="col-span-7">Time Slots</div>
+                      </div>
+                      <div className="divide-y">
+                        {[
+                          "monday",
+                          "tuesday",
+                          "wednesday",
+                          "thursday",
+                          "friday",
+                          "saturday",
+                          "sunday",
+                        ].map((day) => (
+                          <div
+                            key={day}
+                            className="grid grid-cols-8 gap-2 p-4 items-center hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="col-span-1">
+                              <div className="font-medium capitalize">
+                                {day}
+                              </div>
+                            </div>
+                            <div className="col-span-7">
+                              <div className="flex flex-wrap gap-2">
+                                {schedule.schedule.personal[
+                                  day as keyof typeof schedule.schedule.personal
+                                ]?.map((timeSlot, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="bg-blue-50 text-blue-700"
+                                  >
+                                    {timeSlot}
+                                  </Badge>
+                                )) || (
+                                  <span className="text-gray-500 text-sm">
+                                    No slots
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="col-span-4">
-                            <div className="font-medium">{item.time}</div>
-                          </div>
-                          <div className="col-span-5">
-                            <div className="font-medium">{item.program}</div>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="reviews" className="space-y-4">
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle>Student Reviews</CardTitle>
-                  <CardDescription>Feedback from students</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {coach.studentReviews.map((review) => (
-                      <div key={review.id} className="p-4 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium">{review.name}</p>
+                  {/* Batch Schedule */}
+                  {schedule.schedule.batches.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Batch Schedule</h3>
+                      <div className="space-y-4">
+                        {schedule.schedule.batches.map((batch) => (
+                          <div
+                            key={batch.batchId}
+                            className="border rounded-lg p-4"
+                          >
+                            <h4 className="font-medium mb-2">{batch.name}</h4>
+                            <div className="grid grid-cols-7 gap-2 text-sm">
+                              {[
+                                "monday",
+                                "tuesday",
+                                "wednesday",
+                                "thursday",
+                                "friday",
+                                "saturday",
+                                "sunday",
+                              ].map((day) => (
+                                <div key={day} className="text-center">
+                                  <div className="font-medium capitalize mb-1">
+                                    {day.slice(0, 3)}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {batch.schedule[
+                                      day as keyof typeof batch.schedule
+                                    ]?.map((timeSlot, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="bg-green-50 text-green-700 text-xs"
+                                      >
+                                        {timeSlot}
+                                      </Badge>
+                                    )) || (
+                                      <span className="text-gray-400 text-xs">
+                                        -
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Program Schedule */}
+                  {schedule.schedule.programs.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Program Schedule</h3>
+                      <div className="space-y-4">
+                        {schedule.schedule.programs.map((program) => (
+                          <div
+                            key={program.programId}
+                            className="border rounded-lg p-4"
+                          >
+                            <h4 className="font-medium mb-2">{program.name}</h4>
+                            <div className="grid grid-cols-7 gap-2 text-sm">
+                              {[
+                                "monday",
+                                "tuesday",
+                                "wednesday",
+                                "thursday",
+                                "friday",
+                                "saturday",
+                                "sunday",
+                              ].map((day) => (
+                                <div key={day} className="text-center">
+                                  <div className="font-medium capitalize mb-1">
+                                    {day.slice(0, 3)}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {program.schedule[
+                                      day as keyof typeof program.schedule
+                                    ]?.map((timeSlot, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="bg-purple-50 text-purple-700 text-xs"
+                                      >
+                                        {timeSlot}
+                                      </Badge>
+                                    )) || (
+                                      <span className="text-gray-400 text-xs">
+                                        -
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No schedule data available.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="reviews">
+          <Card className="bg-white">
+            <CardHeader>
+              <CardTitle>Student Reviews</CardTitle>
+              <CardDescription>Feedback from students</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingFeedback ? (
+                <div className="text-center py-8">Loading reviews...</div>
+              ) : feedback.length > 0 ? (
+                <div className="space-y-4">
+                  {feedback.map((review, index) => (
+                    <div key={index} className="p-4 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium">{review.user}</p>
+                        <div className="flex items-center gap-2">
                           <div className="flex">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
                                 size={16}
-                                className={star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                                className={
+                                  star <= review.rating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }
                               />
                             ))}
                           </div>
+                          <span className="text-sm text-gray-500">
+                            {new Date(review.date).toLocaleDateString()}
+                          </span>
                         </div>
-                        <p className="text-sm text-gray-600">{review.comment}</p>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+                      <p className="text-sm text-gray-600">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No reviews available for this coach.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
-  )
-}
+  );
+};
+
+export default CoachProfilePage;
