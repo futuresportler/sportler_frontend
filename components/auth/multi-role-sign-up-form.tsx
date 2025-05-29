@@ -122,10 +122,10 @@ export function MultiRoleSignUpForm() {
       console.log("Sending OTP to:", formattedPhoneNumber)
 
       // Send verification code
-      // const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier)
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier)
 
       console.log("OTP sent successfully")
-      // setConfirmationResult(confirmationResult)
+      setConfirmationResult(confirmationResult)
       setShowOtpInput(true)
       setCountdown(30)
     } catch (error) {
@@ -177,17 +177,17 @@ export function MultiRoleSignUpForm() {
 
     try {
       // Initialize reCAPTCHA
-      // const verifier = initializeRecaptcha()
+      const verifier = initializeRecaptcha()
 
-      // if (!verifier) {
-      //   throw new Error("Failed to initialize reCAPTCHA verifier")
-      // }
+      if (!verifier) {
+        throw new Error("Failed to initialize reCAPTCHA verifier")
+      }
 
       // Make sure the reCAPTCHA verifier is rendered before proceeding
-      // await verifier.render()
+      await verifier.render()
 
       // Send OTP after reCAPTCHA is ready
-      // await sendOtp(verifier)
+      await sendOtp(verifier)
     } catch (error) {
       console.error("Error in handleSendOtp:", error)
       setError("Failed to initialize verification. Please refresh and try again.")
@@ -235,20 +235,20 @@ export function MultiRoleSignUpForm() {
       }
 
       // Confirm the verification code
-      // const userCredential = await confirmationResult.confirm(otpValue)
+      const userCredential = await confirmationResult.confirm(otpValue)
 
       // Get Firebase ID token
-      // const idToken = await userCredential.user.getIdToken()
+      const idToken = await userCredential.user.getIdToken()
 
       // Format phone number with country code for API
-      // const formattedPhoneNumber = formatPhoneWithCountryCode()
+      const formattedPhoneNumber = formatPhoneWithCountryCode()
 
       try {
         // Call supplier signup API
-        // const response = await supplierSignup(formattedPhoneNumber, idToken)
+        const response = await supplierSignup(formattedPhoneNumber, idToken)
 
         // Save tokens to localStorage
-        saveAuthTokens("test", "test")
+        saveAuthTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken)
 
         // Store supplier types in localStorage for dashboard to use
         localStorage.setItem("supplierTypes", JSON.stringify(roles))
