@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Calendar,
-  MessageSquare,
   User,
   Heart,
   Bell,
@@ -19,6 +18,9 @@ import {
   BarChart2,
   Trophy,
   Users,
+  Search,
+  Building,
+  MapPin,
 } from "lucide-react"
 
 export default function DashboardSidebar() {
@@ -27,16 +29,15 @@ export default function DashboardSidebar() {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Progress Tracker", href: "/dashboard/progress", icon: BarChart2 },
+    { name: "Explore Coaches", href: "/dashboard/explore/coaches", icon: Users },
+    { name: "Explore Academies", href: "/dashboard/explore/academies", icon: Building },
+    { name: "Explore Courts", href: "/dashboard/explore/courts", icon: MapPin },
+    { name: "Roadmap", href: "/dashboard/progress", icon: BarChart2 },
     { name: "Competitions", href: "/dashboard/competitions", icon: Trophy },
-    { name: "Leaderboard", href: "/dashboard/leaderboard", icon: Users },
+    { name: "Leaderboard", href: "/dashboard/leaderboard", icon: Search },
     { name: "Achievements", href: "/dashboard/achievements", icon: Award },
     { name: "Bookings", href: "/dashboard/bookings", icon: Calendar },
-    { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     { name: "Profile", href: "/dashboard/profile", icon: User },
-    { name: "Favorites", href: "/dashboard/favorites", icon: Heart },
-    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ]
 
   const toggleMobileMenu = () => {
@@ -49,7 +50,7 @@ export default function DashboardSidebar() {
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={toggleMobileMenu}
-          className="p-2 rounded-full bg-emerald-600 text-white shadow-lg"
+          className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -60,22 +61,27 @@ export default function DashboardSidebar() {
       <aside
         className={`${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 fixed top-0 left-0 h-screen w-64 bg-white shadow-lg z-40 transition-transform duration-300 ease-in-out lg:static lg:z-0`}
+        } md:translate-x-0 fixed top-0 left-0 h-screen w-72 bg-gradient-to-b from-white to-gray-50 shadow-xl z-40 transition-transform duration-300 ease-in-out lg:static lg:z-0 border-r border-gray-100`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-4 border-b border-gray-100">
+          <div className="p-6 border-b border-gray-100 bg-white">
             <Link href="/dashboard" className="flex items-center">
-              <div className="relative h-8 w-8 mr-2">
-                <Image src="/Logo.svg" alt="FutureSportler" fill className="object-contain" />
+              <div className="relative h-10 w-10 mr-3 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 flex items-center justify-center">
+                <span className="text-white font-bold text-lg">FS</span>
               </div>
-              <span className="text-xl font-bold text-emerald-600">FutureSportler</span>
+              <div>
+                <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                  FutureSportler
+                </span>
+                <p className="text-xs text-gray-500">Sports Training Platform</p>
+              </div>
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto py-4">
-            <ul className="space-y-1 px-2">
+          <nav className="flex-1 overflow-y-auto py-6">
+            <ul className="space-y-2 px-4">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
                 const Icon = item.icon
@@ -83,20 +89,26 @@ export default function DashboardSidebar() {
                   <li key={item.name}>
                     <Link
                       href={item.href}
-                      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                      className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group ${
                         isActive
-                          ? "bg-emerald-50 text-emerald-600"
-                          : "text-gray-700 hover:bg-gray-50 hover:text-emerald-600"
+                          ? "bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-lg"
+                          : "text-gray-700 hover:bg-white hover:shadow-md hover:text-emerald-600"
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <Icon size={20} className={`mr-3 ${isActive ? "text-emerald-600" : "text-gray-500"}`} />
+                      <Icon
+                        size={20}
+                        className={`mr-3 transition-colors ${
+                          isActive ? "text-white" : "text-gray-500 group-hover:text-emerald-600"
+                        }`}
+                      />
                       <span className="font-medium">{item.name}</span>
                       {item.name === "Notifications" && (
-                        <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">
                           3
                         </span>
                       )}
+                      {isActive && <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>}
                     </Link>
                   </li>
                 )
@@ -105,17 +117,17 @@ export default function DashboardSidebar() {
           </nav>
 
           {/* User profile */}
-          <div className="p-4 border-t border-gray-100">
-            <div className="flex items-center">
-              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-emerald-100">
-                <Image src="/placeholder.svg?height=40&width=40&text=MS" alt="User" fill className="object-cover" />
+          <div className="p-4 border-t border-gray-100 bg-white">
+            <div className="flex items-center mb-4">
+              <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-r from-emerald-100 to-blue-100">
+                <Image src="/placeholder.svg?height=48&width=48&text=MS" alt="User" fill className="object-cover" />
               </div>
               <div className="ml-3">
-                <p className="font-medium text-gray-800">Mushir S.</p>
-                <p className="text-xs text-gray-500">Badminton Enthusiast</p>
+                <p className="font-semibold text-gray-900">Mushir S.</p>
+                <p className="text-xs text-gray-500">Level 7 • Badminton Pro</p>
               </div>
             </div>
-            <button className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+            <button className="w-full flex items-center justify-center px-4 py-3 text-sm text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium">
               <LogOut size={16} className="mr-2" />
               <span>Sign Out</span>
             </button>
@@ -126,7 +138,7 @@ export default function DashboardSidebar() {
       {/* Backdrop for mobile */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         ></div>
       )}

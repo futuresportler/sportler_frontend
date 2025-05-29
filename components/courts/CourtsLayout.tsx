@@ -1,181 +1,160 @@
 "use client"
 
-import { Pagination } from "@/components/ui/pagination"
-import { fetchTurfsByCity, transformApiTurfToCourt } from "@/services/apiService"
+import { useState, useEffect } from "react"
+import CourtsHeader from "./CourtsHeader"
+import CourtsFilter from "./CourtsFilter"
+import CourtsGrid from "./CourtsGrid"
+import CourtsList from "./CourtsList"
+import CourtsSearchBar from "./CourtsSearchBar"
 import type { Court } from "@/types/court"
-import { applySearchFilters, extractSearchParams } from "@/utils/search-params"
-import { useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
-import { CourtsFilter } from "./CourtsFilter"
-import { CourtsGrid } from "./CourtsGrid"
-import { CourtsHeader } from "./CourtsHeader"
-import { CourtsList } from "./CourtsList"
-import { CourtsSearchBar } from "./CourtsSearchBar"
+import LocationMapView from "@/components/shared/LocationMapView"
+import { Button } from "@/components/ui/button"
+import { MapIcon, GridIcon, ListIcon } from "lucide-react"
 
 interface CourtsLayoutProps {
   city: string
 }
 
-export function CourtsLayout({ city }: CourtsLayoutProps) {
-  const searchParams = useSearchParams()
+export default function CourtsLayout({ city }: CourtsLayoutProps) {
   const [courts, setCourts] = useState<Court[]>([])
-  const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [filters, setFilters] = useState<any>({})
-  const itemsPerPage = 12
+  const [filteredCourts, setFilteredCourts] = useState<Court[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
+  const [filterOptions, setFilterOptions] = useState({
+    price: { min: 0, max: 10000 },
+    rating: 0,
+    sport: "",
+    isIndoor: null as boolean | null,
+    amenities: [] as string[],
+    searchQuery: "",
+  })
 
-  // Load courts from API
   useEffect(() => {
-    async function loadCourts() {
-      setLoading(true)
+    const fetchCourts = async () => {
+      setIsLoading(true)
       try {
-        const apiTurfs = await fetchTurfsByCity(city)
-        const transformedCourts = apiTurfs.map(transformApiTurfToCourt)
-        setCourts(transformedCourts)
+        const response = await fetch(`/api/turfs?city=${city}`)
+        const data = await response.json()
+        setCourts(data)
+        setFilteredCourts(data)
       } catch (error) {
-        console.error("Error loading courts:", error)
-        setCourts([])
+        console.error("Error fetching courts:", error)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
-    if (city) {
-      loadCourts()
-    }
+    fetchCourts()
   }, [city])
 
-  // Extract search parameters
-  const searchFilters = useMemo(() => {
-    return extractSearchParams(searchParams, city)
-  }, [searchParams, city])
+  const handleFilterChange = (newFilterOptions: Partial<typeof filterOptions>) => {
+    const updatedFilterOptions = { ...filterOptions, ...newFilterOptions }
+    setFilterOptions(updatedFilterOptions)
 
-  // Apply filters and search
-  const filteredCourts = useMemo(() => {
+    // Apply filters
     let filtered = [...courts]
 
-    // Apply search filters
-    filtered = applySearchFilters(filtered, {
-      sport: searchFilters.sport,
-      location: searchFilters.location,
-    })
-
-    // Apply additional filters
-    if (filters.price) {
-      filtered = filtered.filter((court) => court.price >= filters.price.min && court.price <= filters.price.max)
-    }
-
-    if (filters.rating) {
-      filtered = filtered.filter((court) => court.rating >= filters.rating)
-    }
-
-    if (filters.isIndoor !== undefined) {
-      filtered = filtered.filter((court) => court.isIndoor === filters.isIndoor)
-    }
-
-    if (filters.amenities && filters.amenities.length > 0) {
-      filtered = filtered.filter((court) =>
-        filters.amenities.some((amenity: string) => court.amenities.includes(amenity)),
-      )
-    }
-
-    if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase()
+    // Filter by search query
+    if (updatedFilterOptions.searchQuery) {
+      const query = updatedFilterOptions.searchQuery.toLowerCase()
       filtered = filtered.filter(
         (court) =>
           court.name.toLowerCase().includes(query) ||
-          court.description?.toLowerCase().includes(query) ||
           court.location.toLowerCase().includes(query) ||
           court.sport.toLowerCase().includes(query),
       )
     }
 
-    return filtered
-  }, [courts, searchFilters, filters])
+    // Filter by price
+    if (updatedFilterOptions.price) {
+      filtered = filtered.filter(
+        (court) =>
+          (court.price || court.pricePerHour || 0) >= updatedFilterOptions.price.min &&
+          (court.price || court.pricePerHour || 0) <= updatedFilterOptions.price.max,
+      )
+    }
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCourts.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedCourts = filteredCourts.slice(startIndex, startIndex + itemsPerPage)
+    // Filter by rating
+    if (updatedFilterOptions.rating && updatedFilterOptions.rating > 0) {
+      filtered = filtered.filter((court) => court.rating >= updatedFilterOptions.rating)
+    }
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    // Filter by sport
+    if (updatedFilterOptions.sport) {
+      filtered = filtered.filter((court) => court.sport === updatedFilterOptions.sport)
+    }
+
+    // Filter by indoor/outdoor
+    if (updatedFilterOptions.isIndoor !== null) {
+      filtered = filtered.filter((court) => court.isIndoor === updatedFilterOptions.isIndoor)
+    }
+
+    // Filter by amenities
+    if (updatedFilterOptions.amenities.length > 0) {
+      filtered = filtered.filter((court) =>
+        updatedFilterOptions.amenities.every((amenity) => court.amenities.includes(amenity)),
+      )
+    }
+
+    setFilteredCourts(filtered)
   }
 
-  const handleFiltersChange = (newFilters: any) => {
-    setFilters(newFilters)
-    setCurrentPage(1)
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading courts...</p>
-          </div>
-        </div>
-      </div>
-    )
+  const handleSearch = (query: string) => {
+    handleFilterChange({ searchQuery: query })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full">
+    <div className="container mx-auto px-4 py-8">
       <CourtsHeader city={city} />
-      <div className="container mx-auto px-4 py-8 w-full">
-        <CourtsSearchBar onFiltersChange={handleFiltersChange} city={city} />
-
-        <div className="flex flex-col lg:flex-row gap-8 w-full">
-          <div className="lg:w-1/4">
-            <CourtsFilter onFiltersChange={handleFiltersChange} />
-          </div>
-
-          <div className="lg:w-3/4 w-full">
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-gray-600">
-                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredCourts.length)} of{" "}
-                {filteredCourts.length} courts in {city}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded ${viewMode === "grid" ? "bg-emerald-600 text-white" : "bg-white text-gray-600"}`}
-                >
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded ${viewMode === "list" ? "bg-emerald-600 text-white" : "bg-white text-gray-600"}`}
-                >
-                  List
-                </button>
-              </div>
+      <div className="flex flex-col md:flex-row gap-6 mt-8">
+        <div className="w-full md:w-1/4">
+          <CourtsFilter onFilterChange={handleFilterChange} filterOptions={filterOptions} />
+        </div>
+        <div className="w-full md:w-3/4">
+          <div className="mb-6">
+            <CourtsSearchBar onSearch={handleSearch} />
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="flex items-center"
+              >
+                <GridIcon className="w-4 h-4 mr-1" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="flex items-center"
+              >
+                <ListIcon className="w-4 h-4 mr-1" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("map")}
+                className="flex items-center"
+              >
+                <MapIcon className="w-4 h-4 mr-1" />
+                Map
+              </Button>
             </div>
-
-            {paginatedCourts.length === 0 ? (
-              <div className="bg-white rounded-lg p-8 text-center">
-                <h3 className="text-xl font-semibold mb-2">No courts found</h3>
-                <p className="text-gray-600">Try adjusting your filters or search criteria</p>
-              </div>
-            ) : (
-              <>
-                {viewMode === "grid" ? (
-                  <CourtsGrid courts={paginatedCourts} currentPage={currentPage} city={city} />
-                ) : (
-                  <CourtsList courts={paginatedCourts} currentPage={currentPage} city={city} />
-                )}
-
-                {totalPages > 1 && (
-                  <div className="mt-8 flex justify-center">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
-                  </div>
-                )}
-              </>
-            )}
           </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            </div>
+          ) : (
+            <>
+              {viewMode === "grid" && <CourtsGrid courts={filteredCourts} city={city} />}
+              {viewMode === "list" && <CourtsList courts={filteredCourts} city={city} />}
+              {viewMode === "map" && <LocationMapView courts={filteredCourts} city={city} activeTab="courts" />}
+            </>
+          )}
         </div>
       </div>
     </div>

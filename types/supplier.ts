@@ -46,6 +46,9 @@ export interface SupplierApiData {
 export interface SupplierOnboardingState {
   profileCompleted: boolean
   academyAdded: boolean
+  turfAdded: boolean
+  coachAdded: boolean
+  anyEntityAdded: boolean
   academyVerified: boolean
 }
 
@@ -93,4 +96,23 @@ export interface Academy {
   createdAt: string
   updatedAt: string
   deletedAt: null | string
+}
+
+export interface SupplierModule {
+  enabled: boolean
+  entities: SupplierEntity[]
+}
+
+export interface SupplierEntity {
+  id: number
+  name: string
+  location?: string
+  specialization?: string
+  status?: "pending" | "verified" | "rejected"
+}
+
+export interface SupplierModules {
+  academy: SupplierModule
+  turf: SupplierModule
+  coach: SupplierModule
 }

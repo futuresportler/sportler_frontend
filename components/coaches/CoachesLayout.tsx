@@ -1,95 +1,65 @@
 "use client"
 
-import { fetchCoachesByCity, transformApiCoachToCoach } from "@/services/apiService"
-import type { Coach, FilterOptions } from "@/types/coach"
-import { applySearchFilters, extractSearchParams } from "@/utils/search-params"
-import { useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useState, useEffect } from "react"
+import CoachesHeader from "./CoachesHeader"
 import CoachesFilter from "./CoachesFilter"
 import CoachesGrid from "./CoachesGrid"
-import CoachesHeader from "./CoachesHeader"
 import CoachesList from "./CoachesList"
 import CoachesSearchBar from "./CoachesSearchBar"
-import { Pagination } from "./Pagination"
+import type { Coach, FilterOptions } from "@/types/coach"
+import LocationMapView from "@/components/shared/LocationMapView"
+import { Button } from "@/components/ui/button"
+import { MapIcon, GridIcon, ListIcon } from "lucide-react"
 
 interface CoachesLayoutProps {
   city: string
 }
 
 export default function CoachesLayout({ city }: CoachesLayoutProps) {
-  const searchParams = useSearchParams()
   const [coaches, setCoaches] = useState<Coach[]>([])
-  const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [filters, setFilters] = useState<Partial<FilterOptions>>({})
-  const itemsPerPage = 6
+  const [filteredCoaches, setFilteredCoaches] = useState<Coach[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    price: { min: 0, max: 10000 },
+    rating: 0,
+    certificationLevel: [],
+    sessionType: [],
+    availabilityTimeSlots: [],
+    trainedProfessionals: false,
+    languages: [],
+    sport: "",
+    searchQuery: "",
+  })
 
-  // Load coaches from API
   useEffect(() => {
-    async function loadCoaches() {
-      setLoading(true)
+    const fetchCoaches = async () => {
+      setIsLoading(true)
       try {
-        const apiCoaches = await fetchCoachesByCity(city)
-        const transformedCoaches = apiCoaches.map(transformApiCoachToCoach)
-        setCoaches(transformedCoaches)
+        const response = await fetch(`/api/coaches?city=${city}`)
+        const data = await response.json()
+        setCoaches(data)
+        setFilteredCoaches(data)
       } catch (error) {
-        console.error("Error loading coaches:", error)
-        setCoaches([])
+        console.error("Error fetching coaches:", error)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
-    if (city) {
-      loadCoaches()
-    }
+    fetchCoaches()
   }, [city])
 
-  // Extract search parameters
-  const searchFilters = useMemo(() => {
-    return extractSearchParams(searchParams, city)
-  }, [searchParams, city])
+  const handleFilterChange = (newFilterOptions: Partial<FilterOptions>) => {
+    const updatedFilterOptions = { ...filterOptions, ...newFilterOptions }
+    setFilterOptions(updatedFilterOptions)
 
-  // Apply filters and search
-  const filteredCoaches = useMemo(() => {
+    // Apply filters
     let filtered = [...coaches]
 
-    // Apply search filters
-    filtered = applySearchFilters(filtered, {
-      sport: searchFilters.sport,
-      location: searchFilters.location,
-    })
-
-    // Apply additional filters
-    if (filters.price) {
-      filtered = filtered.filter(
-        (coach) => coach.hourlyRate >= filters.price!.min && coach.hourlyRate <= filters.price!.max,
-      )
-    }
-
-    if (filters.rating) {
-      filtered = filtered.filter((coach) => coach.rating >= filters.rating!)
-    }
-
-    if (filters.certificationLevel && filters.certificationLevel.length > 0) {
-      filtered = filtered.filter((coach) => filters.certificationLevel!.includes(coach.certificationLevel))
-    }
-
-    if (filters.sessionType && filters.sessionType.length > 0) {
-      filtered = filtered.filter((coach) => coach.sessionTypes.some((type) => filters.sessionType!.includes(type)))
-    }
-
-    if (filters.languages && filters.languages.length > 0) {
-      filtered = filtered.filter((coach) => coach.languages.some((lang) => filters.languages!.includes(lang)))
-    }
-
-    if (filters.trainedProfessionals !== undefined) {
-      filtered = filtered.filter((coach) => coach.trainedProfessionals === filters.trainedProfessionals)
-    }
-
-    if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase()
+    // Filter by search query
+    if (updatedFilterOptions.searchQuery) {
+      const query = updatedFilterOptions.searchQuery.toLowerCase()
       filtered = filtered.filter(
         (coach) =>
           coach.name.toLowerCase().includes(query) ||
@@ -99,91 +69,83 @@ export default function CoachesLayout({ city }: CoachesLayoutProps) {
       )
     }
 
-    return filtered
-  }, [coaches, searchFilters, filters])
+    // Filter by price
+    if (updatedFilterOptions.price) {
+      filtered = filtered.filter(
+        (coach) =>
+          coach.hourlyRate >= updatedFilterOptions.price.min && coach.hourlyRate <= updatedFilterOptions.price.max,
+      )
+    }
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCoaches.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedCoaches = filteredCoaches.slice(startIndex, startIndex + itemsPerPage)
+    // Filter by rating
+    if (updatedFilterOptions.rating && updatedFilterOptions.rating > 0) {
+      filtered = filtered.filter((coach) => coach.rating >= updatedFilterOptions.rating)
+    }
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    // Filter by sport
+    if (updatedFilterOptions.sport) {
+      filtered = filtered.filter((coach) => coach.sport === updatedFilterOptions.sport)
+    }
+
+    setFilteredCoaches(filtered)
   }
 
-  const handleFiltersChange = (newFilters: Partial<FilterOptions>) => {
-    setFilters(newFilters)
-    setCurrentPage(1)
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading coaches...</p>
-          </div>
-        </div>
-      </div>
-    )
+  const handleSearch = (query: string) => {
+    handleFilterChange({ searchQuery: query })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="container mx-auto px-4 py-8">
       <CoachesHeader city={city} />
-      <div className="container mx-auto px-4 py-8">
-        <CoachesSearchBar onFiltersChange={handleFiltersChange} city={city} />
-
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="lg:w-1/4">
-            <CoachesFilter onFiltersChange={handleFiltersChange} />
-          </div>
-
-          <div className="lg:w-3/4">
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-gray-600">
-                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredCoaches.length)} of{" "}
-                {filteredCoaches.length} coaches in {city}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded ${viewMode === "grid" ? "bg-emerald-600 text-white" : "bg-white text-gray-600"}`}
-                >
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded ${viewMode === "list" ? "bg-emerald-600 text-white" : "bg-white text-gray-600"}`}
-                >
-                  List
-                </button>
-              </div>
+      <div className="flex flex-col md:flex-row gap-6 mt-8">
+        <div className="w-full md:w-1/4">
+          <CoachesFilter onFilterChange={handleFilterChange} filterOptions={filterOptions} />
+        </div>
+        <div className="w-full md:w-3/4">
+          <div className="mb-6">
+            <CoachesSearchBar onSearch={handleSearch} />
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="flex items-center"
+              >
+                <GridIcon className="w-4 h-4 mr-1" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="flex items-center"
+              >
+                <ListIcon className="w-4 h-4 mr-1" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("map")}
+                className="flex items-center"
+              >
+                <MapIcon className="w-4 h-4 mr-1" />
+                Map
+              </Button>
             </div>
-
-            {paginatedCoaches.length === 0 ? (
-              <div className="bg-white rounded-lg p-8 text-center">
-                <h3 className="text-xl font-semibold mb-2">No coaches found</h3>
-                <p className="text-gray-600">Try adjusting your filters or search criteria</p>
-              </div>
-            ) : (
-              <>
-                {viewMode === "grid" ? (
-                  <CoachesGrid coaches={paginatedCoaches} currentPage={currentPage} city={city} />
-                ) : (
-                  <CoachesList coaches={paginatedCoaches} currentPage={currentPage} city={city} />
-                )}
-
-                {totalPages > 1 && (
-                  <div className="mt-8 flex justify-center">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
-                  </div>
-                )}
-              </>
-            )}
           </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            </div>
+          ) : (
+            <>
+              {viewMode === "grid" && <CoachesGrid coaches={filteredCoaches} city={city} />}
+              {viewMode === "list" && <CoachesList coaches={filteredCoaches} city={city} />}
+              {viewMode === "map" && <LocationMapView coaches={filteredCoaches} city={city} activeTab="coaches" />}
+            </>
+          )}
         </div>
       </div>
     </div>

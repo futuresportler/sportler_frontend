@@ -80,6 +80,7 @@ export const clearAuthTokens = () => {
     localStorage.removeItem("accessToken")
     localStorage.removeItem("refreshToken")
     localStorage.removeItem("supplierOnboardingState")
+    localStorage.removeItem("supplierModules")
   }
 }
 
@@ -128,9 +129,20 @@ export const initializeOnboardingState = () => {
     const onboardingState: SupplierOnboardingState = {
       profileCompleted: false,
       academyAdded: false,
+      turfAdded: false,
+      coachAdded: false,
+      anyEntityAdded: false,
       academyVerified: false,
     }
     localStorage.setItem("supplierOnboardingState", JSON.stringify(onboardingState))
+
+    // Initialize supplier modules
+    const supplierModules = {
+      academy: { enabled: false, entities: [] },
+      turf: { enabled: false, entities: [] },
+      coach: { enabled: false, entities: [] },
+    }
+    localStorage.setItem("supplierModules", JSON.stringify(supplierModules))
   }
 }
 
@@ -140,6 +152,9 @@ export const getOnboardingState = (): SupplierOnboardingState => {
     return {
       profileCompleted: false,
       academyAdded: false,
+      turfAdded: false,
+      coachAdded: false,
+      anyEntityAdded: false,
       academyVerified: false,
     }
   }
@@ -151,18 +166,24 @@ export const getOnboardingState = (): SupplierOnboardingState => {
     return {
       profileCompleted: false,
       academyAdded: false,
+      turfAdded: false,
+      coachAdded: false,
+      anyEntityAdded: false,
       academyVerified: false,
     }
   }
   return JSON.parse(state)
 }
 
-// Update the updateOnboardingState function to ensure it correctly handles academy/turf additions
+// Update the updateOnboardingState function
 export const updateOnboardingState = (updates: Partial<SupplierOnboardingState>) => {
   if (!isBrowser) {
     return {
       profileCompleted: false,
       academyAdded: false,
+      turfAdded: false,
+      coachAdded: false,
+      anyEntityAdded: false,
       academyVerified: false,
       ...updates,
     }
@@ -170,71 +191,64 @@ export const updateOnboardingState = (updates: Partial<SupplierOnboardingState>)
 
   const currentState = getOnboardingState()
   const newState = { ...currentState, ...updates }
+
+  // Update anyEntityAdded based on individual entity states
+  newState.anyEntityAdded = newState.academyAdded || newState.turfAdded || newState.coachAdded
+
   localStorage.setItem("supplierOnboardingState", JSON.stringify(newState))
 
-  // Also update supplierModules based on new state
-  if (updates.academyAdded || updates.academyVerified) {
-    const storedModules = localStorage.getItem("supplierModules")
-    const modules = storedModules
-      ? JSON.parse(storedModules)
-      : {
-          academy: {
-            enabled: true,
-            entities: [],
-          },
-          turf: {
-            enabled: false,
-            entities: [],
-          },
-          coach: {
-            enabled: false,
-            entities: [],
-          },
-        }
-
-    // If academy is added, ensure academy module is enabled
-    if (updates.academyAdded) {
-      modules.academy.enabled = true
-
-      // If no entities yet, add a pending entity
-      if (modules.academy.entities.length === 0) {
-        modules.academy.entities = [{ id: 1, name: "Premier Cricket Academy", location: "Mumbai", status: "pending" }]
-      }
-    }
-
-    // If academy is verified, enable turf and coach modules
-    if (updates.academyVerified) {
-      modules.turf.enabled = true
-      modules.coach.enabled = true
-
-      // Add sample entities for verified academy
-      if (modules.academy.entities.length === 0) {
-        modules.academy.entities = [
-          { id: 1, name: "Premier Cricket Academy", location: "Mumbai" },
-          { id: 2, name: "Elite Tennis School", location: "Delhi" },
-        ]
-      } else {
-        // Update status of existing entities
-        modules.academy.entities = modules.academy.entities.map((entity) => ({
-          ...entity,
-          status: "verified",
-        }))
+  // Update supplierModules based on new state
+  const storedModules = localStorage.getItem("supplierModules")
+  const modules = storedModules
+    ? JSON.parse(storedModules)
+    : {
+        academy: { enabled: false, entities: [] },
+        turf: { enabled: false, entities: [] },
+        coach: { enabled: false, entities: [] },
       }
 
-      if (modules.turf.entities.length === 0) {
-        modules.turf.entities = [{ id: 1, name: "Green Field Turf", location: "Bangalore" }]
-      }
-    }
-
-    localStorage.setItem("supplierModules", JSON.stringify(modules))
+  // Enable modules based on profile completion
+  if (newState.profileCompleted) {
+    modules.academy.enabled = true
+    modules.turf.enabled = true
+    modules.coach.enabled = true
   }
 
+  // Add entities based on what's been added
+  if (updates.academyAdded && modules.academy.entities.length === 0) {
+    modules.academy.entities = [{ id: 1, name: "Premier Cricket Academy", location: "Mumbai", status: "pending" }]
+  }
+
+  if (updates.turfAdded && modules.turf.entities.length === 0) {
+    modules.turf.entities = [{ id: 1, name: "Green Field Turf", location: "Bangalore", status: "pending" }]
+  }
+
+  if (updates.coachAdded && modules.coach.entities.length === 0) {
+    modules.coach.entities = [{ id: 1, name: "John Smith", specialization: "Cricket", status: "pending" }]
+  }
+
+  // If academy is verified, update all entities to verified
+  if (updates.academyVerified) {
+    modules.academy.entities = modules.academy.entities.map((entity) => ({
+      ...entity,
+      status: "verified",
+    }))
+    modules.turf.entities = modules.turf.entities.map((entity) => ({
+      ...entity,
+      status: "verified",
+    }))
+    modules.coach.entities = modules.coach.entities.map((entity) => ({
+      ...entity,
+      status: "verified",
+    }))
+  }
+
+  localStorage.setItem("supplierModules", JSON.stringify(modules))
   return newState
 }
 
 // Check if user needs to complete profile
 export const needsProfileCompletion = (): boolean => {
-  // If not authenticated, no need to complete profile yet
   if (!isAuthenticated()) {
     return false
   }
@@ -243,24 +257,68 @@ export const needsProfileCompletion = (): boolean => {
   return !state.profileCompleted
 }
 
-// Check if user needs to add academy
-export const needsAcademyCreation = (): boolean => {
-  // If not authenticated, no need to create academy yet
+// Check if user needs to add any entity
+export const needsEntityCreation = (): boolean => {
   if (!isAuthenticated()) {
     return false
   }
 
   const state = getOnboardingState()
-  return state.profileCompleted && !state.academyAdded
+  return state.profileCompleted && !state.anyEntityAdded
 }
 
-// Check if academy is pending verification
-export const isAcademyPendingVerification = (): boolean => {
-  // If not authenticated, academy is not pending verification
+// Check if any entity is pending verification
+export const isEntityPendingVerification = (): boolean => {
   if (!isAuthenticated()) {
     return false
   }
 
   const state = getOnboardingState()
-  return state.academyAdded && !state.academyVerified
+  return state.anyEntityAdded && !state.academyVerified
+}
+
+// Get supplier modules
+export const getSupplierModules = () => {
+  if (!isBrowser) {
+    return {
+      academy: { enabled: false, entities: [] },
+      turf: { enabled: false, entities: [] },
+      coach: { enabled: false, entities: [] },
+    }
+  }
+
+  const modules = localStorage.getItem("supplierModules")
+  if (!modules) {
+    return {
+      academy: { enabled: false, entities: [] },
+      turf: { enabled: false, entities: [] },
+      coach: { enabled: false, entities: [] },
+    }
+  }
+  return JSON.parse(modules)
+}
+
+// Mark profile as completed
+export const markProfileCompleted = () => {
+  updateOnboardingState({ profileCompleted: true })
+}
+
+// Mark academy as added
+export const markAcademyAdded = () => {
+  updateOnboardingState({ academyAdded: true })
+}
+
+// Mark turf as added
+export const markTurfAdded = () => {
+  updateOnboardingState({ turfAdded: true })
+}
+
+// Mark coach as added
+export const markCoachAdded = () => {
+  updateOnboardingState({ coachAdded: true })
+}
+
+// Mark academy as verified (this will verify all entities)
+export const markAcademyVerified = () => {
+  updateOnboardingState({ academyVerified: true })
 }
