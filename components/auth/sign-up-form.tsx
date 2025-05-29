@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Check, Loader2, Phone, Shield, ArrowRight, User, FileText } from "lucide-react"
+import { Check, Loader2, Phone, Shield, ArrowRight, User, FileText, LogIn } from "lucide-react"
 
 export function SignUpForm() {
   const [fullName, setFullName] = useState("")
@@ -143,11 +143,18 @@ export function SignUpForm() {
     }
   }
 
+  const handleSignIn = () => {
+    alert("Redirecting to sign in page...")
+    
+  }
+
   return (
     <div className="w-full h-full">
       <div className="w-full h-full">
         <div className="bg-white w-full h-full">
           <div className="px-6 py-6 w-full">
+            
+
             {/* Error Message */}
             {error && (
               <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded-lg">
@@ -375,13 +382,16 @@ export function SignUpForm() {
               Continue with Google
             </button>
 
-            {/* Footer */}
-            <div className="text-center mt-6">
-              <p className="text-sm text-gray-500">
+            {/* Sign In Option - Simple text link */}
+            <div className="text-center mb-6 mt-2">
+              <p className="text-sm text-gray-600">
                 Already have an account?{" "}
-                <a href="#" className="font-medium text-emerald-600 hover:text-emerald-700">
+                <button
+                  onClick={handleSignIn}
+                  className="font-medium text-emerald-600 hover:text-emerald-700 transition-colors duration-200"
+                >
                   Sign in
-                </a>
+                </button>
               </p>
             </div>
           </div>
