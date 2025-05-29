@@ -38,9 +38,6 @@ export default function DashboardSidebar() {
     { name: "Achievements", href: "/dashboard/achievements", icon: Award },
     { name: "Bookings", href: "/dashboard/bookings", icon: Calendar },
     { name: "Profile", href: "/dashboard/profile", icon: User },
-    { name: "Favorites", href: "/dashboard/favorites", icon: Heart },
-    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ]
 
   const toggleMobileMenu = () => {
