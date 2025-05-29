@@ -66,7 +66,7 @@ export default function FeaturedPlayers() {
                       <span className="text-emerald-600">15 May 2023</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-4 border-t">
+                  {/* <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex items-center">
                       <Image
                         src="/placeholder.svg?height=32&width=32"
@@ -80,7 +80,7 @@ export default function FeaturedPlayers() {
                     <button className="bg-white border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 hover:border-gray-400 transition-colors">
                       Book Now
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </Link>
