@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Edit, Mail, Save, User } from "lucide-react";
+import { Edit, Mail, Save, User, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,16 @@ import {
   type Coach,
   type CoachAssignments,
 } from "@/services/coachService";
+import {
+  getCoachSchedule,
+  type CoachScheduleResponse,
+} from "@/services/scheduleService";
+import {
+  getRecentFeedback,
+  getAcademyCoachFeedback,
+  type FeedbackItem,
+  type CoachFeedbackSummary,
+} from "@/services/feedbackService";
 import { useEffect } from "react";
 
 interface Params {
@@ -47,6 +57,15 @@ const CoachProfilePage = ({ params }: Props) => {
   const [isLoadingCoach, setIsLoadingCoach] = useState(true);
   const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [schedule, setSchedule] = useState<CoachScheduleResponse | null>(null);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(true);
+  const [coachRating, setCoachRating] = useState<CoachFeedbackSummary | null>(
+    null
+  );
+  const [isLoadingRating, setIsLoadingRating] = useState(true);
 
   const fetchCoach = async () => {
     setIsLoadingCoach(true);
@@ -80,9 +99,63 @@ const CoachProfilePage = ({ params }: Props) => {
     }
   };
 
+  const fetchSchedule = async () => {
+    setIsLoadingSchedule(true);
+    try {
+      const result = await getCoachSchedule(coachId);
+      if (result.success && result.data) {
+        setSchedule(result.data);
+      } else {
+        console.error("Failed to fetch schedule:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+    } finally {
+      setIsLoadingSchedule(false);
+    }
+  };
+
+  const fetchFeedback = async () => {
+    setIsLoadingFeedback(true);
+    try {
+      const result = await getRecentFeedback("coach", coachId);
+      if (result.success && result.data) {
+        setFeedback(result.data);
+      } else {
+        console.error("Failed to fetch feedback:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+    } finally {
+      setIsLoadingFeedback(false);
+    }
+  };
+
+  const fetchCoachRating = async () => {
+    setIsLoadingRating(true);
+    try {
+      const result = await getAcademyCoachFeedback(academyId);
+      if (result.success && result.data) {
+        const coachFeedback = result.data.find(
+          (item) => item.coachId === coachId
+        );
+        setCoachRating(coachFeedback || null);
+      } else {
+        console.error("Failed to fetch coach rating:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching coach rating:", error);
+    } finally {
+      setIsLoadingRating(false);
+    }
+  };
+
   useEffect(() => {
     fetchCoach();
     fetchAssignments();
+    fetchSchedule();
+    fetchFeedback();
+    fetchCoachRating();
   }, [coachId]);
 
   const handleSaveChanges = async () => {
@@ -307,6 +380,15 @@ const CoachProfilePage = ({ params }: Props) => {
               >
                 ₹{coach.hourlyRate}/hr
               </Badge>
+              {coachRating && (
+                <Badge
+                  variant="outline"
+                  className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                >
+                  ⭐ {coachRating.averageRating.toFixed(1)} (
+                  {coachRating.totalReviews} reviews)
+                </Badge>
+              )}
             </div>
           </div>
         </CardContent>
@@ -412,22 +494,219 @@ const CoachProfilePage = ({ params }: Props) => {
         <TabsContent value="schedule">
           <Card className="bg-white">
             <CardHeader>
-              <CardTitle>Schedule</CardTitle>
-              <CardDescription>Coach schedule</CardDescription>
+              <CardTitle>Weekly Schedule</CardTitle>
+              <CardDescription>Coach's training schedule</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Schedule content here</p>
+              {isLoadingSchedule ? (
+                <div className="text-center py-8">Loading schedule...</div>
+              ) : schedule ? (
+                <div className="space-y-6">
+                  {/* Personal Schedule */}
+                  <div>
+                    <h3 className="font-medium mb-3">Personal Schedule</h3>
+                    <div className="rounded-md border">
+                      <div className="grid grid-cols-8 gap-2 p-4 bg-muted/50 text-sm font-medium">
+                        <div className="col-span-1">Day</div>
+                        <div className="col-span-7">Time Slots</div>
+                      </div>
+                      <div className="divide-y">
+                        {[
+                          "monday",
+                          "tuesday",
+                          "wednesday",
+                          "thursday",
+                          "friday",
+                          "saturday",
+                          "sunday",
+                        ].map((day) => (
+                          <div
+                            key={day}
+                            className="grid grid-cols-8 gap-2 p-4 items-center hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="col-span-1">
+                              <div className="font-medium capitalize">
+                                {day}
+                              </div>
+                            </div>
+                            <div className="col-span-7">
+                              <div className="flex flex-wrap gap-2">
+                                {schedule.schedule.personal[
+                                  day as keyof typeof schedule.schedule.personal
+                                ]?.map((timeSlot, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="bg-blue-50 text-blue-700"
+                                  >
+                                    {timeSlot}
+                                  </Badge>
+                                )) || (
+                                  <span className="text-gray-500 text-sm">
+                                    No slots
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Batch Schedule */}
+                  {schedule.schedule.batches.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Batch Schedule</h3>
+                      <div className="space-y-4">
+                        {schedule.schedule.batches.map((batch) => (
+                          <div
+                            key={batch.batchId}
+                            className="border rounded-lg p-4"
+                          >
+                            <h4 className="font-medium mb-2">{batch.name}</h4>
+                            <div className="grid grid-cols-7 gap-2 text-sm">
+                              {[
+                                "monday",
+                                "tuesday",
+                                "wednesday",
+                                "thursday",
+                                "friday",
+                                "saturday",
+                                "sunday",
+                              ].map((day) => (
+                                <div key={day} className="text-center">
+                                  <div className="font-medium capitalize mb-1">
+                                    {day.slice(0, 3)}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {batch.schedule[
+                                      day as keyof typeof batch.schedule
+                                    ]?.map((timeSlot, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="bg-green-50 text-green-700 text-xs"
+                                      >
+                                        {timeSlot}
+                                      </Badge>
+                                    )) || (
+                                      <span className="text-gray-400 text-xs">
+                                        -
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Program Schedule */}
+                  {schedule.schedule.programs.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Program Schedule</h3>
+                      <div className="space-y-4">
+                        {schedule.schedule.programs.map((program) => (
+                          <div
+                            key={program.programId}
+                            className="border rounded-lg p-4"
+                          >
+                            <h4 className="font-medium mb-2">{program.name}</h4>
+                            <div className="grid grid-cols-7 gap-2 text-sm">
+                              {[
+                                "monday",
+                                "tuesday",
+                                "wednesday",
+                                "thursday",
+                                "friday",
+                                "saturday",
+                                "sunday",
+                              ].map((day) => (
+                                <div key={day} className="text-center">
+                                  <div className="font-medium capitalize mb-1">
+                                    {day.slice(0, 3)}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {program.schedule[
+                                      day as keyof typeof program.schedule
+                                    ]?.map((timeSlot, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="bg-purple-50 text-purple-700 text-xs"
+                                      >
+                                        {timeSlot}
+                                      </Badge>
+                                    )) || (
+                                      <span className="text-gray-400 text-xs">
+                                        -
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No schedule data available.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="reviews">
           <Card className="bg-white">
             <CardHeader>
-              <CardTitle>Reviews</CardTitle>
-              <CardDescription>Coach reviews</CardDescription>
+              <CardTitle>Student Reviews</CardTitle>
+              <CardDescription>Feedback from students</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Reviews content here</p>
+              {isLoadingFeedback ? (
+                <div className="text-center py-8">Loading reviews...</div>
+              ) : feedback.length > 0 ? (
+                <div className="space-y-4">
+                  {feedback.map((review, index) => (
+                    <div key={index} className="p-4 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium">{review.user}</p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={16}
+                                className={
+                                  star <= review.rating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {new Date(review.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No reviews available for this coach.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
