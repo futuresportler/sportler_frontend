@@ -14,7 +14,7 @@ export async function checkAcademyVerificationStatus(): Promise<{
     }
 
     // Replace with your actual API endpoint
-    const response = await fetch("https://api-primary.futuresportler.com//api/academies/verification-status", {
+    const response = await fetch("https://api-primary.futuresportler.com/api/academies/verification-status", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
