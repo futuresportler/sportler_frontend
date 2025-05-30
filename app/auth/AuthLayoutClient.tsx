@@ -26,7 +26,7 @@ export default function AuthLayoutClient({
              }} />
         
         <Image 
-          src={isSignUp ? "/close-up-athlete-running.jpg" : "/close-up-athlete-running (1).jpg"} 
+          src={isSignUp ? "/close-up-athlete-running (1).jpg" : "/close-up-athlete-running.jpg" } 
           alt="Sports background" 
           fill 
           className="object-cover scale-105 transition-transform duration-700 hover:scale-100" 

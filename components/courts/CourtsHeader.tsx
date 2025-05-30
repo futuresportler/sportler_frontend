@@ -6,9 +6,9 @@ import { useEffect, useState } from "react"
 
 // Sample images for the slider
 const headerImages = [
-  "/placeholder.svg?height=300&width=1920",
-  "/placeholder.svg?height=300&width=1920",
-  "/placeholder.svg?height=300&width=1920",
+  "/badminton-arena-background.jpg?height=300&width=1920",
+  "/empty-cricket-stadium-with-green-grass-blue-sky-concept-sports-events-stadium-photography-outdoor-landscapes-nature-scenes-empty-spaces.jpg?height=300&width=1920",
+  "/high-school-football-stadium-fans-fill-bleachers-sunset-night-game-exciting-atmosphere-sport.jpg?height=300&width=1920",
 ]
 
 export function CourtsHeader() {
@@ -40,7 +40,7 @@ export function CourtsHeader() {
             className="object-cover"
             priority={index === 0}
           />
-          <div className="absolute inset-0 bg-emerald-900/70"></div>
+          {/* <div className="absolute inset-0 bg-emerald-900/70"></div> */}
         </div>
       ))}
 
