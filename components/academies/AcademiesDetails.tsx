@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
+import emailjs from '@emailjs/browser'
 import Link from "next/link"
 import {
   Star,
@@ -48,6 +49,56 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
     reviews: true,
     locations: true,
   })
+  //LEAD FORM 
+  const [showContactForm, setShowContactForm] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: ''
+  })
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault()
+    
+    try {
+      // Send email notification using EmailJS
+      await emailjs.send(
+        'service_0alofeq', // Get from EmailJS dashboard
+        'template_ddjex0y', // Get from EmailJS dashboard
+        {
+          to_name: 'Academy Team',
+          from_name: formData.name,
+          from_email: formData.email,
+          phone: formData.phone,
+          message: formData.message,
+          academy_name: academy.title,
+          reply_to: formData.email,
+        },
+        'GyFNEhp7IkObr3jKC' // Get from EmailJS dashboard
+      );
+  
+      alert('Thank you for your interest! We will contact you soon.');
+      
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('error');
+    }
+  
+    // Reset form
+    setFormData({ name: '', email: '', phone: '', message: '' })
+    setShowContactForm(false)
+  }
+  
+
 
   // UI state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -681,56 +732,148 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
             <div className="lg:w-1/4 w-full">
               <div className="bg-white rounded-lg shadow-md border border-gray-100 sticky top-24">
                 <div className="p-5">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Contact Academy</h3>
+                  {!showContactForm ? (
+                    <>
+                      <h3 className="text-lg font-bold text-gray-800 mb-4">Contact Academy</h3>
 
-                  <div className="space-y-4">
-                    {/* Contact Info */}
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <MapPin size={18} className="text-emerald-600 flex-shrink-0" />
-                      <span className="text-sm">{academy.location}</span>
-                    </div>
+                      <div className="space-y-4">
+                        {/* Contact Info */}
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <MapPin size={18} className="text-emerald-600 flex-shrink-0" />
+                          <span className="text-sm">{academy.location}</span>
+                        </div>
 
-                    {academy.phone && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone size={18} className="text-emerald-600 flex-shrink-0" />
-                        <span className="text-sm">{academy.phone}</span>
+                        {academy.phone && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Phone size={18} className="text-emerald-600 flex-shrink-0" />
+                            <span className="text-sm">{academy.phone}</span>
+                          </div>
+                        )}
+
+                        {academy.email && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Mail size={18} className="text-emerald-600 flex-shrink-0" />
+                            <span className="text-sm">{academy.email}</span>
+                          </div>
+                        )}
+
+                        {academy.website && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Globe size={18} className="text-emerald-600 flex-shrink-0" />
+                            <a
+                              href={academy.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-emerald-600 hover:underline"
+                            >
+                              Visit Website
+                            </a>
+                          </div>
+                        )}
+
+                        {academy.hourlyRate && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <DollarSign size={18} className="text-emerald-600 flex-shrink-0" />
+                            <span className="text-sm font-medium">${academy.hourlyRate}/hr</span>
+                          </div>
+                        )}
                       </div>
-                    )}
 
-                    {academy.email && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Mail size={18} className="text-emerald-600 flex-shrink-0" />
-                        <span className="text-sm">{academy.email}</span>
-                      </div>
-                    )}
-
-                    {academy.website && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Globe size={18} className="text-emerald-600 flex-shrink-0" />
-                        <a
-                          href={academy.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-emerald-600 hover:underline"
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <button
+                          onClick={() => setShowContactForm(true)}
+                          className="w-full py-2.5 rounded-md font-medium text-white text-sm bg-emerald-600 hover:bg-emerald-700 transition-colors"
                         >
-                          Visit Website
-                        </a>
+                          Contact Academy
+                        </button>
                       </div>
-                    )}
-
-                    {academy.hourlyRate && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <DollarSign size={18} className="text-emerald-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">${academy.hourlyRate}/hr</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-800">Contact Form</h3>
+                        <button
+                          onClick={() => setShowContactForm(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={20} />
+                        </button>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <button className="w-full py-2.5 rounded-md font-medium text-white text-sm bg-emerald-600 hover:bg-emerald-700">
-                      Contact Academy
-                    </button>
-                  </div>
+                      <form onSubmit={handleFormSubmit} className="space-y-4">
+                        <div>
+                          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                            Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            required
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                            placeholder="Enter your full name"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                            Email Address *
+                          </label>
+                          <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                            placeholder="Enter your email"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone Number
+                          </label>
+                          <input
+                            type="tel"
+                            id="phone"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                            placeholder="Enter your phone number"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                            Message
+                          </label>
+                          <textarea
+                            id="message"
+                            name="message"
+                            rows={3}
+                            value={formData.message}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm resize-none"
+                            placeholder="Tell us about your requirements..."
+                          />
+                        </div>
+
+                        <div className="pt-2">
+                          <button
+                            type="submit"
+                            className="w-full py-2.5 rounded-md font-medium text-white text-sm bg-emerald-600 hover:bg-emerald-700 transition-colors"
+                          >
+                            Submit Inquiry
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -900,8 +1043,8 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                       key={index}
                       onClick={() => setCurrentCoachIndex(index * visibleAcademies)}
                       className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${currentCoachIndex === index * visibleAcademies
-                          ? "bg-blue-600 w-8"
-                          : "bg-gray-300 hover:bg-gray-400"
+                        ? "bg-blue-600 w-8"
+                        : "bg-gray-300 hover:bg-gray-400"
                         }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
