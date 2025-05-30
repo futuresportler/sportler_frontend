@@ -9,6 +9,7 @@ import OurFeatures from "@/components/OurFeatures"
 import LatestNews from "@/components/LatestNews"
 import Testimonials from "@/components/Testimonials"
 import Footer from "@/components/Footer"
+import ChatbotButton from "@/components/ChatbotButton"
 
 export default function Home() {
   return (
@@ -24,6 +25,8 @@ export default function Home() {
         <OurFeatures />
         <LatestNews />
         <Testimonials />
+        <ChatbotButton />
+
       </main>
       <Footer />
     </div>
