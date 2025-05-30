@@ -1,21 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import CourtsHeader from "./CourtsHeader"
-import CourtsFilter from "./CourtsFilter"
-import CourtsGrid from "./CourtsGrid"
-import CourtsList from "./CourtsList"
-import CourtsSearchBar from "./CourtsSearchBar"
+import { CourtsHeader } from "./CourtsHeader"
+import { CourtsFilter } from "./CourtsFilter"
+import { CourtsGrid } from "./CourtsGrid"
+import { CourtsList } from "./CourtsList"
+import { CourtsSearchBar } from "./CourtsSearchBar"
 import type { Court } from "@/types/court"
 import LocationMapView from "@/components/shared/LocationMapView"
 import { Button } from "@/components/ui/button"
 import { MapIcon, GridIcon, ListIcon } from "lucide-react"
+import Header from "../Header"
 
 interface CourtsLayoutProps {
   city: string
 }
 
-export default function CourtsLayout({ city }: CourtsLayoutProps) {
+export function CourtsLayout({ city }: CourtsLayoutProps) {
   const [courts, setCourts] = useState<Court[]>([])
   const [filteredCourts, setFilteredCourts] = useState<Court[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -104,59 +105,68 @@ export default function CourtsLayout({ city }: CourtsLayoutProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <CourtsHeader city={city} />
-      <div className="flex flex-col md:flex-row gap-6 mt-8">
-        <div className="w-full md:w-1/4">
-          <CourtsFilter onFilterChange={handleFilterChange} filterOptions={filterOptions} />
-        </div>
-        <div className="w-full md:w-3/4">
-          <div className="mb-6">
-            <CourtsSearchBar onSearch={handleSearch} />
-            <div className="flex justify-end mt-4 space-x-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-                className="flex items-center"
-              >
-                <GridIcon className="w-4 h-4 mr-1" />
-                Grid
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="flex items-center"
-              >
-                <ListIcon className="w-4 h-4 mr-1" />
-                List
-              </Button>
-              <Button
-                variant={viewMode === "map" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("map")}
-                className="flex items-center"
-              >
-                <MapIcon className="w-4 h-4 mr-1" />
-                Map
-              </Button>
-            </div>
+    <>
+      <Header />
+      <div className="h-screen w-screen overflow-hidden flex flex-col">
+        <CourtsHeader city={city} />
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar Filter */}
+          <div className="w-full md:w-1/4 border-r border-gray-200 overflow-y-auto p-4 bg-white">
+            <CourtsFilter onFilterChange={handleFilterChange} filterOptions={filterOptions} />
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+          {/* Main Content */}
+          <div className="w-full md:w-3/4 overflow-y-auto p-4">
+            {/* Search and View Switch */}
+            <div className="mb-6">
+              <CourtsSearchBar onSearch={handleSearch} />
+              <div className="flex justify-end mt-4 gap-2">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="flex items-center gap-1"
+                >
+                  <GridIcon className="w-4 h-4" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="flex items-center gap-1"
+                >
+                  <ListIcon className="w-4 h-4" />
+                  List
+                </Button>
+                <Button
+                  variant={viewMode === "map" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("map")}
+                  className="flex items-center gap-1"
+                >
+                  <MapIcon className="w-4 h-4" />
+                  Map
+                </Button>
+              </div>
             </div>
-          ) : (
-            <>
-              {viewMode === "grid" && <CourtsGrid courts={filteredCourts} city={city} />}
-              {viewMode === "list" && <CourtsList courts={filteredCourts} city={city} />}
-              {viewMode === "map" && <LocationMapView courts={filteredCourts} city={city} activeTab="courts" />}
-            </>
-          )}
+
+            {/* Content Area */}
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+              </div>
+            ) : (
+              <>
+                {viewMode === "grid" && <CourtsGrid courts={filteredCourts} city={city} />}
+                {viewMode === "list" && <CourtsList courts={filteredCourts} city={city} />}
+                {viewMode === "map" && <LocationMapView courts={filteredCourts} city={city} activeTab="courts" />}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
+
 }

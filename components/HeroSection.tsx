@@ -8,10 +8,10 @@ import { generateSlug } from "@/utils/slug"
 
 // Sample images for carousel
 const heroImages = [
-  "/pexels-chuck-2834917.jpg?height=500&width=500",
-  "/pexels-rdne-7045428.jpg?height=500&width=500",
-  "/pexels-rdne-7335042.jpg?height=500&width=500",
-  "/pexels-victorfreitas-841130.jpg?height=500&width=500",
+  "/portrait-athlete-competing-olympic-games-tournament.jpg?height=500&width=500",
+  "/portrait-athlete-competing-olympic-games-tournament (1).jpg?height=500&width=500",
+  "/player-throws-ball-basket-stadium-full-spectators.jpg?height=500&width=500",
+  "/scene-from-olympic-games-tournament-with-athletes-competing.jpg?height=500&width=500",
 ]
 
 // API base URL
