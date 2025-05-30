@@ -1,26 +1,39 @@
 import { NextResponse } from "next/server"
-import { academiesData } from "@/data/new-academies-data"
 
-export async function GET() {
+const API_BASE_URL = "https://api-primary.futuresportler.com"
+
+export async function GET(request: Request) {
   try {
-    // Simulate fetching data (replace with actual data fetching logic if needed)
-    // const academies = await loadExternalAcademies(); // Example: Fetch from a database or external API
+    const { searchParams } = new URL(request.url)
+    const city = searchParams.get("city")
 
-    // Ensure academiesData is an array
-    if (!Array.isArray(academiesData)) {
-      console.error("Academies data is not an array:", academiesData)
-      return NextResponse.json({ error: "Invalid academies data format" }, { status: 500 })
+    // Build the external API URL
+    const apiUrl = new URL(`${API_BASE_URL}/api/academies`)
+    if (city) {
+      apiUrl.searchParams.append("city", city)
     }
 
-    return NextResponse.json(academiesData)
+    // Forward other query parameters
+    searchParams.forEach((value, key) => {
+      if (key !== "city") {
+        apiUrl.searchParams.append(key, value)
+      }
+    })
+
+    const response = await fetch(apiUrl.toString(), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`External API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
   } catch (error) {
     console.error("Error fetching academies:", error)
     return NextResponse.json({ error: "Failed to fetch academies" }, { status: 500 })
   }
 }
-
-// Example function to simulate loading external academies (replace with your actual logic)
-// async function loadExternalAcademies() {
-//   // Replace this with your actual data fetching logic (e.g., from a database)
-//   return academiesData;
-// }

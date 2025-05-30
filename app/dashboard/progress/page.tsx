@@ -1,6 +1,6 @@
 "use client"
 
-import SkillProgress from "@/components/SkillProgress"
+import SkillProgress from "@/components/dashboard/SkillProgress"
 
 export default function ProgressPage() {
   return (

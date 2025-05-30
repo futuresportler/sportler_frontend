@@ -67,8 +67,8 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
   // Get similar academies (same category) with null checks
   const similarAcademies = newAcademies
     ? newAcademies
-        .filter((a) => a.id !== academy.id && a.category.toLowerCase() === academy.category.toLowerCase())
-        .slice(0, 9)
+      .filter((a) => a.id !== academy.id && a.category.toLowerCase() === academy.category.toLowerCase())
+      .slice(0, 9)
     : []
 
   const visibleAcademies = 3
@@ -146,6 +146,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
   const handleNextAcademy = () => {
     setCurrentCoachIndex((prev) => (prev >= similarAcademies.length - visibleAcademies ? 0 : prev + 1))
+    console.log(similarAcademies);
   }
 
   return (
@@ -158,16 +159,24 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
           {galleryImages.map((image, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                currentImageIndex === index ? "opacity-100" : "opacity-0"
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 flex justify-center items-center bg-black ${currentImageIndex === index ? "opacity-100" : "opacity-0"
+                }`}
             >
-              <Image
-                src={image || "/placeholder.svg"}
-                alt={`${academy.title} - Image ${index + 1}`}
-                fill
-                className="object-cover"
-              />
+              {/* Container to maintain aspect ratio and prevent stretching */}
+              <div className="relative w-full h-full flex justify-center items-center">
+                <div className="relative h-full w-full" style={{ maxWidth: '80%' }}>
+                  <Image
+                    src={image || "/placeholder.svg"}
+                    alt={`${academy.title} - Image ${index + 1}`}
+                    fill
+                    className="object-contain"
+                    style={{
+                      objectPosition: 'center',
+                    }}
+                    priority={index === 0}
+                  />
+                </div>
+              </div>
               <div className="absolute inset-0 bg-black/20"></div>
             </div>
           ))}
@@ -187,15 +196,21 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
             <ChevronRight size={24} className="text-gray-800" />
           </button>
 
+          <button
+            onClick={handleNextImage}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-lg hover:bg-white transition-colors z-10"
+          >
+            <ChevronRight size={24} className="text-gray-800" />
+          </button>
+
           {/* Slider indicators */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
             {galleryImages.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  currentImageIndex === index ? "bg-white" : "bg-white/50 hover:bg-white/80"
-                }`}
+                className={`w-2 h-2 rounded-full transition-colors ${currentImageIndex === index ? "bg-white" : "bg-white/50 hover:bg-white/80"
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
@@ -266,11 +281,10 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                     <button
                       key={tab}
                       onClick={() => handleTabClick(tab)}
-                      className={`px-6 py-3 whitespace-nowrap font-medium text-sm transition-colors ${
-                        activeTab === tab
-                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50"
-                          : "text-gray-600 hover:text-emerald-600 hover:bg-gray-50"
-                      }`}
+                      className={`px-6 py-3 whitespace-nowrap font-medium text-sm transition-colors ${activeTab === tab
+                        ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50"
+                        : "text-gray-600 hover:text-emerald-600 hover:bg-gray-50"
+                        }`}
                     >
                       {tab.charAt(0).toUpperCase() + tab.slice(1)}
                     </button>
@@ -349,9 +363,8 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                         className="flex items-center bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100"
                       >
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                            item.checked ? "bg-emerald-500" : "bg-red-500"
-                          }`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${item.checked ? "bg-emerald-500" : "bg-red-500"
+                            }`}
                         >
                           {item.checked ? (
                             <Check size={14} className="text-white" />
@@ -742,100 +755,133 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
         {/* Similar Academies Section - Full Width */}
         {similarAcademies.length > 0 && (
-          <div className="mt-12 bg-gradient-to-br from-emerald-50 to-white py-8 w-full">
-            <div className="w-full max-w-[2000px] mx-auto px-4">
-              <h2 className="text-2xl font-bold mb-8 flex items-center">
-                <span className="bg-emerald-100 p-2 rounded-full mr-3">
-                  <MapPin size={20} className="text-emerald-600" />
-                </span>
-                Similar Academies
-              </h2>
+          <div className="mt-12 py-8 w-full bg-white">
+            <div className="w-full max-w-[1200px] mx-auto px-4">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  Similar Academies
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  Discover other academies that match your interests
+                </p>
+              </div>
 
               <div className="relative">
-                {/* Slider navigation buttons */}
+                {/* Navigation buttons */}
                 <button
                   onClick={handlePrevAcademy}
-                  className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
+                  className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2.5 z-10 hover:shadow-lg transition-all duration-200 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300"
                 >
-                  <ChevronLeft size={24} className="text-gray-600" />
+                  <ChevronLeft size={18} className="text-gray-700" />
                 </button>
 
                 <button
                   onClick={handleNextAcademy}
-                  className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2 z-10 hover:bg-emerald-50 border border-gray-100"
+                  className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full shadow-md p-2.5 z-10 hover:shadow-lg transition-all duration-200 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300"
                 >
-                  <ChevronRight size={24} className="text-gray-600" />
+                  <ChevronRight size={18} className="text-gray-700" />
                 </button>
 
-                {/* Academies slider */}
-                <div className="overflow-hidden py-4">
+                {/* Academy cards slider */}
+                <div className="overflow-hidden">
                   <div
-                    className="flex transition-transform duration-500 ease-in-out gap-6"
+                    className="flex transition-transform duration-500 ease-out gap-4"
                     style={{ transform: `translateX(-${currentCoachIndex * (100 / visibleAcademies)}%)` }}
                   >
                     {similarAcademies.map((similarAcademy) => (
                       <div key={similarAcademy.id} className="w-full md:w-1/3 flex-shrink-0">
                         <Link href={`/academies/${similarAcademy.id}`}>
-                          <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full relative group transform hover:-translate-y-1">
+                          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 h-full group hover:border-emerald-300">
                             <div className="relative">
-                              <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md z-10">
+                              <div className="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-medium px-2.5 py-1 rounded-full z-10">
                                 {similarAcademy.category}
                               </div>
-                              <div className="absolute top-2 right-2 z-10">
-                                <button className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:scale-110">
-                                  <Heart size={16} className="text-gray-400" />
+                              <div className="absolute top-3 right-3 z-10">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    // Toggle heart functionality here
+                                    const heartBtn = e.currentTarget;
+                                    const heartIcon = heartBtn.querySelector('svg');
+                                    const isLiked = heartBtn.classList.contains('liked');
+
+                                    if (isLiked) {
+                                      heartBtn.classList.remove('liked');
+                                      heartIcon.classList.remove('text-red-500', 'fill-red-500');
+                                      heartIcon.classList.add('text-gray-400');
+                                      heartBtn.classList.remove('bg-red-50', 'border-red-200');
+                                      heartBtn.classList.add('bg-white/90', 'border-gray-200');
+                                    } else {
+                                      heartBtn.classList.add('liked');
+                                      heartIcon.classList.remove('text-gray-400');
+                                      heartIcon.classList.add('text-red-500', 'fill-red-500');
+                                      heartBtn.classList.remove('bg-white/90', 'border-gray-200');
+                                      heartBtn.classList.add('bg-red-50', 'border-red-200');
+
+                                      // Add bounce animation
+                                      heartBtn.classList.add('animate-pulse');
+                                      setTimeout(() => heartBtn.classList.remove('animate-pulse'), 300);
+                                    }
+                                  }}
+                                  className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:shadow-md transition-all border border-gray-200 hover:scale-110"
+                                >
+                                  <Heart size={14} className="text-gray-400 transition-all duration-200" />
                                 </button>
                               </div>
                               <Image
                                 src={similarAcademy.image || "/placeholder.svg"}
                                 alt={similarAcademy.title}
-                                width={400}
-                                height={300}
-                                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                                width={350}
+                                height={200}
+                                className="w-full h-44 object-cover transition-transform duration-300 group-hover:scale-105"
                               />
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-20"></div>
                             </div>
 
-                            <div className="p-5">
-                              <div className="flex items-center mb-2">
-                                <h3 className="font-bold text-lg">{similarAcademy.title}</h3>
+                            <div className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="font-semibold text-lg text-gray-900 leading-tight">
+                                  {similarAcademy.title}
+                                </h3>
                                 {similarAcademy.rating && (
-                                  <div className="ml-auto flex items-center bg-yellow-400 text-white rounded-full px-2 py-0.5">
-                                    <Star size={14} className="mr-1 fill-white" />
-                                    <span className="text-sm">{similarAcademy.rating}</span>
+                                  <div className="flex items-center bg-amber-400 text-white rounded-md px-2 py-0.5 ml-2 flex-shrink-0">
+                                    <Star size={12} className="mr-1 fill-white" />
+                                    <span className="text-xs font-medium">{similarAcademy.rating}</span>
                                   </div>
                                 )}
                               </div>
 
-                              <div className="flex items-center text-gray-600 mb-2 text-sm">
-                                <MapPin size={14} className="mr-1 text-emerald-600 flex-shrink-0" />
-                                <span className="truncate">{similarAcademy.location}</span>
+                              <div className="flex items-center text-gray-600 mb-2">
+                                <MapPin size={14} className="mr-1.5 text-emerald-600 flex-shrink-0" />
+                                <span className="text-xs truncate">{similarAcademy.location}</span>
                               </div>
 
-                              <p className="text-gray-600 text-sm mb-3 line-clamp-2">{similarAcademy.description}</p>
+                              <p className="text-gray-600 text-xs mb-3 line-clamp-2 leading-relaxed">
+                                {similarAcademy.description}
+                              </p>
 
-                              <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                                <div className="flex items-center text-sm">
-                                  <Calendar size={14} className="mr-1 text-emerald-600" />
+                              <div className="flex justify-between items-center py-2 border-t border-gray-100 mb-3">
+                                <div className="flex items-center text-xs">
+                                  <Calendar size={14} className="mr-1.5 text-emerald-600" />
                                   <span className="text-emerald-600 font-medium">
                                     {similarAcademy.nextAvailability}
                                   </span>
                                 </div>
 
                                 {similarAcademy.hourlyRate && (
-                                  <div className="text-sm font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                                  <div className="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md">
                                     ${similarAcademy.hourlyRate}/hr
                                   </div>
                                 )}
                               </div>
 
-                              <div className="flex gap-2 mt-4">
+                              <div className="flex gap-2">
                                 <Link href={`/academies/${similarAcademy.id}`} className="flex-1">
-                                  <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-sm hover:bg-emerald-50 transition-colors">
+                                  <button className="w-full bg-white border border-emerald-600 text-emerald-600 py-2 rounded-md text-xs font-medium hover:bg-emerald-50 transition-all duration-200">
                                     View Details
                                   </button>
                                 </Link>
-                                <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-sm hover:bg-emerald-700 transition-colors">
+                                <button className="flex-1 bg-emerald-600 text-white py-2 rounded-md text-xs font-medium hover:bg-emerald-700 transition-all duration-200 shadow-sm">
                                   Book Now
                                 </button>
                               </div>
@@ -847,17 +893,16 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                   </div>
                 </div>
 
-                {/* Slider dots */}
-                <div className="flex justify-center mt-6 space-x-2">
+                {/* Pagination dots */}
+                <div className="flex justify-center mt-8 space-x-2">
                   {Array.from({ length: Math.ceil(similarAcademies.length / visibleAcademies) }).map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentCoachIndex(index * visibleAcademies)}
-                      className={`w-3 h-3 rounded-full transition-colors ${
-                        currentCoachIndex === index * visibleAcademies
-                          ? "bg-emerald-600"
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${currentCoachIndex === index * visibleAcademies
+                          ? "bg-blue-600 w-8"
                           : "bg-gray-300 hover:bg-gray-400"
-                      }`}
+                        }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}

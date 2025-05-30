@@ -1,27 +1,27 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import CoachesHeader from "./CoachesHeader"
 import CoachesFilter from "./CoachesFilter"
 import CoachesGrid from "./CoachesGrid"
 import CoachesList from "./CoachesList"
 import CoachesSearchBar from "./CoachesSearchBar"
-import Pagination from "./Pagination"
 import type { Coach, FilterOptions } from "@/types/coach"
-import { dummyCoaches } from "@/data/coaches-data"
-import Header from "@/components/Header"
+import LocationMapView from "@/components/shared/LocationMapView"
+import { Button } from "@/components/ui/button"
+import { MapIcon, GridIcon, ListIcon } from "lucide-react"
 
-export default function CoachesLayout() {
-  const [coaches, setCoaches] = useState<Coach[]>(dummyCoaches)
-  const [filteredCoaches, setFilteredCoaches] = useState<Coach[]>(dummyCoaches)
-  const [currentPage, setCurrentPage] = useState(1)
+interface CoachesLayoutProps {
+  city: string
+}
+
+export default function CoachesLayout({ city }: CoachesLayoutProps) {
+  const [coaches, setCoaches] = useState<Coach[]>([])
+  const [filteredCoaches, setFilteredCoaches] = useState<Coach[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [sortBy, setSortBy] = useState("relevance")
-  const [filterSectionHeight, setFilterSectionHeight] = useState(0)
-  const filterRef = useRef<HTMLDivElement>(null)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    price: { min: 50, max: 500 },
+    price: { min: 0, max: 10000 },
     rating: 0,
     certificationLevel: [],
     sessionType: [],
@@ -32,211 +32,122 @@ export default function CoachesLayout() {
     searchQuery: "",
   })
 
-  const coachesPerPage = 6
-  const totalPages = Math.ceil(filteredCoaches.length / coachesPerPage)
-
-  // Get current coaches for pagination
-  const indexOfLastCoach = currentPage * coachesPerPage
-  const indexOfFirstCoach = indexOfLastCoach - coachesPerPage
-  const currentCoaches = filteredCoaches.slice(indexOfFirstCoach, indexOfLastCoach)
-
-  // Measure filter section height for matching scroll area
   useEffect(() => {
-    if (filterRef.current) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          setFilterSectionHeight(entry.contentRect.height)
-        }
-      })
-
-      resizeObserver.observe(filterRef.current)
-      return () => {
-        resizeObserver.disconnect()
+    const fetchCoaches = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/api/coaches?city=${city}`)
+        const data = await response.json()
+        setCoaches(data)
+        setFilteredCoaches(data)
+      } catch (error) {
+        console.error("Error fetching coaches:", error)
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [])
 
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+    fetchCoaches()
+  }, [city])
 
-  // Filter coaches based on filter options
-  useEffect(() => {
-    let result = [...dummyCoaches]
+  const handleFilterChange = (newFilterOptions: Partial<FilterOptions>) => {
+    const updatedFilterOptions = { ...filterOptions, ...newFilterOptions }
+    setFilterOptions(updatedFilterOptions)
 
-    // Filter by sport (case insensitive)
-    if (filterOptions.sport && filterOptions.sport !== "All Sports") {
-      result = result.filter((coach) => coach.sport.toLowerCase() === filterOptions.sport.toLowerCase())
-    }
+    // Apply filters
+    let filtered = [...coaches]
 
-    // Filter by price range
-    result = result.filter(
-      (coach) => coach.hourlyRate >= filterOptions.price.min && coach.hourlyRate <= filterOptions.price.max,
-    )
-
-    // Filter by rating
-    if (filterOptions.rating > 0) {
-      result = result.filter((coach) => coach.rating >= filterOptions.rating)
-    }
-
-    // Filter by certification level
-    if (filterOptions.certificationLevel.length > 0) {
-      result = result.filter((coach) => filterOptions.certificationLevel.includes(coach.certificationLevel))
-    }
-
-    // Filter by session type
-    if (filterOptions.sessionType.length > 0) {
-      result = result.filter((coach) => coach.sessionTypes.some((type) => filterOptions.sessionType.includes(type)))
-    }
-
-    // Filter by search query (case insensitive)
-    if (filterOptions.searchQuery) {
-      const query = filterOptions.searchQuery.toLowerCase()
-      result = result.filter(
+    // Filter by search query
+    if (updatedFilterOptions.searchQuery) {
+      const query = updatedFilterOptions.searchQuery.toLowerCase()
+      filtered = filtered.filter(
         (coach) =>
           coach.name.toLowerCase().includes(query) ||
-          coach.location.toLowerCase().includes(query) ||
           coach.description.toLowerCase().includes(query) ||
+          coach.location.toLowerCase().includes(query) ||
           coach.sport.toLowerCase().includes(query),
       )
     }
 
-    // Filter by trained professionals
-    if (filterOptions.trainedProfessionals) {
-      result = result.filter((coach) => coach.trainedProfessionals)
+    // Filter by price
+    if (updatedFilterOptions.price) {
+      filtered = filtered.filter(
+        (coach) =>
+          coach.hourlyRate >= updatedFilterOptions.price.min && coach.hourlyRate <= updatedFilterOptions.price.max,
+      )
     }
 
-    // Filter by languages
-    if (filterOptions.languages.length > 0) {
-      result = result.filter((coach) => coach.languages.some((lang) => filterOptions.languages.includes(lang)))
+    // Filter by rating
+    if (updatedFilterOptions.rating && updatedFilterOptions.rating > 0) {
+      filtered = filtered.filter((coach) => coach.rating >= updatedFilterOptions.rating)
     }
 
-    // Sort coaches
-    if (sortBy === "price-low") {
-      result.sort((a, b) => a.hourlyRate - b.hourlyRate)
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => b.hourlyRate - a.hourlyRate)
-    } else if (sortBy === "rating") {
-      result.sort((a, b) => b.rating - a.rating)
+    // Filter by sport
+    if (updatedFilterOptions.sport) {
+      filtered = filtered.filter((coach) => coach.sport === updatedFilterOptions.sport)
     }
 
-    setFilteredCoaches(result)
-    // Reset to first page when filters change
-    setCurrentPage(1)
-  }, [filterOptions, sortBy])
-
-  const handleFilterChange = (newOptions: Partial<FilterOptions>) => {
-    setFilterOptions((prev) => ({ ...prev, ...newOptions }))
+    setFilteredCoaches(filtered)
   }
 
-  const toggleFilterSidebar = () => {
-    setIsFilterOpen(!isFilterOpen)
+  const handleSearch = (query: string) => {
+    handleFilterChange({ searchQuery: query })
   }
-
-  useEffect(() => {
-    // Add custom scrollbar styling and animations
-    const style = document.createElement("style")
-    style.textContent = `
-      .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
-      }
-      .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: rgba(16, 185, 129, 0.2);
-        border-radius: 20px;
-      }
-      .scrollbar-thin:hover::-webkit-scrollbar-thumb {
-        background-color: rgba(16, 185, 129, 0.4);
-      }
-      
-      @keyframes heartbeat {
-        0% { transform: scale(1); }
-        25% { transform: scale(1.2); }
-        50% { transform: scale(1); }
-        75% { transform: scale(1.2); }
-        100% { transform: scale(1); }
-      }
-      
-      .animate-heartbeat {
-        animation: heartbeat 0.8s ease-in-out;
-      }
-      
-      @keyframes ping-once {
-        0% { transform: scale(0.8); opacity: 1; }
-        100% { transform: scale(2); opacity: 0; }
-      }
-      
-      .animate-ping-once {
-        animation: ping-once 0.8s cubic-bezier(0, 0, 0.2, 1) forwards;
-      }
-    `
-    document.head.appendChild(style)
-
-    return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <CoachesHeader />
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <CoachesSearchBar
-          onFilterChange={handleFilterChange}
-          filterOptions={filterOptions}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          toggleFilterSidebar={toggleFilterSidebar}
-        />
-
-        <div className="flex mt-6 gap-6">
-          <div
-            ref={filterRef}
-            className={`${isFilterOpen ? "block" : "hidden"} md:block w-full md:w-72 lg:w-80 flex-shrink-0`}
-          >
-            <CoachesFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
-          </div>
-
-          <div className="flex-1 flex flex-col">
-            <div className="mb-4 flex justify-between items-center">
-              <p className="text-gray-700 font-medium">{filteredCoaches.length} coaches are listed</p>
-            </div>
-
-            <div
-              className="overflow-y-auto pr-2 pb-4 flex-1 scrollbar-thin"
-              style={{
-                height: "calc(100vh - 350px)",
-                scrollbarWidth: "thin",
-                scrollbarColor: "rgba(16, 185, 129, 0.2) transparent",
-              }}
-            >
-              {viewMode === "grid" ? (
-                <CoachesGrid coaches={currentCoaches} currentPage={currentPage} />
-              ) : viewMode === "list" ? (
-                <CoachesList coaches={currentCoaches} currentPage={currentPage} />
-              ) : (
-                <div className="h-[600px] bg-gray-200 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Map view coming soon</p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
-              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
+    <div className="container mx-auto px-4 py-8">
+      <CoachesHeader city={city} />
+      <div className="flex flex-col md:flex-row gap-6 mt-8">
+        <div className="w-full md:w-1/4">
+          <CoachesFilter onFilterChange={handleFilterChange} filterOptions={filterOptions} />
+        </div>
+        <div className="w-full md:w-3/4">
+          <div className="mb-6">
+            <CoachesSearchBar onSearch={handleSearch} />
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="flex items-center"
+              >
+                <GridIcon className="w-4 h-4 mr-1" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="flex items-center"
+              >
+                <ListIcon className="w-4 h-4 mr-1" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("map")}
+                className="flex items-center"
+              >
+                <MapIcon className="w-4 h-4 mr-1" />
+                Map
+              </Button>
             </div>
           </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            </div>
+          ) : (
+            <>
+              {viewMode === "grid" && <CoachesGrid coaches={filteredCoaches} city={city} />}
+              {viewMode === "list" && <CoachesList coaches={filteredCoaches} city={city} />}
+              {viewMode === "map" && <LocationMapView coaches={filteredCoaches} city={city} activeTab="coaches" />}
+            </>
+          )}
         </div>
       </div>
-
-      {/* Floating background elements */}
-      <div className="fixed top-1/4 left-10 w-32 h-32 bg-emerald-50 rounded-full opacity-20 blur-xl z-0"></div>
-      <div className="fixed bottom-1/4 right-10 w-40 h-40 bg-blue-50 rounded-full opacity-20 blur-xl z-0"></div>
     </div>
   )
 }
-

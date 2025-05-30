@@ -1,10 +1,23 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
-import { Camera, Save, Loader2, CheckCircle, X } from "lucide-react"
+import { Camera, Save, Loader2, CheckCircle, X, ArrowRight } from "lucide-react"
+import { updateOnboardingState } from "@/services/authService"
+import type { SupplierProfile } from "@/types/supplier"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { getSupplierProfile, updateSupplierProfile } from "@/services/supplierService"
+import { checkAcademyVerificationStatus } from "@/services/academyService"
 
 export default function SupplierProfilePage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const isNewUser = searchParams.get("newUser") === "true"
+
   const [supplierTypes, setSupplierTypes] = useState({
     academy: false,
     turf: false,
@@ -12,9 +25,9 @@ export default function SupplierProfilePage() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState("")
   const [error, setError] = useState("")
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SupplierProfile>({
     name: "",
     email: "",
     phone: "",
@@ -31,97 +44,207 @@ export default function SupplierProfilePage() {
     ifscCode: "",
     upiId: "",
     bio: "",
+    profileCompleted: false,
   })
-  const [profileImage, setProfileImage] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
-  const fileInputRef = useRef(null)
+  const [profileImage, setProfileImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+
     // Get supplier types from localStorage
     const storedTypes = localStorage.getItem("supplierTypes")
     if (storedTypes) {
       setSupplierTypes(JSON.parse(storedTypes))
+    } else {
+      // Default to academy if no types are stored
+      setSupplierTypes({
+        academy: true,
+        turf: false,
+        coach: false,
+      })
+      localStorage.setItem(
+        "supplierTypes",
+        JSON.stringify({
+          academy: true,
+          turf: false,
+          coach: false,
+        }),
+      )
     }
 
-    // Simulate fetching profile data
-    setTimeout(() => {
-      setFormData({
-        name: "Rajesh Kumar",
-        email: "rajesh@example.com",
-        phone: "+919876543210",
-        governmentId: "",
-        governmentIdType: "aadhar",
-        address: "",
-        city: "",
-        state: "",
-        pincode: "",
-        businessName: "",
-        gstNumber: "",
-        bankAccountName: "",
-        bankAccountNumber: "",
-        ifscCode: "",
-        upiId: "",
-        bio: "",
-      })
-      setLoading(false)
-    }, 1000)
-  }, [])
+    // Fetch supplier profile data
+    const fetchSupplierProfile = async () => {
+      try {
+        const profileResponse = await getSupplierProfile()
 
-  const handleInputChange = (e) => {
+        // If we have profile data, update the form
+        if (profileResponse.success && profileResponse.data) {
+          const supplierData = profileResponse.data
+
+          // Map API data to form fields
+          setFormData({
+            name: supplierData.name || formData.name || "",
+            email: supplierData.email || "",
+            phone: supplierData.mobile_number || "",
+            governmentId: formData.governmentId || "", // Keep existing value
+            governmentIdType: formData.governmentIdType || "aadhar", // Keep existing value
+            address: formData.address || "", // Keep existing value
+            city: formData.city || "", // Keep existing value
+            state: formData.state || "", // Keep existing value
+            pincode: formData.pincode || "", // Keep existing value
+            businessName: formData.businessName || "", // Keep existing value
+            gstNumber: supplierData.gstNumber || "",
+            bankAccountName: supplierData.accountHolderName || "",
+            bankAccountNumber: supplierData.bankAccountNumber || "",
+            ifscCode: supplierData.ifscCode || "",
+            upiId: supplierData.upiId || "",
+            bio: formData.bio || "", // Keep existing value
+            profileCompleted: supplierData.isVerified || false,
+          })
+
+          // If the profile has an image URL, set it as the preview
+          if (supplierData.profilePicture) {
+            setImagePreview(supplierData.profilePicture)
+          }
+
+          // Update supplier types based on modules
+          if (supplierData.module && Array.isArray(supplierData.module)) {
+            const newTypes = {
+              academy: supplierData.module.includes("academy") || supplierData.academyProfiles?.length > 0,
+              turf: supplierData.module.includes("turf") || supplierData.turfProfiles?.length > 0,
+              coach: supplierData.module.includes("coach") || supplierData.coachProfile !== null,
+            }
+            setSupplierTypes(newTypes)
+            localStorage.setItem("supplierTypes", JSON.stringify(newTypes))
+          } else {
+            // Infer supplier types from the presence of profiles
+            const newTypes = {
+              academy: Array.isArray(supplierData.academyProfiles) && supplierData.academyProfiles.length > 0,
+              turf: Array.isArray(supplierData.turfProfiles) && supplierData.turfProfiles.length > 0,
+              coach: supplierData.coachProfile !== null,
+            }
+            setSupplierTypes(newTypes)
+            localStorage.setItem("supplierTypes", JSON.stringify(newTypes))
+          }
+
+          // Check if this is truly a new user (no academy created yet)
+          if (isNewUser && Array.isArray(supplierData.academyProfiles) && supplierData.academyProfiles.length > 0) {
+            // User has academies, so they're not really a new user anymore
+            router.replace("/supplier/profile")
+          }
+        } else if (isNewUser) {
+          // For new users with no profile, pre-fill minimal data
+          setFormData({
+            ...formData,
+            phone: localStorage.getItem("userPhone") || "",
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching supplier profile:", error)
+        // For new users or if there's an error, pre-fill minimal data
+        if (isNewUser) {
+          setFormData({
+            ...formData,
+            phone: localStorage.getItem("userPhone") || "",
+          })
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSupplierProfile()
+  }, [isNewUser, router])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleImageClick = () => {
-    fileInputRef.current.click()
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
   }
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (file) {
       setProfileImage(file)
 
       // Create preview
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImagePreview(reader.result)
+        setImagePreview(reader.result as string)
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const handleSubmit = async (e) => {
+  // Update the handleSubmit function to ensure proper redirection after profile completion
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    setSuccess(false)
+    setSuccess("")
     setError("")
 
     try {
-      // Simulate API call to update profile
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Validate required fields
+      const requiredFields = ["name", "email", "phone", "address", "city", "state", "pincode"]
+      const missingFields = requiredFields.filter((field) => !formData[field as keyof SupplierProfile])
 
-      // In a real app, you would upload the image and form data to your backend
-      // const formDataToSend = new FormData()
-      // if (profileImage) {
-      //   formDataToSend.append('profileImage', profileImage)
-      // }
-      // Object.entries(formData).forEach(([key, value]) => {
-      //   formDataToSend.append(key, value)
-      // })
-      // const response = await fetch('/api/supplier/profile', {
-      //   method: 'PUT',
-      //   body: formDataToSend
-      // })
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in all required fields: ${missingFields.join(", ")}`)
+      }
 
-      setSuccess(true)
+      // Create form data for the API request
+      const formDataToSend = new FormData()
 
-      // Auto-hide success message after 3 seconds
-      setTimeout(() => {
-        setSuccess(false)
-      }, 3000)
-    } catch (error) {
+      // Add profile image if it exists
+      if (profileImage) {
+        formDataToSend.append("profileImage", profileImage)
+      }
+
+      // Add all form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formDataToSend.append(key, value.toString())
+        }
+      })
+
+      // Add supplier types as module array
+      const moduleArray: string[] = []
+      if (supplierTypes.academy) moduleArray.push("academy")
+      if (supplierTypes.turf) moduleArray.push("turf")
+      if (supplierTypes.coach) moduleArray.push("coach")
+      formDataToSend.append("module", JSON.stringify(moduleArray))
+
+      // Update the profile
+      const result = await updateSupplierProfile(formDataToSend)
+
+      if (!result.success) {
+        throw new Error(result.message)
+      }
+
+      // Update onboarding state
+      updateOnboardingState({ profileCompleted: true })
+
+      setSuccess(result.message || "Profile updated successfully!")
+
+      // Check if user already has an academy or is in verification state
+      const { hasAcademy } = await checkAcademyVerificationStatus()
+
+      // Only redirect to academy creation for new users who haven't created an academy yet
+      if (isNewUser && !hasAcademy) {
+        setTimeout(() => {
+          router.push("/supplier/academy/add")
+        }, 1500)
+      }
+    } catch (error: any) {
       console.error("Error updating profile:", error)
-      setError("Failed to update profile. Please try again.")
+      setError(error.message || "Failed to update profile. Please try again.")
     } finally {
       setSaving(false)
     }
@@ -148,20 +271,40 @@ export default function SupplierProfilePage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
-        <h1 className="text-2xl font-bold text-gray-800 mb-8">Supplier Profile</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-800">
+            {isNewUser ? "Complete Your Profile" : "Supplier Profile"}
+          </h1>
+
+          {isNewUser && (
+            <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm">Step 1 of 2: Profile Setup</div>
+          )}
+        </div>
+
+        {isNewUser && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertTitle className="text-blue-800">Welcome to DreamSports!</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              Please complete your profile information to continue with the onboarding process. After this, you'll be
+              able to add your academy details.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {success && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center text-emerald-700">
-            <CheckCircle size={20} className="mr-2" />
-            Profile updated successfully!
-          </div>
+          <Alert className="mb-6 bg-emerald-50 border-emerald-200">
+            <CheckCircle size={20} className="text-emerald-600" />
+            <AlertTitle className="text-emerald-800">Success</AlertTitle>
+            <AlertDescription className="text-emerald-700">{success}</AlertDescription>
+          </Alert>
         )}
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
+          <Alert variant="destructive" className="mb-6">
             <X size={20} className="mr-2" />
-            {error}
-          </div>
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         <form onSubmit={handleSubmit}>
@@ -172,7 +315,7 @@ export default function SupplierProfilePage() {
                 onClick={handleImageClick}
               >
                 <Image
-                  src={imagePreview || "/placeholder.svg?height=128&width=128&text=RK"}
+                  src={imagePreview || "/placeholder.svg?height=128&width=128&text=Profile"}
                   alt="Profile"
                   fill
                   className="object-cover"
@@ -187,14 +330,14 @@ export default function SupplierProfilePage() {
                 onClick={handleImageClick}
                 className="mt-3 text-sm text-emerald-600 hover:text-emerald-700"
               >
-                Change Photo
+                {imagePreview ? "Change Photo" : "Add Photo"}
               </button>
             </div>
 
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
+                  Full Name*
                 </label>
                 <input
                   id="name"
@@ -209,7 +352,7 @@ export default function SupplierProfilePage() {
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  Email*
                 </label>
                 <input
                   id="email"
@@ -224,7 +367,7 @@ export default function SupplierProfilePage() {
 
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
+                  Phone Number*
                 </label>
                 <input
                   id="phone"
@@ -232,14 +375,16 @@ export default function SupplierProfilePage() {
                   type="tel"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-100"
                   required
+                  disabled
                 />
+                <p className="text-xs text-gray-500 mt-1">Phone number cannot be changed</p>
               </div>
 
               <div>
                 <label htmlFor="governmentIdType" className="block text-sm font-medium text-gray-700 mb-1">
-                  Government ID Type
+                  Government ID Type*
                 </label>
                 <select
                   id="governmentIdType"
@@ -264,12 +409,12 @@ export default function SupplierProfilePage() {
               <div>
                 <label htmlFor="governmentId" className="block text-sm font-medium text-gray-700 mb-1">
                   {formData.governmentIdType === "aadhar"
-                    ? "Aadhar Number"
+                    ? "Aadhar Number*"
                     : formData.governmentIdType === "pan"
-                      ? "PAN Number"
+                      ? "PAN Number*"
                       : formData.governmentIdType === "voter"
-                        ? "Voter ID Number"
-                        : "Driving License Number"}
+                        ? "Voter ID Number*"
+                        : "Driving License Number*"}
                 </label>
                 <input
                   id="governmentId"
@@ -285,11 +430,11 @@ export default function SupplierProfilePage() {
           </div>
 
           <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-4">Address</h2>
+            <h2 className="text-lg font-medium text-gray-800 mb-4">Address*</h2>
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                  Street Address
+                  Street Address*
                 </label>
                 <input
                   id="address"
@@ -305,7 +450,7 @@ export default function SupplierProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                    City
+                    City*
                   </label>
                   <input
                     id="city"
@@ -320,7 +465,7 @@ export default function SupplierProfilePage() {
 
                 <div>
                   <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State
+                    State*
                   </label>
                   <input
                     id="state"
@@ -335,7 +480,7 @@ export default function SupplierProfilePage() {
 
                 <div>
                   <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-1">
-                    Pincode
+                    Pincode*
                   </label>
                   <input
                     id="pincode"
@@ -461,7 +606,7 @@ export default function SupplierProfilePage() {
           </div>
 
           <div className="flex justify-end">
-            <button
+            <Button
               type="submit"
               disabled={saving}
               className="px-6 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
@@ -471,13 +616,17 @@ export default function SupplierProfilePage() {
                   <Loader2 size={18} className="mr-2 animate-spin" />
                   Saving...
                 </>
+              ) : isNewUser ? (
+                <>
+                  Continue to Academy Setup <ArrowRight size={18} className="ml-2" />
+                </>
               ) : (
                 <>
                   <Save size={18} className="mr-2" />
                   Save Changes
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

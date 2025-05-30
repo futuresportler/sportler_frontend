@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -30,12 +30,25 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { getAcademyCoaches, type CoachListItem } from "@/services/coachService"
+import { AddCoachModal } from "@/components/modals/AddCoachModal"
 
-export default function AcademyDetailsPage({ params }: { params: { id: string } }) {
+interface Props {
+  params: {
+    id: string
+  }
+}
+
+export default function AcademyDetailsPage({ params }: Props) {
   const router = useRouter()
   const academyId = params.id
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("details")
+  
+  const [coaches, setCoaches] = useState<CoachListItem[]>([])
+  const [isAddCoachModalOpen, setIsAddCoachModalOpen] = useState(false)
+  const [isLoadingCoaches, setIsLoadingCoaches] = useState(false)
+
 
   // Mock academy data - in a real app, you would fetch this based on the ID
   const [academy, setAcademy] = useState({
@@ -160,6 +173,26 @@ export default function AcademyDetailsPage({ params }: { params: { id: string } 
       setNewAchievement("")
     }
   }
+
+  const fetchCoaches = async () => {
+  setIsLoadingCoaches(true)
+  try {
+    const result = await getAcademyCoaches(academyId)
+    if (result.success && result.coaches) {
+      setCoaches(result.coaches)
+    } else {
+      console.error("Failed to fetch coaches:", result.error)
+    }
+  } catch (error) {
+    console.error("Error fetching coaches:", error)
+  } finally {
+    setIsLoadingCoaches(false)
+  }
+}
+
+  useEffect(() => {
+    fetchCoaches()
+  }, [academyId])
 
   return (
     <div className="space-y-6">
@@ -702,63 +735,77 @@ export default function AcademyDetailsPage({ params }: { params: { id: string } 
         </TabsContent>
 
         {/* Coaches Tab */}
-        <TabsContent value="coaches" className="space-y-6">
-          <Card className="bg-white">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Coaching Staff</CardTitle>
-                <CardDescription>Coaches and trainers at your academy</CardDescription>
-              </div>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Coach
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {academy.coaches.map((coach) => (
-                  <Card key={coach.id} className="bg-white hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden">
-                          <Image
-                            src={coach.image || "/placeholder.svg"}
-                            alt={coach.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{coach.name}</CardTitle>
-                          <CardDescription>{coach.role}</CardDescription>
-                        </div>
+        <TabsContent value="coaches">
+          <div className="mb-4 flex justify-end">
+            <Button size="sm" onClick={() => setIsAddCoachModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Coach
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isLoadingCoaches ? (
+              <div className="col-span-full text-center py-8">Loading coaches...</div>
+            ) : coaches.length > 0 ? (
+              coaches.map((coach) => (
+                <Card key={coach.id} className="bg-white hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden">
+                        <Image
+                          src="/placeholder.svg?height=48&width=48"
+                          alt={coach.name}
+                          fill
+                          className="object-cover"
+                        />
                       </div>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                          Cricket
-                        </Badge>
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          Experienced
-                        </Badge>
+                      <div>
+                        <CardTitle className="text-base">{coach.name}</CardTitle>
+                        <CardDescription>{coach.sport}</CardDescription>
                       </div>
-                    </CardContent>
-                    <CardFooter className="pt-2">
-                      <Button
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                        {coach.sport}
+                      </Badge>
+                      <Badge
                         variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => router.push(`/supplier/academy/${academyId}/coaches/${coach.id}`)}
+                        className={
+                          coach.isVerified
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                        }
                       >
-                        View Profile
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+                        {coach.isVerified ? "Verified" : "Pending"}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => router.push(`/supplier/academy/${academyId}/coaches/${coach.id}`)}
+                    >
+                      View Profile
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500">
+                No coaches found. Add your first coach to get started.
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+          <AddCoachModal
+            isOpen={isAddCoachModalOpen}
+            onClose={() => setIsAddCoachModalOpen(false)}
+            academyId={academyId}
+            onCoachAdded={fetchCoaches}
+          />
         </TabsContent>
 
         {/* Students Tab */}

@@ -1,168 +1,162 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CourtsHeader } from "./CourtsHeader"
-import { CourtsFilter } from "./CourtsFilter"
-import { CourtsGrid } from "./CourtsGrid"
-import { CourtsList } from "./CourtsList"
-import { CourtsSearchBar } from "./CourtsSearchBar"
-import Pagination from "@/components/coaches/Pagination"
+import CourtsHeader from "./CourtsHeader"
+import CourtsFilter from "./CourtsFilter"
+import CourtsGrid from "./CourtsGrid"
+import CourtsList from "./CourtsList"
+import CourtsSearchBar from "./CourtsSearchBar"
 import type { Court } from "@/types/court"
-import { courts } from "@/data/courts-data"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import LocationMapView from "@/components/shared/LocationMapView"
+import { Button } from "@/components/ui/button"
+import { MapIcon, GridIcon, ListIcon } from "lucide-react"
 
-export function CourtsLayout() {
-  const [filteredCourts, setFilteredCourts] = useState<Court[]>(courts)
-  const [currentPage, setCurrentPage] = useState(1)
+interface CourtsLayoutProps {
+  city: string
+}
+
+export default function CourtsLayout({ city }: CourtsLayoutProps) {
+  const [courts, setCourts] = useState<Court[]>([])
+  const [filteredCourts, setFilteredCourts] = useState<Court[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid")
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [sortBy, setSortBy] = useState("relevance")
-  const [filterOptions, setFilterOptions] = useState<any>({
-    price: { min: 10, max: 100 },
+  const [filterOptions, setFilterOptions] = useState({
+    price: { min: 0, max: 10000 },
     rating: 0,
-    courtType: [],
-    surfaceType: [],
-    availabilityTimeSlots: [],
-    facilities: [],
-    category: "",
+    sport: "",
+    isIndoor: null as boolean | null,
+    amenities: [] as string[],
     searchQuery: "",
   })
 
-  const courtsPerPage = 6
-  const totalPages = Math.ceil(filteredCourts.length / courtsPerPage)
-
-  // Get current courts for pagination
-  const indexOfLastCourt = currentPage * courtsPerPage
-  const indexOfFirstCourt = indexOfLastCourt - courtsPerPage
-  const currentCourts = filteredCourts.slice(indexOfFirstCourt, indexOfLastCourt)
-
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
-
-  // Filter courts based on filter options
   useEffect(() => {
-    let result = [...courts]
-
-    // Filter by category (case insensitive)
-    if (filterOptions.category && filterOptions.category !== "All Categories") {
-      result = result.filter((court) => court.sport.toLowerCase() === filterOptions.category.toLowerCase())
+    const fetchCourts = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/api/turfs?city=${city}`)
+        const data = await response.json()
+        setCourts(data)
+        setFilteredCourts(data)
+      } catch (error) {
+        console.error("Error fetching courts:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    // Filter by price range
-    result = result.filter((court) => court.price >= filterOptions.price.min && court.price <= filterOptions.price.max)
+    fetchCourts()
+  }, [city])
 
-    // Filter by rating
-    if (filterOptions.rating > 0) {
-      result = result.filter((court) => court.rating >= filterOptions.rating)
-    }
+  const handleFilterChange = (newFilterOptions: Partial<typeof filterOptions>) => {
+    const updatedFilterOptions = { ...filterOptions, ...newFilterOptions }
+    setFilterOptions(updatedFilterOptions)
 
-    // Filter by court type
-    if (filterOptions.courtType.length > 0) {
-      result = result.filter((court) => filterOptions.courtType.includes(court.type))
-    }
+    // Apply filters
+    let filtered = [...courts]
 
-    // Filter by surface type
-    if (filterOptions.surfaceType.length > 0) {
-      result = result.filter((court) => filterOptions.surfaceType.includes(court.surface))
-    }
-
-    // Filter by search query (case insensitive)
-    if (filterOptions.searchQuery) {
-      const query = filterOptions.searchQuery.toLowerCase()
-      result = result.filter(
+    // Filter by search query
+    if (updatedFilterOptions.searchQuery) {
+      const query = updatedFilterOptions.searchQuery.toLowerCase()
+      filtered = filtered.filter(
         (court) =>
           court.name.toLowerCase().includes(query) ||
           court.location.toLowerCase().includes(query) ||
-          court.description.toLowerCase().includes(query) ||
           court.sport.toLowerCase().includes(query),
       )
     }
 
-    // Filter by facilities
-    if (filterOptions.facilities.length > 0) {
-      result = result.filter((court) =>
-        court.facilities.some((facility: string) => filterOptions.facilities.includes(facility)),
+    // Filter by price
+    if (updatedFilterOptions.price) {
+      filtered = filtered.filter(
+        (court) =>
+          (court.price || court.pricePerHour || 0) >= updatedFilterOptions.price.min &&
+          (court.price || court.pricePerHour || 0) <= updatedFilterOptions.price.max,
       )
     }
 
-    // Sort courts
-    if (sortBy === "price-low") {
-      result.sort((a, b) => a.price - b.price)
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => b.price - a.price)
-    } else if (sortBy === "rating") {
-      result.sort((a, b) => b.rating - a.rating)
+    // Filter by rating
+    if (updatedFilterOptions.rating && updatedFilterOptions.rating > 0) {
+      filtered = filtered.filter((court) => court.rating >= updatedFilterOptions.rating)
     }
 
-    setFilteredCourts(result)
-    // Reset to first page when filters change
-    setCurrentPage(1)
-  }, [filterOptions, sortBy])
+    // Filter by sport
+    if (updatedFilterOptions.sport) {
+      filtered = filtered.filter((court) => court.sport === updatedFilterOptions.sport)
+    }
 
-  const handleFilterChange = (newOptions: Partial<any>) => {
-    setFilterOptions((prev: any) => ({ ...prev, ...newOptions }))
+    // Filter by indoor/outdoor
+    if (updatedFilterOptions.isIndoor !== null) {
+      filtered = filtered.filter((court) => court.isIndoor === updatedFilterOptions.isIndoor)
+    }
+
+    // Filter by amenities
+    if (updatedFilterOptions.amenities.length > 0) {
+      filtered = filtered.filter((court) =>
+        updatedFilterOptions.amenities.every((amenity) => court.amenities.includes(amenity)),
+      )
+    }
+
+    setFilteredCourts(filtered)
   }
 
-  const toggleFilterSidebar = () => {
-    setIsFilterOpen(!isFilterOpen)
+  const handleSearch = (query: string) => {
+    handleFilterChange({ searchQuery: query })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
-      <Header />
-      <CourtsHeader />
-
-      <div className="w-full px-4 py-8">
-        <div className="max-w-[2000px] mx-auto">
-          <CourtsSearchBar
-            onFilterChange={handleFilterChange}
-            filterOptions={filterOptions}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            toggleFilterSidebar={toggleFilterSidebar}
-          />
-
-          <div className="flex flex-col md:flex-row mt-6 gap-6">
-            <div className={`${isFilterOpen ? "block" : "hidden"} md:block w-full md:w-72 lg:w-80 flex-shrink-0`}>
-              <CourtsFilter filterOptions={filterOptions} onFilterChange={handleFilterChange} />
-            </div>
-
-            <div className="flex-1 flex flex-col">
-              <div className="mb-4 flex justify-between items-center">
-                <p className="text-gray-700 font-medium">{filteredCourts.length} courts are listed</p>
-                <button
-                  className="md:hidden bg-emerald-600 text-white px-3 py-1 rounded-md text-sm"
-                  onClick={toggleFilterSidebar}
-                >
-                  {isFilterOpen ? "Hide Filters" : "Show Filters"}
-                </button>
-              </div>
-
-              <div className="pb-6 flex-1">
-                {viewMode === "grid" ? (
-                  <CourtsGrid courts={currentCourts} currentPage={currentPage} />
-                ) : viewMode === "list" ? (
-                  <CourtsList courts={currentCourts} currentPage={currentPage} />
-                ) : (
-                  <div className="h-[600px] bg-gray-200 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500">Map view coming soon</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-auto pt-4 bg-white rounded-lg shadow-sm">
-                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
-              </div>
+    <div className="container mx-auto px-4 py-8">
+      <CourtsHeader city={city} />
+      <div className="flex flex-col md:flex-row gap-6 mt-8">
+        <div className="w-full md:w-1/4">
+          <CourtsFilter onFilterChange={handleFilterChange} filterOptions={filterOptions} />
+        </div>
+        <div className="w-full md:w-3/4">
+          <div className="mb-6">
+            <CourtsSearchBar onSearch={handleSearch} />
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="flex items-center"
+              >
+                <GridIcon className="w-4 h-4 mr-1" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="flex items-center"
+              >
+                <ListIcon className="w-4 h-4 mr-1" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("map")}
+                className="flex items-center"
+              >
+                <MapIcon className="w-4 h-4 mr-1" />
+                Map
+              </Button>
             </div>
           </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            </div>
+          ) : (
+            <>
+              {viewMode === "grid" && <CourtsGrid courts={filteredCourts} city={city} />}
+              {viewMode === "list" && <CourtsList courts={filteredCourts} city={city} />}
+              {viewMode === "map" && <LocationMapView courts={filteredCourts} city={city} activeTab="courts" />}
+            </>
+          )}
         </div>
       </div>
-
-      <Footer />
     </div>
   )
 }
-
