@@ -322,3 +322,97 @@ export const markCoachAdded = () => {
 export const markAcademyVerified = () => {
   updateOnboardingState({ academyVerified: true })
 }
+
+export const signInWithEmailPassword = async (email: string, password: string) => {
+  try {
+    const response = await fetch("https://api-primary.futuresportler.com/api/users/signin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || "Failed to sign in")
+    }
+
+    const data = await response.json()
+
+    // Save authentication tokens
+    if (data.tokens) {
+      // @ts-ignore
+      saveAuthTokens(data.tokens.accessToken, data.tokens.refreshToken)
+    }
+
+    return data
+  } catch (error) {
+    console.error("Sign in error:", error)
+    throw error
+  }
+}
+
+// Function to sign up with email and password
+export const signUpWithEmailPassword = async (userData: {
+  email: string
+  password: string
+  first_name: string
+  last_name: string
+  profile_picture?: string
+  latitude?: number
+  longitude?: number
+}) => {
+  try {
+    const response = await fetch("https://api-primary.futuresportler.com/api/users/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || "Failed to sign up")
+    }
+
+    const data = await response.json()
+
+    // Save authentication tokens
+    if (data.tokens) {
+      // @ts-ignore
+      saveAuthTokens(data.tokens.accessToken, data.tokens.refreshToken)
+    }
+
+    return data
+  } catch (error) {
+    console.error("Sign up error:", error)
+    throw error
+  }
+}
+
+// Function to get user's current location
+export const getUserLocation = (): Promise<{ latitude: number; longitude: number }> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by your browser"))
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        })
+      },
+      (error) => {
+        reject(error)
+      },
+    )
+  })
+}
