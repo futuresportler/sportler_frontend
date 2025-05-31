@@ -2,18 +2,19 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import { MapPin, Phone, Mail, ArrowLeft, Clock, DollarSign, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, Calendar, Clock, DollarSign, Mail, MapPin, Phone } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { turfService, type CreateTurfRequest } from "../../../../services/turfService"
 
 export default function AddTurf() {
   const router = useRouter()
@@ -107,42 +108,92 @@ export default function AddTurf() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, you would send this data to your API
-      console.log("Submitting turf data:", formData)
+      // Validate required fields
+      const requiredFields = [
+        "name",
+        "location",
+        "address",
+        "phone",
+        "email",
+        "pricing.hourly",
+        "openingTime",
+        "closingTime",
+      ]
+      const missingFields = requiredFields.filter((field) => {
+        if (field.includes(".")) {
+          const [parent, child] = field.split(".")
+          return !formData[parent]?.[child]
+        }
+        return !formData[field]
+      })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in all required fields: ${missingFields.join(", ")}`)
+      }
 
-      // Get existing modules from localStorage
+      // Get selected sports and facilities
+      const selectedSports = Object.keys(formData.sportTypes).filter(
+        (sport) => formData.sportTypes[sport as keyof typeof formData.sportTypes],
+      )
+      const selectedFacilities = Object.keys(formData.facilities).filter(
+        (facility) => formData.facilities[facility as keyof typeof formData.facilities],
+      )
+
+      // Prepare API request data
+      const turfData: CreateTurfRequest = {
+        name: formData.name,
+        city: formData.location,
+        fullAddress: formData.address,
+        description: formData.description,
+        contactPhone: formData.phone,
+        contactEmail: formData.email,
+        turfType: formData.turfType as "indoor" | "outdoor" | "hybrid",
+        sportsAvailable: selectedSports,
+        facilities: selectedFacilities,
+        latitude: 12.9716, // Default coordinates for Bangalore
+        longitude: 77.5946, // You might want to implement geolocation or address geocoding
+        openingTime: formData.openingTime + ":00",
+        closingTime: formData.closingTime + ":00",
+        hourlyRate: Number(formData.pricing.hourly),
+        halfDayRate: formData.pricing.halfDay ? Number(formData.pricing.halfDay) : undefined,
+        fullDayRate: formData.pricing.fullDay ? Number(formData.pricing.fullDay) : undefined,
+        images: previewImage ? [previewImage] : undefined,
+        mainImage: previewImage || undefined,
+      }
+
+      // Create turf via API
+      const response = await turfService.createTurf(turfData)
+
+      console.log("Turf created successfully:", response)
+
+      // Get existing modules from localStorage for UI consistency
       const storedModules = localStorage.getItem("supplierModules")
       const supplierModules = storedModules
         ? JSON.parse(storedModules)
         : {
-            academy: { enabled: false, entities: [] },
-            turf: { enabled: true, entities: [] },
-            coach: { enabled: false, entities: [] },
-          }
+          academy: { enabled: false, entities: [] },
+          turf: { enabled: true, entities: [] },
+          coach: { enabled: false, entities: [] },
+        }
 
-      // Add new turf
+      // Add new turf to local storage for UI
       const newTurf = {
-        id: Date.now(),
-        name: formData.name,
-        location: formData.location,
-        sportTypes: Object.keys(formData.sportTypes).filter(
-          (sport) => formData.sportTypes[sport as keyof typeof formData.sportTypes],
-        ),
+        id: response.data.turfId,
+        name: response.data.name,
+        location: response.data.city,
+        sportTypes: response.data.sportsAvailable,
       }
 
       supplierModules.turf.enabled = true
       supplierModules.turf.entities.push(newTurf)
-
-      // Save updated modules to localStorage
       localStorage.setItem("supplierModules", JSON.stringify(supplierModules))
 
       // Redirect to dashboard
       router.push("/supplier/dashboard")
     } catch (error) {
-      console.error("Error adding turf:", error)
+      console.error("Error creating turf:", error)
+      // You might want to show an error toast here
+      throw error
     } finally {
       setIsSubmitting(false)
     }

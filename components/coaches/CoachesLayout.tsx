@@ -65,7 +65,7 @@ export default function CoachesLayout({ city }: CoachesLayoutProps) {
           coach.name.toLowerCase().includes(query) ||
           coach.description.toLowerCase().includes(query) ||
           coach.location.toLowerCase().includes(query) ||
-          coach.sport.toLowerCase().includes(query),
+          coach?.sport.toLowerCase().includes(query),
       )
     }
 
@@ -83,8 +83,8 @@ export default function CoachesLayout({ city }: CoachesLayoutProps) {
     }
 
     // Filter by sport
-    if (updatedFilterOptions.sport) {
-      filtered = filtered.filter((coach) => coach.sport === updatedFilterOptions.sport)
+    if (updatedFilterOptions?.sport) {
+      filtered = filtered.filter((coach) => coach?.sport === updatedFilterOptions?.sport)
     }
 
     setFilteredCoaches(filtered)

@@ -1,17 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ChevronLeft, Search, CheckCircle, XCircle, ChevronDown, Download, Plus, MoreHorizontal } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -20,171 +12,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
-// Sample booking data
-const bookings = [
-  {
-    id: "BK-1001",
-    customer: {
-      name: "Rahul Sharma",
-      email: "rahul.s@gmail.com",
-      phone: "+91 98765 43210",
-      avatar: "/placeholder.svg?height=40&width=40&text=RS",
-    },
-    turf: "Green Field Turf",
-    court: "Football Court 1",
-    date: "2023-08-15",
-    time: "18:00 - 20:00",
-    duration: "2 hours",
-    amount: "₹2,000",
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "Online",
-    source: "Website",
-    createdAt: "2023-08-10",
-  },
-  {
-    id: "BK-1002",
-    customer: {
-      name: "Priya Patel",
-      email: "priya.p@outlook.com",
-      phone: "+91 87654 32109",
-      avatar: "/placeholder.svg?height=40&width=40&text=PP",
-    },
-    turf: "Green Field Turf",
-    court: "Cricket Pitch A",
-    date: "2023-08-15",
-    time: "15:00 - 17:00",
-    duration: "2 hours",
-    amount: "₹2,500",
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "UPI",
-    source: "Playo",
-    createdAt: "2023-08-09",
-  },
-  {
-    id: "BK-1003",
-    customer: {
-      name: "Arjun Singh",
-      email: "arjun.s@yahoo.com",
-      phone: "+91 76543 21098",
-      avatar: "/placeholder.svg?height=40&width=40&text=AS",
-    },
-    turf: "Green Field Turf",
-    court: "Tennis Court 2",
-    date: "2023-08-16",
-    time: "09:00 - 11:00",
-    duration: "2 hours",
-    amount: "₹1,800",
-    status: "pending",
-    paymentStatus: "pending",
-    paymentMethod: "Pay at Venue",
-    source: "Phone",
-    createdAt: "2023-08-11",
-  },
-  {
-    id: "BK-1004",
-    customer: {
-      name: "Neha Gupta",
-      email: "neha.g@gmail.com",
-      phone: "+91 65432 10987",
-      avatar: "/placeholder.svg?height=40&width=40&text=NG",
-    },
-    turf: "Green Field Turf",
-    court: "Basketball Court",
-    date: "2023-08-16",
-    time: "17:00 - 19:00",
-    duration: "2 hours",
-    amount: "₹1,600",
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "Card",
-    source: "Website",
-    createdAt: "2023-08-10",
-  },
-  {
-    id: "BK-1005",
-    customer: {
-      name: "Vikram Mehta",
-      email: "vikram.m@hotmail.com",
-      phone: "+91 54321 09876",
-      avatar: "/placeholder.svg?height=40&width=40&text=VM",
-    },
-    turf: "Sunset Sports Arena",
-    court: "Football Court 2",
-    date: "2023-08-17",
-    time: "18:00 - 20:00",
-    duration: "2 hours",
-    amount: "₹2,200",
-    status: "cancelled",
-    paymentStatus: "refunded",
-    paymentMethod: "Online",
-    source: "Hudle",
-    createdAt: "2023-08-08",
-  },
-  {
-    id: "BK-1006",
-    customer: {
-      name: "Ananya Reddy",
-      email: "ananya.r@gmail.com",
-      phone: "+91 43210 98765",
-      avatar: "/placeholder.svg?height=40&width=40&text=AR",
-    },
-    turf: "Sunset Sports Arena",
-    court: "Badminton Court 1",
-    date: "2023-08-17",
-    time: "10:00 - 12:00",
-    duration: "2 hours",
-    amount: "₹1,400",
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "UPI",
-    source: "Website",
-    createdAt: "2023-08-11",
-  },
-  {
-    id: "BK-1007",
-    customer: {
-      name: "Karthik Nair",
-      email: "karthik.n@outlook.com",
-      phone: "+91 32109 87654",
-      avatar: "/placeholder.svg?height=40&width=40&text=KN",
-    },
-    turf: "Green Field Turf",
-    court: "Cricket Pitch B",
-    date: "2023-08-18",
-    time: "15:00 - 18:00",
-    duration: "3 hours",
-    amount: "₹3,600",
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "Card",
-    source: "Playo",
-    createdAt: "2023-08-12",
-  },
-  {
-    id: "BK-1008",
-    customer: {
-      name: "Divya Sharma",
-      email: "divya.s@yahoo.com",
-      phone: "+91 21098 76543",
-      avatar: "/placeholder.svg?height=40&width=40&text=DS",
-    },
-    turf: "Sunset Sports Arena",
-    court: "Tennis Court 1",
-    date: "2023-08-18",
-    time: "08:00 - 10:00",
-    duration: "2 hours",
-    amount: "₹1,800",
-    status: "pending",
-    paymentStatus: "pending",
-    paymentMethod: "Pay at Venue",
-    source: "Phone",
-    createdAt: "2023-08-13",
-  },
-]
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CheckCircle, ChevronDown, ChevronLeft, Download, MoreHorizontal, Plus, Search, XCircle } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { turfService } from "../../../../services/turfService"
 
 // Calendar data for the week view
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -249,6 +86,67 @@ export default function TurfBookingsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("all")
   const [selectedTurf, setSelectedTurf] = useState("all")
+  const [bookings, setBookings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Add useEffect to fetch bookings
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true)
+        // Note: You'll need a separate booking API endpoint
+        // For now, we'll fetch turf dashboard data which includes upcoming bookings
+        const turfs = await turfService.getMyTurfs()
+
+        let allBookings: any[] = []
+
+        // Fetch dashboard data for each turf to get bookings
+        for (const turf of turfs.data) {
+          try {
+            const dashboardData = await turfService.getTurfDashboard(turf.turfId)
+            const turfBookings =
+              dashboardData.data.upcomingBookings?.map((booking: any) => ({
+                id: booking.bookingId || `BK-${Date.now()}-${Math.random()}`,
+                customer: {
+                  name: booking.customerName || "Unknown Customer",
+                  email: "customer@example.com", // Would need separate customer API
+                  phone: "+91 9876543210", // Would need separate customer API
+                  avatar: "/placeholder.svg?height=40&width=40&text=C",
+                },
+                turf: turf.name,
+                court: booking.groundName || "Court 1",
+                date: booking.date?.split("T")[0] || new Date().toISOString().split("T")[0],
+                time: booking.timeSlot || "18:00 - 20:00",
+                duration: "2 hours",
+                amount: "₹2,000", // Would need pricing calculation
+                status: booking.status || "confirmed",
+                paymentStatus: "paid", // Would need payment API
+                paymentMethod: "Online",
+                source: "Website",
+                createdAt: booking.createdAt || new Date().toISOString(),
+              })) || []
+
+            allBookings = [...allBookings, ...turfBookings]
+          } catch (error) {
+            console.error(`Error fetching bookings for turf ${turf.turfId}:`, error)
+          }
+        }
+
+        setBookings(allBookings)
+      } catch (error) {
+        console.error("Error fetching bookings:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBookings()
+  }, [])
+
+  // Add this after the component declaration, before the filter logic
+  if (loading) {
+    return <div className="flex items-center justify-center h-96">Loading bookings...</div>
+  }
 
   // Filter bookings based on search query and filters
   const filteredBookings = bookings.filter((booking) => {

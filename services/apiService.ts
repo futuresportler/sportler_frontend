@@ -1,4 +1,48 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api-primary.futuresportler.com"
+import axios from "axios"
+
+// Create an axios instance with default config
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://api-primary.futuresportler.com",
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    // Check if we're in a browser environment
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token")
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  },
+)
+
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    // Handle token expiration
+    if (error.response && error.response.status === 401) {
+      // Check if we're in a browser environment
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token")
+        // Redirect to login page
+        window.location.href = "/auth/signin"
+      }
+    }
+    return Promise.reject(error)
+  },
+)
 
 // API Response Types
 interface ApiAcademy {
@@ -52,7 +96,7 @@ interface ApiTurf {
 // Fetch functions
 export async function fetchAcademiesByCity(city: string): Promise<ApiAcademy[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/academies?city=${encodeURIComponent(city)}`)
+    const response = await fetch(`${api.defaults.baseURL}/api/academies?city=${encodeURIComponent(city)}`)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -66,7 +110,7 @@ export async function fetchAcademiesByCity(city: string): Promise<ApiAcademy[]> 
 
 export async function fetchCoachesByCity(city: string): Promise<ApiCoach[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/coaches?city=${encodeURIComponent(city)}`)
+    const response = await fetch(`${api.defaults.baseURL}/api/coaches?city=${encodeURIComponent(city)}`)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -80,7 +124,7 @@ export async function fetchCoachesByCity(city: string): Promise<ApiCoach[]> {
 
 export async function fetchTurfsByCity(city: string): Promise<ApiTurf[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/turfs?city=${encodeURIComponent(city)}`)
+    const response = await fetch(`${api.defaults.baseURL}/api/turfs?city=${encodeURIComponent(city)}`)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -147,46 +191,24 @@ export function transformApiTurfToCourt(apiTurf: ApiTurf): any {
 }
 
 // Utility functions for finding items by slug
-export function findAcademyBySlug(academies: ApiAcademy[], slug: string): ApiAcademy | null {
-  return (
-    academies.find(
-      (academy) =>
-        academy.name
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9-]/g, "") === slug,
-    ) || null
-  )
+export const findAcademyBySlug = (academies, slug) => {
+  return academies.find((academy) => generateSlug(academy.name) === slug)
 }
 
-export function findCoachBySlug(coaches: ApiCoach[], slug: string): ApiCoach | null {
-  return (
-    coaches.find(
-      (coach) =>
-        coach.name
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9-]/g, "") === slug,
-    ) || null
-  )
+export const findCoachBySlug = (coaches, slug) => {
+  return coaches.find((coach) => generateSlug(coach.name) === slug)
 }
 
-export function findTurfBySlug(turfs: ApiTurf[], slug: string): ApiTurf | null {
-  return (
-    turfs.find(
-      (turf) =>
-        turf.name
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9-]/g, "") === slug,
-    ) || null
-  )
+export const findTurfBySlug = (turfs, slug) => {
+  return turfs.find((turf) => generateSlug(turf.name) === slug)
 }
 
-// Generate slug from name
-export function generateSlug(name: string): string {
-  return name
+export const generateSlug = (text) => {
+  return text
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
+    .replace(/[^\w ]+/g, "")
+    .replace(/ +/g, "-")
 }
+
+// Export the api instance
+export default api
