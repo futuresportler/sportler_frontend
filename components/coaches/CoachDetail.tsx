@@ -337,7 +337,7 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
                     <CheckCircle size={20} className="text-emerald-500" />
                   </h1>
                   <p className="text-gray-300">
-                    {coach.sport} Coach • {coach.certificationLevel} • {coach.location}
+                    {coach?.sport || "Unknown sport"} Coach • {coach.certificationLevel} • {coach.location}
                   </p>
                 </div>
 
@@ -428,7 +428,7 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
                 <div className="p-4 pt-0 border-t border-gray-100">
                   <p className="text-gray-600 mb-4">
                     {coach.shortBio ||
-                      `${coach.name} is a ${coach.certificationLevel.toLowerCase()} ${coach.sport.toLowerCase()} coach with years of experience coaching beginners and advanced skill levels.`}
+                      `${coach.name} is a ${coach.certificationLevel.toLowerCase()} ${coach?.sport || "Unknown sport"} coach with years of experience coaching beginners and advanced skill levels.`}
                   </p>
 
                   <button className="text-emerald-600 text-sm font-medium flex items-center">Read More</button>
@@ -499,21 +499,21 @@ export default function CoachDetail({ coach }: CoachDetailProps) {
                         <p className="text-sm text-gray-500">{lesson.description}</p>
                       </div>
                     )) || (
-                      <>
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h3 className="font-medium mb-2">Single Lesson</h3>
-                          <p className="text-sm text-gray-500">One-on-one personalized coaching</p>
-                        </div>
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h3 className="font-medium mb-2">2 Player Lesson</h3>
-                          <p className="text-sm text-gray-500">Training with a partner</p>
-                        </div>
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h3 className="font-medium mb-2">Small Group Session</h3>
-                          <p className="text-sm text-gray-500">3-6 players per session</p>
-                        </div>
-                      </>
-                    )}
+                        <>
+                          <div className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="font-medium mb-2">Single Lesson</h3>
+                            <p className="text-sm text-gray-500">One-on-one personalized coaching</p>
+                          </div>
+                          <div className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="font-medium mb-2">2 Player Lesson</h3>
+                            <p className="text-sm text-gray-500">Training with a partner</p>
+                          </div>
+                          <div className="border border-gray-200 rounded-lg p-4">
+                            <h3 className="font-medium mb-2">Small Group Session</h3>
+                            <p className="text-sm text-gray-500">3-6 players per session</p>
+                          </div>
+                        </>
+                      )}
                   </div>
                 </div>
               )}
@@ -802,11 +802,10 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
                       <button
                         key={time}
                         onClick={() => handleTimeOfDaySelect(time)}
-                        className={`flex-1 py-2 text-center ${
-                          selectedTimeOfDay === time
+                        className={`flex-1 py-2 text-center ${selectedTimeOfDay === time
                             ? "bg-emerald-50 text-emerald-700 font-medium border-b-2 border-emerald-500"
                             : "text-gray-500 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         {time}
                       </button>
@@ -845,15 +844,14 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
                               {day !== null && (
                                 <button
                                   onClick={() => handleSelectDate(new Date(year, month, day))}
-                                  className={`w-full h-full flex items-center justify-center text-sm rounded-full hover:bg-emerald-50 ${
-                                    getDayStatus(day) === "available"
+                                  className={`w-full h-full flex items-center justify-center text-sm rounded-full hover:bg-emerald-50 ${getDayStatus(day) === "available"
                                       ? "hover:text-emerald-600"
                                       : getDayStatus(day) === "limited"
                                         ? "text-yellow-600"
                                         : getDayStatus(day) === "booked"
                                           ? "text-red-500 line-through"
                                           : ""
-                                  }`}
+                                    }`}
                                 >
                                   {day}
                                   <span
@@ -890,11 +888,10 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
                         <div
                           key={index}
                           onClick={() => handleDateSelect(index)}
-                          className={`w-20 p-2 text-center rounded-md cursor-pointer ${
-                            selectedDateIndex === index
+                          className={`w-20 p-2 text-center rounded-md cursor-pointer ${selectedDateIndex === index
                               ? "bg-gray-700 text-white"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
+                            }`}
                         >
                           <div className="text-xs">{item.day}</div>
                           <div className="text-xs">{item.date}</div>
@@ -909,13 +906,12 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
                       <div
                         key={index}
                         onClick={() => (slot.slots > 0 ? handleTimeSlotSelect(slot) : null)}
-                        className={`text-center p-2 rounded cursor-pointer ${
-                          selectedTimeSlot?.time === slot.time && slot.slots > 0
+                        className={`text-center p-2 rounded cursor-pointer ${selectedTimeSlot?.time === slot.time && slot.slots > 0
                             ? "bg-emerald-500 text-white"
                             : slot.slots > 0
                               ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                               : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        }`}
+                          }`}
                       >
                         <div className="text-xs mb-1">{slot.time.split(" - ")[0]}</div>
                         <div className="text-xs">
@@ -939,11 +935,10 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
                         <div
                           key={option.period}
                           onClick={() => handleDurationSelect(option.period)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                            selectedDuration === option.period
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedDuration === option.period
                               ? "border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]"
                               : "border-gray-200 hover:border-emerald-200 hover:bg-emerald-50"
-                          }`}
+                            }`}
                         >
                           <div className="flex flex-col h-full">
                             <div className="text-xs font-medium mb-1 text-gray-600">{option.period}</div>
@@ -1108,7 +1103,7 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
 
         {/* Similar Coaches Section */}
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <h2 className="text-2xl font-bold mb-6">Similar {coach.sport} Coaches</h2>
+          <h2 className="text-2xl font-bold mb-6">Similar {coach?.sport || "Unknown sport"} Coaches</h2>
 
           <div className="relative">
             {/* Slider navigation buttons */}
@@ -1208,9 +1203,8 @@ https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.215573036935!2d-73.98
                 <button
                   key={index}
                   onClick={() => setCurrentCoachIndex(index * visibleCoaches)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    currentCoachIndex === index * visibleCoaches ? "bg-emerald-600" : "bg-gray-300 hover:bg-gray-400"
-                  }`}
+                  className={`w-2 h-2 rounded-full transition-colors ${currentCoachIndex === index * visibleCoaches ? "bg-emerald-600" : "bg-gray-300 hover:bg-gray-400"
+                    }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}

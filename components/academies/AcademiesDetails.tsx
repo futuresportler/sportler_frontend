@@ -68,7 +68,7 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault()
-    
+
     try {
       // Send email notification using EmailJS
       await emailjs.send(
@@ -85,19 +85,19 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
         },
         'GyFNEhp7IkObr3jKC' // Get from EmailJS dashboard
       );
-  
+
       alert('Thank you for your interest! We will contact you soon.');
-      
+
     } catch (error) {
       console.error('Error sending email:', error);
       alert('error');
     }
-  
+
     // Reset form
     setFormData({ name: '', email: '', phone: '', message: '' })
     setShowContactForm(false)
   }
-  
+
 
 
   // UI state
@@ -936,9 +936,11 @@ export default function AcademyDetail({ academy }: AcademyDetailProps) {
                         <Link href={`/academies/${similarAcademy.id}`}>
                           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 h-full group hover:border-emerald-300">
                             <div className="relative">
-                              <div className="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-medium px-2.5 py-1 rounded-full z-10">
-                                {similarAcademy.category}
-                              </div>
+                              {similarAcademy?.category && (
+                                <div className="absolute top-3 left-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium">
+                                  {similarAcademy.category}
+                                </div>
+                              )}
                               <div className="absolute top-3 right-3 z-10">
                                 <button
                                   onClick={(e) => {

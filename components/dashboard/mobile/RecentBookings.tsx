@@ -4,8 +4,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { Calendar, Clock, Star, ChevronRight } from "lucide-react"
 
-export default function RecentBookings() {
-  const recentBookings = [
+export default function () {
+  const bookings = [
     {
       id: 1,
       title: "Tennis Training",
@@ -63,7 +63,7 @@ export default function RecentBookings() {
       </div>
 
       <div className="space-y-3">
-        {recentBookings.map((booking) => (
+        {bookings.map((booking) => (
           <div key={booking.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
             <div className="flex items-center space-x-3">
               <div className="h-12 w-12 rounded-xl overflow-hidden bg-gray-100">

@@ -87,9 +87,12 @@ export default function AcademiesGrid({ academies, currentPage, city }: Academie
                 <div className="absolute bottom-3 left-3 bg-emerald-800 text-white px-3 py-1 rounded-md text-sm font-medium transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                   {academy.hourlyRate ? `$${academy.hourlyRate}/hr` : "Contact for pricing"}
                 </div>
-                <div className="absolute top-3 left-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium">
-                  {academy.category}
-                </div>
+                {academy?.category && (
+                  <div className="absolute top-3 left-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium">
+                    {academy.category}
+                  </div>
+                )}
+
               </div>
 
               <div className="p-5 flex-1 flex flex-col relative">

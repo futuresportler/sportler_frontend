@@ -6,8 +6,8 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
-import RecentBookings from "../../components/mobile/RecentBookings"
-import FeedbackSection from "../../components/mobile/FeedbackSection"
+import RecentBookings from "../../components/dashboard/mobile/RecentBookings"
+import FeedbackSection from "../../components/dashboard/mobile/FeedbackSection"
 
 const MobilePage = () => {
   const [selectedTab, setSelectedTab] = useState("home")

@@ -44,7 +44,7 @@ export default function AcademyDetailsPage({ params }: Props) {
   const academyId = params.id
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("details")
-  
+
   const [coaches, setCoaches] = useState<CoachListItem[]>([])
   const [isAddCoachModalOpen, setIsAddCoachModalOpen] = useState(false)
   const [isLoadingCoaches, setIsLoadingCoaches] = useState(false)
@@ -175,20 +175,20 @@ export default function AcademyDetailsPage({ params }: Props) {
   }
 
   const fetchCoaches = async () => {
-  setIsLoadingCoaches(true)
-  try {
-    const result = await getAcademyCoaches(academyId)
-    if (result.success && result.coaches) {
-      setCoaches(result.coaches)
-    } else {
-      console.error("Failed to fetch coaches:", result.error)
+    setIsLoadingCoaches(true)
+    try {
+      const result = await getAcademyCoaches(academyId)
+      if (result.success && result.coaches) {
+        setCoaches(result.coaches)
+      } else {
+        console.error("Failed to fetch coaches:", result.error)
+      }
+    } catch (error) {
+      console.error("Error fetching coaches:", error)
+    } finally {
+      setIsLoadingCoaches(false)
     }
-  } catch (error) {
-    console.error("Error fetching coaches:", error)
-  } finally {
-    setIsLoadingCoaches(false)
   }
-}
 
   useEffect(() => {
     fetchCoaches()
@@ -761,14 +761,14 @@ export default function AcademyDetailsPage({ params }: Props) {
                       </div>
                       <div>
                         <CardTitle className="text-base">{coach.name}</CardTitle>
-                        <CardDescription>{coach.sport}</CardDescription>
+                        <CardDescription>{coach?.sport || "Unknown sport"}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                        {coach.sport}
+                        {coach?.sport || "Unknown sport"}
                       </Badge>
                       <Badge
                         variant="outline"

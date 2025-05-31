@@ -110,9 +110,11 @@ export default function AcademiesList({ academies, currentPage, city }: Academie
                     From ${academy.hourlyRate}/hr
                   </div>
                 )}
-                <div className="absolute top-3 left-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium">
-                  {academy.category}
-                </div>
+                {academy?.category && (
+                  <div className="absolute top-3 left-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium">
+                    {academy.category}
+                  </div>
+                )}
               </div>
 
               <div className="p-5 md:w-2/3 relative">

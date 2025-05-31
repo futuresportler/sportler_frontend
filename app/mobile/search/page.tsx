@@ -4,7 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, MapPin, Star, Users, Building, SlidersHorizontal, X, ChevronDown } from "lucide-react"
-import MobileAppLayout from "@/components/mobile/MobileAppLayout"
+import MobileAppLayout from "../../../components/dashboard/mobile/MobileAppLayout"
 
 export default function MobileSearchPage() {
   const [searchQuery, setSearchQuery] = useState("")

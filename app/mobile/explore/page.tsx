@@ -154,11 +154,10 @@ export default function ExplorePage() {
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 ${
-                    isSelected
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 ${isSelected
                       ? "bg-white text-gray-900 shadow-lg transform scale-105"
                       : "bg-white/20 text-white hover:bg-white/30"
-                  }`}
+                    }`}
                 >
                   <Icon size={18} />
                   <span className="font-medium">{category.label}</span>
@@ -231,7 +230,7 @@ export default function ExplorePage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">
-                      {coach.sport} Coach • {coach.experience}
+                      {coach?.sport || "Unknown sport"} Coach • {coach.experience}
                     </p>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-1">

@@ -170,7 +170,7 @@ const CoachProfilePage = ({ params }: Props) => {
         bio: coach.bio,
         hourlyRate: coach.hourlyRate,
         experienceLevel: coach.experienceLevel,
-        sport: coach.sport,
+        sport: coach.sport || "unknow",
       };
 
       const result = await updateCoach(coachId, updateData);
@@ -366,7 +366,7 @@ const CoachProfilePage = ({ params }: Props) => {
                 variant="outline"
                 className="bg-blue-50 text-blue-700 border-blue-200"
               >
-                {coach.sport}
+                {coach?.sport || "Unknown sport"}
               </Badge>
               <Badge
                 variant="outline"
