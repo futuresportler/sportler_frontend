@@ -1,639 +1,687 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { ArrowUpRight, TrendingUp, Eye, MousePointer, CreditCard, Users, Download, Filter } from "lucide-react"
+import { BookingSourcesChart } from "@/components/dashboard/supplier/booking-sources-chart"
+import { PeakHoursChart } from "@/components/dashboard/supplier/peak-hours-chart"
+import { RevenueChart } from "@/components/dashboard/supplier/revenue-chart"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/hooks/use-toast"
+import { getAcademyCoachFeedback, getAcademyMonthlyMetrics } from "@/services/academyAnalyticsService"
+import { getSupplierAnalyticsOverview } from "@/services/analyticsService"
+import { getTurfMonthlyMetrics, getTurfRevenueBySport, getTurfUtilization } from "@/services/turfAnalyticsService"
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  Building2,
+  Calendar,
+  DollarSign,
+  Download,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  Star,
+  Target,
+  Users,
+} from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
-export default function AnalyticsPage() {
+interface AnalyticsData {
+  overview: {
+    totalRevenue: number
+    totalBookings: number
+    averageRating: number
+    totalCustomers: number
+    revenueGrowth: number
+    bookingsGrowth: number
+    ratingGrowth: number
+    customersGrowth: number
+  }
+  academies: {
+    totalRevenue: number
+    totalStudents: number
+    averageRating: number
+    monthlyMetrics: any[]
+    coachFeedback: any[]
+  }
+  turfs: {
+    totalRevenue: number
+    totalBookings: number
+    utilization: number
+    monthlyMetrics: any[]
+    revenueBySport: any[]
+  }
+  monthlyBreakdown: any[]
+  bookingSources: any[]
+  peakHours: any[]
+}
+
+export default function SupplierAnalyticsPage() {
   const router = useRouter()
-  const [timeRange, setTimeRange] = useState("30days")
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [timeRange, setTimeRange] = useState("6")
   const [activeTab, setActiveTab] = useState("overview")
 
-  // Mock data for analytics
-  const revenueData = [
-    { name: "Apr 1", value: 12500 },
-    { name: "Apr 5", value: 15000 },
-    { name: "Apr 10", value: 18000 },
-    { name: "Apr 15", value: 22000 },
-    { name: "Apr 20", value: 25000 },
-    { name: "Apr 25", value: 28000 },
-    { name: "Apr 30", value: 31000 },
-  ]
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true)
 
-  const enrollmentData = [
-    { name: "Apr 1", value: 120 },
-    { name: "Apr 5", value: 135 },
-    { name: "Apr 10", value: 148 },
-    { name: "Apr 15", value: 162 },
-    { name: "Apr 20", value: 175 },
-    { name: "Apr 25", value: 188 },
-    { name: "Apr 30", value: 200 },
-  ]
+      // Fetch overview data
+      const overviewResult = await getSupplierAnalyticsOverview(Number.parseInt(timeRange))
 
-  const academyPerformanceData = [
-    { name: "Premier Cricket Academy", views: 1250, inquiries: 180, enrollments: 45, revenue: 125000 },
-    { name: "Elite Tennis School", views: 980, inquiries: 145, enrollments: 32, revenue: 96000 },
-  ]
+      // Fetch academy data
+      const academyMetricsResult = await getAcademyMonthlyMetrics("academy-1", Number.parseInt(timeRange))
+      const academyFeedbackResult = await getAcademyCoachFeedback("academy-1")
 
-  const platformData = [
-    { name: "Website", value: 45 },
-    { name: "Mobile App", value: 35 },
-    { name: "Referrals", value: 15 },
-    { name: "Other", value: 5 },
-  ]
+      // Fetch turf data
+      const turfMetricsResult = await getTurfMonthlyMetrics("turf-1", Number.parseInt(timeRange))
+      const turfUtilizationResult = await getTurfUtilization("turf-1")
+      const turfRevenueBySportResult = await getTurfRevenueBySport("turf-1", Number.parseInt(timeRange))
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]
+      if (overviewResult.success && overviewResult.data) {
+        const overview = overviewResult.data
+        const monthlyData = overview.monthlyBreakdown || []
+
+        // Calculate growth rates
+        const lastMonth = monthlyData[monthlyData.length - 1]
+        const previousMonth = monthlyData[monthlyData.length - 2]
+
+        const revenueGrowth =
+          previousMonth && lastMonth ? ((lastMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100 : 0
+
+        const bookingsGrowth =
+          previousMonth && lastMonth
+            ? ((lastMonth.bookings - previousMonth.bookings) / previousMonth.bookings) * 100
+            : 0
+
+        const totalRevenue = monthlyData.reduce((sum, month) => sum + month.revenue, 0)
+        const totalBookings = monthlyData.reduce((sum, month) => sum + month.bookings, 0)
+
+        setAnalyticsData({
+          overview: {
+            totalRevenue,
+            totalBookings,
+            averageRating: 4.6,
+            totalCustomers: 1250,
+            revenueGrowth,
+            bookingsGrowth,
+            ratingGrowth: 2.3,
+            customersGrowth: 8.7,
+          },
+          academies: {
+            totalRevenue: academyMetricsResult.success
+              ? academyMetricsResult.data?.reduce((sum, m) => sum + m.revenue, 0) || 0
+              : 0,
+            totalStudents: 450,
+            averageRating: academyFeedbackResult.success ? academyFeedbackResult.data?.averageRating || 4.5 : 4.5,
+            monthlyMetrics: academyMetricsResult.success ? academyMetricsResult.data || [] : [],
+            coachFeedback: academyFeedbackResult.success ? academyFeedbackResult.data?.feedback || [] : [],
+          },
+          turfs: {
+            totalRevenue: turfMetricsResult.success
+              ? turfMetricsResult.data?.reduce((sum, m) => sum + m.revenue, 0) || 0
+              : 0,
+            totalBookings: turfMetricsResult.success
+              ? turfMetricsResult.data?.reduce((sum, m) => sum + m.bookings, 0) || 0
+              : 0,
+            utilization: turfUtilizationResult.success ? turfUtilizationResult.data?.currentUtilization || 0 : 0,
+            monthlyMetrics: turfMetricsResult.success ? turfMetricsResult.data || [] : [],
+            revenueBySport: turfRevenueBySportResult.success ? turfRevenueBySportResult.data || [] : [],
+          },
+          monthlyBreakdown: monthlyData,
+          bookingSources: [
+            { name: "Direct Website", value: 145, color: "#3b82f6" },
+            { name: "Partner Apps", value: 87, color: "#10b981" },
+            { name: "Referrals", value: 65, color: "#8b5cf6" },
+            { name: "Walk-ins", value: 45, color: "#f59e0b" },
+          ],
+          peakHours: [
+            { hour: "6-8 AM", bookings: 18 },
+            { hour: "8-10 AM", bookings: 12 },
+            { hour: "10-12 PM", bookings: 8 },
+            { hour: "12-2 PM", bookings: 5 },
+            { hour: "2-4 PM", bookings: 7 },
+            { hour: "4-6 PM", bookings: 15 },
+            { hour: "6-8 PM", bookings: 25 },
+            { hour: "8-10 PM", bookings: 22 },
+          ],
+        })
+
+        toast({
+          title: "Success",
+          description: "Analytics data loaded successfully",
+        })
+      } else {
+        throw new Error("Failed to fetch analytics data")
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load analytics data",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchAnalyticsData()
+  }
+
+  const handleExport = () => {
+    toast({
+      title: "Export Started",
+      description: "Your analytics report is being generated",
+    })
+  }
+
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [timeRange])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading analytics data...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Analytics Overview</h1>
-          <p className="text-gray-600">Track performance across all your academies and turfs</p>
+          <h1 className="text-3xl font-bold text-gray-800">Analytics Dashboard</h1>
+          <p className="text-gray-600">Comprehensive insights into your business performance</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select time range" />
+            <SelectTrigger className="w-40">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7days">Last 7 days</SelectItem>
-              <SelectItem value="30days">Last 30 days</SelectItem>
-              <SelectItem value="90days">Last 90 days</SelectItem>
-              <SelectItem value="year">Last year</SelectItem>
+              <SelectItem value="3">Last 3 months</SelectItem>
+              <SelectItem value="6">Last 6 months</SelectItem>
+              <SelectItem value="12">Last 12 months</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
         </div>
       </div>
 
-      {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Total Revenue</span>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹2,21,000</div>
-            <div className="flex items-center mt-1">
-              <span className="text-xs text-emerald-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                12.5%
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">vs last period</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Total Enrollments</span>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">200</div>
-            <div className="flex items-center mt-1">
-              <span className="text-xs text-emerald-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                8.3%
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">vs last period</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Profile Views</span>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4,522</div>
-            <div className="flex items-center mt-1">
-              <span className="text-xs text-emerald-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                15.2%
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">vs last period</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span>Conversion Rate</span>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4.4%</div>
-            <div className="flex items-center mt-1">
-              <span className="text-xs text-emerald-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                0.5%
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">vs last period</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* KPI Overview */}
+      {analyticsData && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{analyticsData.overview.totalRevenue.toLocaleString()}</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                {analyticsData.overview.revenueGrowth >= 0 ? (
+                  <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
+                ) : (
+                  <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
+                )}
+                <span className={analyticsData.overview.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"}>
+                  {Math.abs(analyticsData.overview.revenueGrowth).toFixed(1)}%
+                </span>
+                <span className="ml-1">from last month</span>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Main Content */}
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analyticsData.overview.totalBookings.toLocaleString()}</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                {analyticsData.overview.bookingsGrowth >= 0 ? (
+                  <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
+                ) : (
+                  <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
+                )}
+                <span className={analyticsData.overview.bookingsGrowth >= 0 ? "text-green-600" : "text-red-600"}>
+                  {Math.abs(analyticsData.overview.bookingsGrowth).toFixed(1)}%
+                </span>
+                <span className="ml-1">from last month</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
+              <Star className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analyticsData.overview.averageRating.toFixed(1)}</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
+                <span className="text-green-600">{analyticsData.overview.ratingGrowth.toFixed(1)}%</span>
+                <span className="ml-1">from last month</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analyticsData.overview.totalCustomers.toLocaleString()}</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
+                <span className="text-green-600">{analyticsData.overview.customersGrowth.toFixed(1)}%</span>
+                <span className="ml-1">from last month</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Analytics Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="academies">Academies</TabsTrigger>
-          <TabsTrigger value="platforms">Platforms</TabsTrigger>
+          <TabsTrigger value="turfs">Turfs</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white">
+            <Card>
               <CardHeader>
-                <CardTitle>Revenue Trend</CardTitle>
-                <CardDescription>Monthly revenue across all academies</CardDescription>
+                <CardTitle>Revenue Trends</CardTitle>
+                <CardDescription>Monthly revenue and booking trends</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={revenueData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
-                      <YAxis tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
-                      <Tooltip
-                        formatter={(value) => [`₹${value}`, "Revenue"]}
-                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", border: "1px solid #e5e7eb" }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <RevenueChart data={analyticsData?.monthlyBreakdown} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white">
+            <Card>
               <CardHeader>
-                <CardTitle>Enrollment Trend</CardTitle>
-                <CardDescription>Monthly enrollments across all academies</CardDescription>
+                <CardTitle>Booking Sources</CardTitle>
+                <CardDescription>Distribution of bookings by platform</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={enrollmentData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
-                      <YAxis tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
-                      <Tooltip
-                        formatter={(value) => [`${value} students`, "Enrollments"]}
-                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", border: "1px solid #e5e7eb" }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <BookingSourcesChart data={analyticsData?.bookingSources} />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Platform Distribution</CardTitle>
-              <CardDescription>Where your enrollments are coming from</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={platformData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {platformData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => [`${value}%`, "Percentage"]}
-                          contentStyle={{ backgroundColor: "white", borderRadius: "8px", border: "1px solid #e5e7eb" }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Peak Hours Analysis</CardTitle>
+                <CardDescription>Booking distribution by time of day</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <PeakHoursChart data={analyticsData?.peakHours} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Summary</CardTitle>
+                <CardDescription>Key performance indicators</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Academy Revenue</p>
+                        <p className="text-xl font-bold text-blue-700">
+                          ₹{analyticsData?.academies.totalRevenue.toLocaleString()}
+                        </p>
+                      </div>
+                      <Building2 className="h-8 w-8 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Turf Revenue</p>
+                        <p className="text-xl font-bold text-green-700">
+                          ₹{analyticsData?.turfs.totalRevenue.toLocaleString()}
+                        </p>
+                      </div>
+                      <MapPin className="h-8 w-8 text-green-600" />
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Total Students</p>
+                        <p className="text-xl font-bold text-purple-700">{analyticsData?.academies.totalStudents}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-purple-600" />
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Turf Utilization</p>
+                        <p className="text-xl font-bold text-amber-700">
+                          {analyticsData?.turfs.utilization.toFixed(1)}%
+                        </p>
+                      </div>
+                      <Activity className="h-8 w-8 text-amber-600" />
+                    </div>
                   </div>
                 </div>
-                <div className="lg:col-span-2">
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="revenue" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Revenue Analysis</CardTitle>
+                <CardDescription>Detailed revenue breakdown and trends</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px]">
+                  <RevenueChart data={analyticsData?.monthlyBreakdown} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Metrics</CardTitle>
+                <CardDescription>Key revenue indicators</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Average Monthly Revenue</span>
+                    <span className="font-bold">
+                      ₹{Math.round(analyticsData?.overview.totalRevenue / Number.parseInt(timeRange)).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Revenue per Booking</span>
+                    <span className="font-bold">
+                      ₹
+                      {Math.round(
+                        analyticsData?.overview.totalRevenue / analyticsData?.overview.totalBookings,
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Academy Contribution</span>
+                    <span className="font-bold">
+                      {((analyticsData?.academies.totalRevenue / analyticsData?.overview.totalRevenue) * 100).toFixed(
+                        1,
+                      )}
+                      %
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Turf Contribution</span>
+                    <span className="font-bold">
+                      {((analyticsData?.turfs.totalRevenue / analyticsData?.overview.totalRevenue) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-3">Growth Trends</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Revenue Growth</span>
+                      <Badge variant={analyticsData?.overview.revenueGrowth >= 0 ? "default" : "destructive"}>
+                        {analyticsData?.overview.revenueGrowth >= 0 ? "+" : ""}
+                        {analyticsData?.overview.revenueGrowth.toFixed(1)}%
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Booking Growth</span>
+                      <Badge variant={analyticsData?.overview.bookingsGrowth >= 0 ? "default" : "destructive"}>
+                        {analyticsData?.overview.bookingsGrowth >= 0 ? "+" : ""}
+                        {analyticsData?.overview.bookingsGrowth.toFixed(1)}%
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="academies" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Academy Revenue</CardTitle>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{analyticsData?.academies.totalRevenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  {((analyticsData?.academies.totalRevenue / analyticsData?.overview.totalRevenue) * 100).toFixed(1)}%
+                  of total revenue
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData?.academies.totalStudents}</div>
+                <p className="text-xs text-muted-foreground">Across all academies</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Academy Rating</CardTitle>
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData?.academies.averageRating.toFixed(1)}</div>
+                <p className="text-xs text-muted-foreground">Average across all academies</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Academy Performance</CardTitle>
+              <CardDescription>Monthly metrics and trends for your academies</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <RevenueChart data={analyticsData?.academies.monthlyMetrics} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Coach Feedback</CardTitle>
+                <CardDescription>Recent feedback from academy coaches</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analyticsData?.academies.coachFeedback.length > 0 ? (
                   <div className="space-y-4">
-                    {platformData.map((platform, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                            ></div>
-                            <span className="font-medium">{platform.name}</span>
+                    {analyticsData.academies.coachFeedback.slice(0, 3).map((feedback, index) => (
+                      <div key={index} className="border-l-4 border-blue-500 pl-4">
+                        <p className="text-sm text-gray-600">{feedback.comment}</p>
+                        <div className="flex items-center mt-2">
+                          <span className="text-xs text-gray-500">Coach: {feedback.coachName}</span>
+                          <div className="flex items-center ml-auto">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs ml-1">{feedback.rating}</span>
                           </div>
-                          <span className="font-bold">{platform.value}%</span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2">
-                          <div
-                            className="h-2 rounded-full"
-                            style={{
-                              width: `${platform.value}%`,
-                              backgroundColor: COLORS[index % COLORS.length],
-                            }}
-                          ></div>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {index === 0 && "Direct enrollments through your website profile"}
-                          {index === 1 && "Enrollments through the mobile app"}
-                          {index === 2 && "Referred by existing students or partners"}
-                          {index === 3 && "Other sources including offline enrollments"}
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Academies Tab */}
-        <TabsContent value="academies" className="space-y-6">
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Academy Performance</CardTitle>
-              <CardDescription>Performance metrics for each of your academies</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {academyPerformanceData.map((academy, index) => (
-                  <div key={index} className="p-4 rounded-lg border">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
-                          <Image
-                            src={`/placeholder-icon.png?height=48&width=48&text=${academy.name.charAt(0)}`}
-                            alt={academy.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{academy.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {index === 0 ? "Cricket" : "Tennis"}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{index === 0 ? "Mumbai" : "Delhi"}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/supplier/academy/${index + 1}/analytics`}>View Details</Link>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-600">Profile Views</span>
-                          <Eye className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div className="text-xl font-bold text-blue-700">{academy.views}</div>
-                        <div className="text-xs text-blue-600 flex items-center mt-1">
-                          <ArrowUpRight className="h-3 w-3 mr-1" />
-                          12.5% vs last month
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-600">Inquiries</span>
-                          <MousePointer className="h-4 w-4 text-emerald-600" />
-                        </div>
-                        <div className="text-xl font-bold text-emerald-700">{academy.inquiries}</div>
-                        <div className="text-xs text-emerald-600 flex items-center mt-1">
-                          <ArrowUpRight className="h-3 w-3 mr-1" />
-                          8.3% vs last month
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-600">Enrollments</span>
-                          <Users className="h-4 w-4 text-purple-600" />
-                        </div>
-                        <div className="text-xl font-bold text-purple-700">{academy.enrollments}</div>
-                        <div className="text-xs text-purple-600 flex items-center mt-1">
-                          <ArrowUpRight className="h-3 w-3 mr-1" />
-                          15.2% vs last month
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-600">Revenue</span>
-                          <CreditCard className="h-4 w-4 text-amber-600" />
-                        </div>
-                        <div className="text-xl font-bold text-amber-700">₹{(academy.revenue / 1000).toFixed(0)}K</div>
-                        <div className="text-xs text-amber-600 flex items-center mt-1">
-                          <ArrowUpRight className="h-3 w-3 mr-1" />
-                          10.5% vs last month
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-medium">Conversion Funnel</h4>
-                        <span className="text-xs text-muted-foreground">
-                          Inquiry Rate: {((academy.inquiries / academy.views) * 100).toFixed(1)}% | Conversion Rate:{" "}
-                          {((academy.enrollments / academy.inquiries) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full" style={{ width: "100%" }}></div>
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                          <span className="text-xs">{academy.views} Views</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-emerald-600"></div>
-                          <span className="text-xs">
-                            {academy.inquiries} Inquiries ({((academy.inquiries / academy.views) * 100).toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-purple-600"></div>
-                          <span className="text-xs">
-                            {academy.enrollments} Enrollments (
-                            {((academy.enrollments / academy.inquiries) * 100).toFixed(1)}%)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Recommendations</CardTitle>
-              <CardDescription>Suggestions to improve academy performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border bg-blue-50 border-blue-200">
-                  <h3 className="font-medium text-blue-800 mb-2">Optimize Premier Cricket Academy Profile</h3>
-                  <p className="text-sm text-blue-700 mb-3">
-                    Add more high-quality images and complete all profile sections to improve visibility in search
-                    results.
-                  </p>
-                  <Button variant="outline" className="bg-white text-blue-700 border-blue-300">
-                    Edit Profile
-                  </Button>
-                </div>
-
-                <div className="p-4 rounded-lg border bg-emerald-50 border-emerald-200">
-                  <h3 className="font-medium text-emerald-800 mb-2">Improve Elite Tennis School Conversion</h3>
-                  <p className="text-sm text-emerald-700 mb-3">
-                    The inquiry-to-enrollment rate is lower than average. Consider offering a free trial session.
-                  </p>
-                  <Button variant="outline" className="bg-white text-emerald-700 border-emerald-300">
-                    Setup Trial
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Platforms Tab */}
-        <TabsContent value="platforms" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle>Platform Distribution</CardTitle>
-                <CardDescription>Where your enrollments are coming from</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={platformData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {platformData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [`${value}%`, "Percentage"]}
-                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", border: "1px solid #e5e7eb" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No feedback available</p>
+                )}
               </CardContent>
             </Card>
 
-            <Card className="bg-white">
+            <Card>
               <CardHeader>
-                <CardTitle>Platform Performance</CardTitle>
-                <CardDescription>Performance metrics by platform</CardDescription>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Manage your academies</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full justify-start" onClick={() => router.push("/supplier/academy/add")}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Add New Academy
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push("/supplier/invitations")}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Invite Coaches
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Target className="h-4 w-4 mr-2" />
+                  Create Batch
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="turfs" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Turf Revenue</CardTitle>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {[
-                    {
-                      name: "Website",
-                      views: 2500,
-                      inquiries: 175,
-                      enrollments: 90,
-                      conversionRate: 3.6,
-                      color: COLORS[0],
-                    },
-                    {
-                      name: "Mobile App",
-                      views: 1800,
-                      inquiries: 126,
-                      enrollments: 70,
-                      conversionRate: 3.9,
-                      color: COLORS[1],
-                    },
-                    {
-                      name: "Referrals",
-                      views: 650,
-                      inquiries: 52,
-                      enrollments: 30,
-                      conversionRate: 4.6,
-                      color: COLORS[2],
-                    },
-                    {
-                      name: "Other",
-                      views: 250,
-                      inquiries: 18,
-                      enrollments: 10,
-                      conversionRate: 4.0,
-                      color: COLORS[3],
-                    },
-                  ].map((platform, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: platform.color }}></div>
-                          <span className="font-medium">{platform.name}</span>
-                        </div>
-                        <span className="text-sm font-bold">{platform.conversionRate}% Conversion Rate</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground">Views</span>
-                          <span className="font-medium">{platform.views}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground">Inquiries</span>
-                          <span className="font-medium">{platform.inquiries}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-muted-foreground">Enrollments</span>
-                          <span className="font-medium">{platform.enrollments}</span>
-                        </div>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            width: `${platform.conversionRate * 10}%`,
-                            backgroundColor: platform.color,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <div className="text-2xl font-bold">₹{analyticsData?.turfs.totalRevenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  {((analyticsData?.turfs.totalRevenue / analyticsData?.overview.totalRevenue) * 100).toFixed(1)}% of
+                  total revenue
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData?.turfs.totalBookings}</div>
+                <p className="text-xs text-muted-foreground">Across all turfs</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Utilization Rate</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData?.turfs.utilization.toFixed(1)}%</div>
+                <p className="text-xs text-muted-foreground">Average across all turfs</p>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="bg-white">
+          <Card>
             <CardHeader>
-              <CardTitle>Platform Optimization</CardTitle>
-              <CardDescription>Recommendations to improve performance across platforms</CardDescription>
+              <CardTitle>Turf Performance</CardTitle>
+              <CardDescription>Monthly metrics and trends for your turfs</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border">
-                  <h3 className="font-medium mb-2">Website Optimization</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Your website has the highest traffic but lower conversion rate. Improve the inquiry form and add
-                    more testimonials.
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Optimize Website
-                  </Button>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h3 className="font-medium mb-2">Mobile App Engagement</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Encourage more users to download and use the mobile app for better engagement.
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Promote App
-                  </Button>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h3 className="font-medium mb-2">Referral Program</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Referrals have the highest conversion rate. Implement a formal referral program.
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Setup Referrals
-                  </Button>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h3 className="font-medium mb-2">Cross-Platform Consistency</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Ensure consistent messaging and branding across all platforms.
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Review Branding
-                  </Button>
-                </div>
+              <div className="h-[300px]">
+                <RevenueChart data={analyticsData?.turfs.monthlyMetrics} />
               </div>
             </CardContent>
           </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by Sport</CardTitle>
+                <CardDescription>Sport-wise revenue breakdown</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analyticsData?.turfs.revenueBySport.length > 0 ? (
+                  <div className="space-y-4">
+                    {analyticsData.turfs.revenueBySport.map((sport, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="font-medium">{sport.sport}</span>
+                        <div className="text-right">
+                          <div className="font-bold">₹{sport.revenue.toLocaleString()}</div>
+                          <div className="text-xs text-gray-500">{sport.percentage}%</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No sport data available</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Peak Hours</CardTitle>
+                <CardDescription>Busiest times for your turfs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px]">
+                  <PeakHoursChart data={analyticsData?.peakHours} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

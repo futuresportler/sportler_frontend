@@ -287,3 +287,268 @@ export async function getCoachAssignments(coachId: string): Promise<{
     }
   }
 }
+
+/**
+ * Deletes a coach from the academy
+ */
+export async function deleteCoach(coachId: string): Promise<{
+  success: boolean
+  error?: string
+}> {
+  try {
+    const accessToken = getAccessToken()
+    if (!accessToken) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/academies/coaches/${coachId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      return {
+        success: false,
+        error: data.message || `Failed to delete coach: ${response.status}`,
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting coach:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unknown error occurred",
+    }
+  }
+}
+
+/**
+ * Assigns a coach to a batch
+ */
+export async function assignCoachToBatch(
+  coachId: string,
+  batchId: string,
+  isPrimary = false,
+): Promise<{
+  success: boolean
+  assignment?: any
+  error?: string
+}> {
+  try {
+    const accessToken = getAccessToken()
+    if (!accessToken) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/academies/coaches/${coachId}/batches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ batchId, isPrimary }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || `Failed to assign coach to batch: ${response.status}`,
+      }
+    }
+
+    return {
+      success: true,
+      assignment: data,
+    }
+  } catch (error) {
+    console.error("Error assigning coach to batch:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unknown error occurred",
+    }
+  }
+}
+
+/**
+ * Removes a coach from a batch
+ */
+export async function removeCoachFromBatch(
+  coachId: string,
+  batchId: string,
+): Promise<{
+  success: boolean
+  error?: string
+}> {
+  try {
+    const accessToken = getAccessToken()
+    if (!accessToken) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/academies/coaches/${coachId}/batches/${batchId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      return {
+        success: false,
+        error: data.message || `Failed to remove coach from batch: ${response.status}`,
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error removing coach from batch:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unknown error occurred",
+    }
+  }
+}
+
+/**
+ * Assigns a coach to a program
+ */
+export async function assignCoachToProgram(
+  coachId: string,
+  programId: string,
+  isPrimary = false,
+): Promise<{
+  success: boolean
+  assignment?: any
+  error?: string
+}> {
+  try {
+    const accessToken = getAccessToken()
+    if (!accessToken) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/academies/coaches/${coachId}/programs`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ programId, isPrimary }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || `Failed to assign coach to program: ${response.status}`,
+      }
+    }
+
+    return {
+      success: true,
+      assignment: data,
+    }
+  } catch (error) {
+    console.error("Error assigning coach to program:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unknown error occurred",
+    }
+  }
+}
+
+/**
+ * Removes a coach from a program
+ */
+export async function removeCoachFromProgram(
+  coachId: string,
+  programId: string,
+): Promise<{
+  success: boolean
+  error?: string
+}> {
+  try {
+    const accessToken = getAccessToken()
+    if (!accessToken) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/academies/coaches/${coachId}/programs/${programId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      return {
+        success: false,
+        error: data.message || `Failed to remove coach from program: ${response.status}`,
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error removing coach from program:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unknown error occurred",
+    }
+  }
+}
+
+/**
+ * Syncs all academy coaches with the platform
+ */
+export async function syncCoaches(academyId: string): Promise<{
+  success: boolean
+  synced?: number
+  error?: string
+}> {
+  try {
+    const accessToken = getAccessToken()
+    if (!accessToken) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/academies/${academyId}/coaches/sync`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || `Failed to sync coaches: ${response.status}`,
+      }
+    }
+
+    return {
+      success: true,
+      synced: data.synced,
+    }
+  } catch (error) {
+    console.error("Error syncing coaches:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unknown error occurred",
+    }
+  }
+}

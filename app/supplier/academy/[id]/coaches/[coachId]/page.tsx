@@ -1,167 +1,233 @@
-"use client";
+"use client"
 
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Edit, Mail, Save, User, Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  getCoachById,
-  updateCoach,
+  assignCoachToBatch,
+  assignCoachToProgram,
+  deleteCoach,
   getCoachAssignments,
+  getCoachById,
+  removeCoachFromBatch,
+  removeCoachFromProgram,
+  updateCoach,
   type Coach,
   type CoachAssignments,
-} from "@/services/coachService";
+} from "@/services/coachService"
 import {
-  getCoachSchedule,
-  type CoachScheduleResponse,
-} from "@/services/scheduleService";
-import {
-  getRecentFeedback,
   getAcademyCoachFeedback,
-  type FeedbackItem,
+  getRecentFeedback,
   type CoachFeedbackSummary,
-} from "@/services/feedbackService";
-import { useEffect } from "react";
+  type FeedbackItem,
+} from "@/services/feedbackService"
+import { getCoachSchedule, type CoachScheduleResponse } from "@/services/scheduleService"
+import { Edit, Mail, Save, Star, Trash2, User } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface Params {
-  id: string;
-  coachId: string;
+  id: string
+  coachId: string
 }
 
-type SearchParams = {};
+type SearchParams = {}
 
 interface Props {
-  params: Params;
-  searchParams: SearchParams;
+  params: Params
+  searchParams: SearchParams
 }
 
 const CoachProfilePage = ({ params }: Props) => {
-  const { id: academyId, coachId } = params;
-  const router = useRouter();
+  const { id: academyId, coachId } = params
+  const router = useRouter()
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [coach, setCoach] = useState<Coach | null>(null);
-  const [assignments, setAssignments] = useState<CoachAssignments | null>(null);
-  const [isLoadingCoach, setIsLoadingCoach] = useState(true);
-  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false)
+  const [coach, setCoach] = useState<Coach | null>(null)
+  const [assignments, setAssignments] = useState<CoachAssignments | null>(null)
+  const [isLoadingCoach, setIsLoadingCoach] = useState(true)
+  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const [schedule, setSchedule] = useState<CoachScheduleResponse | null>(null);
-  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
-  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
-  const [isLoadingFeedback, setIsLoadingFeedback] = useState(true);
-  const [coachRating, setCoachRating] = useState<CoachFeedbackSummary | null>(
-    null
-  );
-  const [isLoadingRating, setIsLoadingRating] = useState(true);
+  const [schedule, setSchedule] = useState<CoachScheduleResponse | null>(null)
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true)
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([])
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(true)
+  const [coachRating, setCoachRating] = useState<CoachFeedbackSummary | null>(null)
+  const [isLoadingRating, setIsLoadingRating] = useState(true)
 
   const fetchCoach = async () => {
-    setIsLoadingCoach(true);
+    setIsLoadingCoach(true)
     try {
-      const result = await getCoachById(coachId);
+      const result = await getCoachById(coachId)
       if (result.success && result.coach) {
-        setCoach(result.coach);
+        setCoach(result.coach)
       } else {
-        console.error("Failed to fetch coach:", result.error);
+        console.error("Failed to fetch coach:", result.error)
       }
     } catch (error) {
-      console.error("Error fetching coach:", error);
+      console.error("Error fetching coach:", error)
     } finally {
-      setIsLoadingCoach(false);
+      setIsLoadingCoach(false)
     }
-  };
+  }
 
   const fetchAssignments = async () => {
-    setIsLoadingAssignments(true);
+    setIsLoadingAssignments(true)
     try {
-      const result = await getCoachAssignments(coachId);
+      const result = await getCoachAssignments(coachId)
       if (result.success && result.assignments) {
-        setAssignments(result.assignments);
+        setAssignments(result.assignments)
       } else {
-        console.error("Failed to fetch assignments:", result.error);
+        console.error("Failed to fetch assignments:", result.error)
       }
     } catch (error) {
-      console.error("Error fetching assignments:", error);
+      console.error("Error fetching assignments:", error)
     } finally {
-      setIsLoadingAssignments(false);
+      setIsLoadingAssignments(false)
     }
-  };
+  }
 
   const fetchSchedule = async () => {
-    setIsLoadingSchedule(true);
+    setIsLoadingSchedule(true)
     try {
-      const result = await getCoachSchedule(coachId);
+      const result = await getCoachSchedule(coachId)
       if (result.success && result.data) {
-        setSchedule(result.data);
+        setSchedule(result.data)
       } else {
-        console.error("Failed to fetch schedule:", result.error);
+        console.error("Failed to fetch schedule:", result.error)
       }
     } catch (error) {
-      console.error("Error fetching schedule:", error);
+      console.error("Error fetching schedule:", error)
     } finally {
-      setIsLoadingSchedule(false);
+      setIsLoadingSchedule(false)
     }
-  };
+  }
 
   const fetchFeedback = async () => {
-    setIsLoadingFeedback(true);
+    setIsLoadingFeedback(true)
     try {
-      const result = await getRecentFeedback("coach", coachId);
+      const result = await getRecentFeedback("coach", coachId)
       if (result.success && result.data) {
-        setFeedback(result.data);
+        setFeedback(result.data)
       } else {
-        console.error("Failed to fetch feedback:", result.error);
+        console.error("Failed to fetch feedback:", result.error)
       }
     } catch (error) {
-      console.error("Error fetching feedback:", error);
+      console.error("Error fetching feedback:", error)
     } finally {
-      setIsLoadingFeedback(false);
+      setIsLoadingFeedback(false)
     }
-  };
+  }
 
   const fetchCoachRating = async () => {
-    setIsLoadingRating(true);
+    setIsLoadingRating(true)
     try {
-      const result = await getAcademyCoachFeedback(academyId);
+      const result = await getAcademyCoachFeedback(academyId)
       if (result.success && result.data) {
-        const coachFeedback = result.data.find(
-          (item) => item.coachId === coachId
-        );
-        setCoachRating(coachFeedback || null);
+        const coachFeedback = result.data.find((item) => item.coachId === coachId)
+        setCoachRating(coachFeedback || null)
       } else {
-        console.error("Failed to fetch coach rating:", result.error);
+        console.error("Failed to fetch coach rating:", result.error)
       }
     } catch (error) {
-      console.error("Error fetching coach rating:", error);
+      console.error("Error fetching coach rating:", error)
     } finally {
-      setIsLoadingRating(false);
+      setIsLoadingRating(false)
     }
-  };
+  }
+
+  const handleAssignToBatch = async (batchId: string, isPrimary = false) => {
+    try {
+      const result = await assignCoachToBatch(coachId, batchId, isPrimary)
+      if (result.success) {
+        alert("Coach assigned to batch successfully!")
+        fetchAssignments() // Refresh assignments
+      } else {
+        alert(`Failed to assign coach to batch: ${result.error}`)
+      }
+    } catch (error) {
+      alert("An error occurred while assigning coach to batch")
+    }
+  }
+
+  const handleRemoveFromBatch = async (batchId: string) => {
+    if (confirm("Are you sure you want to remove this coach from the batch?")) {
+      try {
+        const result = await removeCoachFromBatch(coachId, batchId)
+        if (result.success) {
+          alert("Coach removed from batch successfully!")
+          fetchAssignments() // Refresh assignments
+        } else {
+          alert(`Failed to remove coach from batch: ${result.error}`)
+        }
+      } catch (error) {
+        alert("An error occurred while removing coach from batch")
+      }
+    }
+  }
+
+  const handleAssignToProgram = async (programId: string, isPrimary = false) => {
+    try {
+      const result = await assignCoachToProgram(coachId, programId, isPrimary)
+      if (result.success) {
+        alert("Coach assigned to program successfully!")
+        fetchAssignments() // Refresh assignments
+      } else {
+        alert(`Failed to assign coach to program: ${result.error}`)
+      }
+    } catch (error) {
+      alert("An error occurred while assigning coach to program")
+    }
+  }
+
+  const handleRemoveFromProgram = async (programId: string) => {
+    if (confirm("Are you sure you want to remove this coach from the program?")) {
+      try {
+        const result = await removeCoachFromProgram(coachId, programId)
+        if (result.success) {
+          alert("Coach removed from program successfully!")
+          fetchAssignments() // Refresh assignments
+        } else {
+          alert(`Failed to remove coach from program: ${result.error}`)
+        }
+      } catch (error) {
+        alert("An error occurred while removing coach from program")
+      }
+    }
+  }
+
+  const handleDeleteCoach = async () => {
+    if (confirm("Are you sure you want to delete this coach? This action cannot be undone.")) {
+      try {
+        const result = await deleteCoach(coachId)
+        if (result.success) {
+          alert("Coach deleted successfully!")
+          router.push(`/supplier/academy/${academyId}`)
+        } else {
+          alert(`Failed to delete coach: ${result.error}`)
+        }
+      } catch (error) {
+        alert("An error occurred while deleting coach")
+      }
+    }
+  }
 
   useEffect(() => {
-    fetchCoach();
-    fetchAssignments();
-    fetchSchedule();
-    fetchFeedback();
-    fetchCoachRating();
-  }, [coachId]);
+    fetchCoach()
+    fetchAssignments()
+    fetchSchedule()
+    fetchFeedback()
+    fetchCoachRating()
+  }, [coachId])
 
   const handleSaveChanges = async () => {
-    if (!coach) return;
+    if (!coach) return
 
-    setIsSaving(true);
+    setIsSaving(true)
     try {
       const updateData = {
         name: coach.name,
@@ -171,21 +237,21 @@ const CoachProfilePage = ({ params }: Props) => {
         hourlyRate: coach.hourlyRate,
         experienceLevel: coach.experienceLevel,
         sport: coach.sport,
-      };
+      }
 
-      const result = await updateCoach(coachId, updateData);
+      const result = await updateCoach(coachId, updateData)
       if (result.success) {
-        setIsEditing(false);
-        alert("Coach profile updated successfully!");
+        setIsEditing(false)
+        alert("Coach profile updated successfully!")
       } else {
-        alert(`Failed to update coach: ${result.error}`);
+        alert(`Failed to update coach: ${result.error}`)
       }
     } catch (error) {
-      alert("An error occurred while updating the coach profile");
+      alert("An error occurred while updating the coach profile")
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   if (isLoadingCoach) {
     return (
@@ -195,7 +261,7 @@ const CoachProfilePage = ({ params }: Props) => {
           <p>Loading coach profile...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!coach) {
@@ -203,16 +269,12 @@ const CoachProfilePage = ({ params }: Props) => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-gray-500">Coach not found</p>
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-            className="mt-4"
-          >
+          <Button variant="outline" onClick={() => router.back()} className="mt-4">
             Go Back
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -231,10 +293,16 @@ const CoachProfilePage = ({ params }: Props) => {
               </Button>
             </div>
           ) : (
-            <Button size="sm" onClick={() => setIsEditing(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Profile
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setIsEditing(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDeleteCoach}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Coach
+              </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent>
@@ -256,9 +324,7 @@ const CoachProfilePage = ({ params }: Props) => {
                       className="mt-1"
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {coach.name}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{coach.name}</p>
                   )}
                 </div>
               </div>
@@ -279,9 +345,7 @@ const CoachProfilePage = ({ params }: Props) => {
                       className="mt-1"
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {coach.email}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{coach.email}</p>
                   )}
                 </div>
               </div>
@@ -315,9 +379,7 @@ const CoachProfilePage = ({ params }: Props) => {
                       className="mt-1"
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {coach.mobileNumber}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{coach.mobileNumber}</p>
                   )}
                 </div>
               </div>
@@ -353,40 +415,25 @@ const CoachProfilePage = ({ params }: Props) => {
                       className="mt-1"
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {coach.bio || "No bio available."}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{coach.bio || "No bio available."}</p>
                   )}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2 mt-3">
-              <Badge
-                variant="outline"
-                className="bg-blue-50 text-blue-700 border-blue-200"
-              >
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                 {coach.sport}
               </Badge>
-              <Badge
-                variant="outline"
-                className="bg-emerald-50 text-emerald-700 border-emerald-200"
-              >
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                 {coach.experienceLevel} years exp
               </Badge>
-              <Badge
-                variant="outline"
-                className="bg-purple-50 text-purple-700 border-purple-200"
-              >
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                 ₹{coach.hourlyRate}/hr
               </Badge>
               {coachRating && (
-                <Badge
-                  variant="outline"
-                  className="bg-yellow-50 text-yellow-700 border-yellow-200"
-                >
-                  ⭐ {coachRating.averageRating.toFixed(1)} (
-                  {coachRating.totalReviews} reviews)
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  ⭐ {coachRating.averageRating.toFixed(1)} ({coachRating.totalReviews} reviews)
                 </Badge>
               )}
             </div>
@@ -413,36 +460,23 @@ const CoachProfilePage = ({ params }: Props) => {
               ) : assignments?.programs && assignments.programs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {assignments.programs.map((program) => (
-                    <Card
-                      key={program.id}
-                      className="bg-white hover:shadow-md transition-shadow"
-                    >
+                    <Card key={program.id} className="bg-white hover:shadow-md transition-shadow">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">
-                          {program.name}
-                        </CardTitle>
+                        <CardTitle className="text-lg">{program.name}</CardTitle>
                       </CardHeader>
-                      <CardFooter className="pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          asChild
-                        >
-                          <Link
-                            href={`/supplier/academy/${academyId}/programs/${program.id}`}
-                          >
-                            View Program
-                          </Link>
+                      <CardFooter className="pt-2 flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" asChild>
+                          <Link href={`/supplier/academy/${academyId}/programs/${program.id}`}>View Program</Link>
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleRemoveFromProgram(program.id)}>
+                          Remove
                         </Button>
                       </CardFooter>
                     </Card>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No programs assigned to this coach.
-                </div>
+                <div className="text-center py-8 text-gray-500">No programs assigned to this coach.</div>
               )}
             </CardContent>
           </Card>
@@ -459,34 +493,23 @@ const CoachProfilePage = ({ params }: Props) => {
               ) : assignments?.batches && assignments.batches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {assignments.batches.map((batch) => (
-                    <Card
-                      key={batch.id}
-                      className="bg-white hover:shadow-md transition-shadow"
-                    >
+                    <Card key={batch.id} className="bg-white hover:shadow-md transition-shadow">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg">{batch.name}</CardTitle>
                       </CardHeader>
-                      <CardFooter className="pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          asChild
-                        >
-                          <Link
-                            href={`/supplier/academy/${academyId}/batches/${batch.id}`}
-                          >
-                            View Batch
-                          </Link>
+                      <CardFooter className="pt-2 flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" asChild>
+                          <Link href={`/supplier/academy/${academyId}/batches/${batch.id}`}>View Batch</Link>
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleRemoveFromBatch(batch.id)}>
+                          Remove
                         </Button>
                       </CardFooter>
                     </Card>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No batches assigned to this coach.
-                </div>
+                <div className="text-center py-8 text-gray-500">No batches assigned to this coach.</div>
               )}
             </CardContent>
           </Card>
@@ -511,41 +534,23 @@ const CoachProfilePage = ({ params }: Props) => {
                         <div className="col-span-7">Time Slots</div>
                       </div>
                       <div className="divide-y">
-                        {[
-                          "monday",
-                          "tuesday",
-                          "wednesday",
-                          "thursday",
-                          "friday",
-                          "saturday",
-                          "sunday",
-                        ].map((day) => (
+                        {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
                           <div
                             key={day}
                             className="grid grid-cols-8 gap-2 p-4 items-center hover:bg-muted/30 transition-colors"
                           >
                             <div className="col-span-1">
-                              <div className="font-medium capitalize">
-                                {day}
-                              </div>
+                              <div className="font-medium capitalize">{day}</div>
                             </div>
                             <div className="col-span-7">
                               <div className="flex flex-wrap gap-2">
-                                {schedule.schedule.personal[
-                                  day as keyof typeof schedule.schedule.personal
-                                ]?.map((timeSlot, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="bg-blue-50 text-blue-700"
-                                  >
-                                    {timeSlot}
-                                  </Badge>
-                                )) || (
-                                  <span className="text-gray-500 text-sm">
-                                    No slots
-                                  </span>
-                                )}
+                                {schedule.schedule.personal[day as keyof typeof schedule.schedule.personal]?.map(
+                                  (timeSlot, index) => (
+                                    <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700">
+                                      {timeSlot}
+                                    </Badge>
+                                  ),
+                                ) || <span className="text-gray-500 text-sm">No slots</span>}
                               </div>
                             </div>
                           </div>
@@ -560,44 +565,27 @@ const CoachProfilePage = ({ params }: Props) => {
                       <h3 className="font-medium mb-3">Batch Schedule</h3>
                       <div className="space-y-4">
                         {schedule.schedule.batches.map((batch) => (
-                          <div
-                            key={batch.batchId}
-                            className="border rounded-lg p-4"
-                          >
+                          <div key={batch.batchId} className="border rounded-lg p-4">
                             <h4 className="font-medium mb-2">{batch.name}</h4>
                             <div className="grid grid-cols-7 gap-2 text-sm">
-                              {[
-                                "monday",
-                                "tuesday",
-                                "wednesday",
-                                "thursday",
-                                "friday",
-                                "saturday",
-                                "sunday",
-                              ].map((day) => (
-                                <div key={day} className="text-center">
-                                  <div className="font-medium capitalize mb-1">
-                                    {day.slice(0, 3)}
+                              {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(
+                                (day) => (
+                                  <div key={day} className="text-center">
+                                    <div className="font-medium capitalize mb-1">{day.slice(0, 3)}</div>
+                                    <div className="space-y-1">
+                                      {batch.schedule[day as keyof typeof batch.schedule]?.map((timeSlot, index) => (
+                                        <Badge
+                                          key={index}
+                                          variant="outline"
+                                          className="bg-green-50 text-green-700 text-xs"
+                                        >
+                                          {timeSlot}
+                                        </Badge>
+                                      )) || <span className="text-gray-400 text-xs">-</span>}
+                                    </div>
                                   </div>
-                                  <div className="space-y-1">
-                                    {batch.schedule[
-                                      day as keyof typeof batch.schedule
-                                    ]?.map((timeSlot, index) => (
-                                      <Badge
-                                        key={index}
-                                        variant="outline"
-                                        className="bg-green-50 text-green-700 text-xs"
-                                      >
-                                        {timeSlot}
-                                      </Badge>
-                                    )) || (
-                                      <span className="text-gray-400 text-xs">
-                                        -
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                                ),
+                              )}
                             </div>
                           </div>
                         ))}
@@ -611,44 +599,29 @@ const CoachProfilePage = ({ params }: Props) => {
                       <h3 className="font-medium mb-3">Program Schedule</h3>
                       <div className="space-y-4">
                         {schedule.schedule.programs.map((program) => (
-                          <div
-                            key={program.programId}
-                            className="border rounded-lg p-4"
-                          >
+                          <div key={program.programId} className="border rounded-lg p-4">
                             <h4 className="font-medium mb-2">{program.name}</h4>
                             <div className="grid grid-cols-7 gap-2 text-sm">
-                              {[
-                                "monday",
-                                "tuesday",
-                                "wednesday",
-                                "thursday",
-                                "friday",
-                                "saturday",
-                                "sunday",
-                              ].map((day) => (
-                                <div key={day} className="text-center">
-                                  <div className="font-medium capitalize mb-1">
-                                    {day.slice(0, 3)}
+                              {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(
+                                (day) => (
+                                  <div key={day} className="text-center">
+                                    <div className="font-medium capitalize mb-1">{day.slice(0, 3)}</div>
+                                    <div className="space-y-1">
+                                      {program.schedule[day as keyof typeof program.schedule]?.map(
+                                        (timeSlot, index) => (
+                                          <Badge
+                                            key={index}
+                                            variant="outline"
+                                            className="bg-purple-50 text-purple-700 text-xs"
+                                          >
+                                            {timeSlot}
+                                          </Badge>
+                                        ),
+                                      ) || <span className="text-gray-400 text-xs">-</span>}
+                                    </div>
                                   </div>
-                                  <div className="space-y-1">
-                                    {program.schedule[
-                                      day as keyof typeof program.schedule
-                                    ]?.map((timeSlot, index) => (
-                                      <Badge
-                                        key={index}
-                                        variant="outline"
-                                        className="bg-purple-50 text-purple-700 text-xs"
-                                      >
-                                        {timeSlot}
-                                      </Badge>
-                                    )) || (
-                                      <span className="text-gray-400 text-xs">
-                                        -
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                                ),
+                              )}
                             </div>
                           </div>
                         ))}
@@ -657,9 +630,7 @@ const CoachProfilePage = ({ params }: Props) => {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No schedule data available.
-                </div>
+                <div className="text-center py-8 text-gray-500">No schedule data available.</div>
               )}
             </CardContent>
           </Card>
@@ -685,17 +656,11 @@ const CoachProfilePage = ({ params }: Props) => {
                               <Star
                                 key={star}
                                 size={16}
-                                className={
-                                  star <= review.rating
-                                    ? "text-yellow-400 fill-yellow-400"
-                                    : "text-gray-300"
-                                }
+                                className={star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
                               />
                             ))}
                           </div>
-                          <span className="text-sm text-gray-500">
-                            {new Date(review.date).toLocaleDateString()}
-                          </span>
+                          <span className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString()}</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600">{review.comment}</p>
@@ -703,16 +668,14 @@ const CoachProfilePage = ({ params }: Props) => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No reviews available for this coach.
-                </div>
+                <div className="text-center py-8 text-gray-500">No reviews available for this coach.</div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
 
-export default CoachProfilePage;
+export default CoachProfilePage

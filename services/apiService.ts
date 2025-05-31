@@ -145,3 +145,48 @@ export function transformApiTurfToCourt(apiTurf: ApiTurf): any {
     facilities: apiTurf.amenities || [],
   }
 }
+
+// Utility functions for finding items by slug
+export function findAcademyBySlug(academies: ApiAcademy[], slug: string): ApiAcademy | null {
+  return (
+    academies.find(
+      (academy) =>
+        academy.name
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "") === slug,
+    ) || null
+  )
+}
+
+export function findCoachBySlug(coaches: ApiCoach[], slug: string): ApiCoach | null {
+  return (
+    coaches.find(
+      (coach) =>
+        coach.name
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "") === slug,
+    ) || null
+  )
+}
+
+export function findTurfBySlug(turfs: ApiTurf[], slug: string): ApiTurf | null {
+  return (
+    turfs.find(
+      (turf) =>
+        turf.name
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "") === slug,
+    ) || null
+  )
+}
+
+// Generate slug from name
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+}
