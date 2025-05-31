@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import CourtsLayout from "@/components/courts/CourtsLayout"
+import { CourtsLayout } from "@/components/courts/CourtsLayout"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import { formatCityForDisplay } from "@/utils/slug"
