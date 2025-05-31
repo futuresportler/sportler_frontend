@@ -1,4 +1,4 @@
-"use client"
+  "use client"
 
 import type React from "react"
 
@@ -95,7 +95,7 @@ export default function AcademiesSearchBar({
             onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
             className="flex items-center justify-between w-full md:w-48 px-4 py-3 bg-white border border-gray-200 rounded-md text-gray-700"
           >
-            <span>{filterOptions.category || "All Categories"}</span>
+            <span>{filterOptions?.category || "All Categories"}</span>
             <ChevronDown size={18} className="ml-2 text-gray-500" />
           </button>
 
@@ -165,7 +165,7 @@ export default function AcademiesSearchBar({
               key={tab}
               onClick={() => handleTabClick(tab)}
               className={`px-4 py-2 rounded-md transition-colors ${
-                (tab === "All" && !filterOptions.category) || (tab === "Academies" && filterOptions.category === "")
+                (tab === "All" && !filterOptions?.category) || (tab === "Academies" && filterOptions?.category === "")
                   ? "bg-emerald-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}

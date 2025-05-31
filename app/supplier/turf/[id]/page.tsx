@@ -1,27 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import {
-  ChevronLeft,
-  MapPin,
-  Phone,
-  Mail,
-  Calendar,
-  Clock,
-  DollarSign,
-  Users,
-  Star,
-  Edit,
-  Trash2,
-  Settings,
-} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
+import {
+  Calendar,
+  ChevronLeft,
+  Clock,
+  DollarSign,
+  Edit,
+  Mail,
+  MapPin,
+  Phone,
+  Settings,
+  Star,
+  Trash2,
+  Users,
+} from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { turfService } from "../../../../services/turfService"
 
 export default function TurfDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -30,65 +31,73 @@ export default function TurfDetailPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // In a real app, you would fetch the turf data from your API
-    // For now, we'll simulate loading and then set mock data
-    const timer = setTimeout(() => {
-      setTurf({
-        id: turfId,
-        name: "Green Field Turf",
-        location: "Koramangala, Bangalore",
-        address: "123 Sports Avenue, Koramangala, Bangalore - 560034",
-        description:
-          "Premium sports facility offering multiple courts for various sports with state-of-the-art amenities.",
-        phone: "+91 9876543210",
-        email: "info@greenfieldturf.com",
-        turfType: "outdoor",
-        sportTypes: ["Cricket", "Football", "Tennis", "Basketball", "Badminton"],
-        facilities: [
-          "Changing Rooms",
-          "Parking",
-          "Floodlights",
-          "Equipment Rental",
-          "Refreshments",
-          "Spectator Seating",
-        ],
-        pricing: {
-          hourly: "₹1,000 - ₹2,500",
-          halfDay: "₹4,500 - ₹10,000",
-          fullDay: "₹8,000 - ₹18,000",
-        },
-        openingTime: "06:00",
-        closingTime: "22:00",
-        rating: 4.7,
-        reviewCount: 128,
-        images: [
-          "/cricket-pitch-overview.png",
-          "/placeholder.svg?height=300&width=500&text=Football+Court",
-          "/placeholder.svg?height=300&width=500&text=Tennis+Court",
-        ],
-        courts: 10,
-        bookings: {
-          today: 18,
-          week: 124,
-          month: 486,
-        },
-        revenue: {
-          today: "₹36,000",
-          week: "₹2,48,000",
-          month: "₹9,72,000",
-        },
-        utilization: "78%",
-        popularSports: [
-          { name: "Football", percentage: 45 },
-          { name: "Cricket", percentage: 30 },
-          { name: "Tennis", percentage: 15 },
-          { name: "Basketball", percentage: 10 },
-        ],
-      })
-      setLoading(false)
-    }, 500)
+    const fetchTurfData = async () => {
+      try {
+        setLoading(true)
 
-    return () => clearTimeout(timer)
+        // Fetch turf profile and dashboard data
+        const [turfResponse, dashboardResponse] = await Promise.all([
+          turfService.getTurfById(turfId),
+          turfService.getTurfDashboard(turfId),
+        ])
+
+        const turfData = turfResponse.data
+        const dashboardData = dashboardResponse.data
+
+        // Transform API data to match component expectations
+        const transformedTurf = {
+          id: turfData.turfId,
+          name: turfData.name,
+          location: turfData.city,
+          address: turfData.fullAddress,
+          description: turfData.description || "",
+          phone: turfData.contactPhone,
+          email: turfData.contactEmail,
+          turfType: turfData.turfType,
+          sportTypes: turfData.sportsAvailable,
+          facilities: turfData.facilities || [],
+          pricing: {
+            hourly: turfService.formatPrice(turfData.hourlyRate),
+            halfDay: turfData.halfDayRate ? turfService.formatPrice(turfData.halfDayRate) : "N/A",
+            fullDay: turfData.fullDayRate ? turfService.formatPrice(turfData.fullDayRate) : "N/A",
+          },
+          openingTime: turfData.openingTime.slice(0, 5), // Remove seconds
+          closingTime: turfData.closingTime.slice(0, 5),
+          rating: turfData.rating,
+          reviewCount: turfData.totalReviews,
+          images: turfData.images || [turfData.mainImage || "/placeholder.svg?height=300&width=500&text=Turf+Image"],
+          courts: turfData.grounds?.length || 0,
+          bookings: {
+            today:
+              dashboardData.upcomingBookings?.filter(
+                (b) => new Date(b.date).toDateString() === new Date().toDateString(),
+              ).length || 0,
+            week: dashboardData.upcomingBookings?.length || 0,
+            month: dashboardData.upcomingBookings?.length || 0, // This would need separate API call for monthly data
+          },
+          revenue: {
+            today: "₹0", // This would need separate analytics API
+            week: "₹0",
+            month: "₹0",
+          },
+          utilization: "0%", // This would need separate analytics API
+          popularSports:
+            turfData.sportsAvailable?.map((sport, index) => ({
+              name: sport,
+              percentage: Math.max(20, 100 - index * 15), // Mock calculation
+            })) || [],
+        }
+
+        setTurf(transformedTurf)
+      } catch (error) {
+        console.error("Error fetching turf data:", error)
+        // Handle error appropriately
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTurfData()
   }, [turfId])
 
   if (loading) {

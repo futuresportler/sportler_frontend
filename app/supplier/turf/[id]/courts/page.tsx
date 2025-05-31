@@ -1,28 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import {
-  ChevronLeft,
-  Plus,
-  Filter,
-  Search,
-  Calendar,
-  Users,
-  Clock,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Layers,
-  DollarSign,
-} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -31,10 +11,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Calendar,
+  ChevronLeft,
+  Clock,
+  DollarSign,
+  Edit,
+  Filter,
+  Layers,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+} from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { turfService } from "../../../../../services/turfService"
 
 export default function CourtsPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -42,150 +43,42 @@ export default function CourtsPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("all-sports")
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddCourtOpen, setIsAddCourtOpen] = useState(false)
+  const [courts, setCourts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data for courts
-  const [courts, setCourts] = useState([
-    {
-      id: "1",
-      name: "Main Football Court",
-      sport: "Football",
-      surface: "Artificial Turf",
-      dimensions: "100m x 64m",
-      capacity: 22,
-      hourlyRate: "₹2,000",
-      features: ["Floodlights", "Changing Rooms", "Spectator Seating"],
-      availability: "24/7",
-      status: "Active",
-      maintenanceSchedule: "Every Monday",
-      bookingRate: "85%",
-    },
-    {
-      id: "2",
-      name: "Cricket Pitch 1",
-      sport: "Cricket",
-      surface: "Natural Grass",
-      dimensions: "Standard",
-      capacity: 22,
-      hourlyRate: "₹2,500",
-      features: ["Floodlights", "Changing Rooms", "Practice Nets"],
-      availability: "6:00 AM - 10:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Tuesday",
-      bookingRate: "78%",
-    },
-    {
-      id: "3",
-      name: "Basketball Court A",
-      sport: "Basketball",
-      surface: "Hardwood",
-      dimensions: "28m x 15m",
-      capacity: 10,
-      hourlyRate: "₹1,200",
-      features: ["Floodlights", "Covered Area"],
-      availability: "6:00 AM - 10:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Wednesday",
-      bookingRate: "65%",
-    },
-    {
-      id: "4",
-      name: "Tennis Court 1",
-      sport: "Tennis",
-      surface: "Clay",
-      dimensions: "23.77m x 10.97m",
-      capacity: 4,
-      hourlyRate: "₹800",
-      features: ["Floodlights"],
-      availability: "6:00 AM - 9:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Thursday",
-      bookingRate: "72%",
-    },
-    {
-      id: "5",
-      name: "Tennis Court 2",
-      sport: "Tennis",
-      surface: "Hard Court",
-      dimensions: "23.77m x 10.97m",
-      capacity: 4,
-      hourlyRate: "₹900",
-      features: ["Floodlights", "Covered Area"],
-      availability: "6:00 AM - 9:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Thursday",
-      bookingRate: "68%",
-    },
-    {
-      id: "6",
-      name: "Futsal Court",
-      sport: "Football",
-      surface: "Artificial Turf",
-      dimensions: "40m x 20m",
-      capacity: 10,
-      hourlyRate: "₹1,500",
-      features: ["Floodlights", "Covered Area"],
-      availability: "24/7",
-      status: "Active",
-      maintenanceSchedule: "Every Friday",
-      bookingRate: "90%",
-    },
-    {
-      id: "7",
-      name: "Badminton Court 1",
-      sport: "Badminton",
-      surface: "Synthetic",
-      dimensions: "13.4m x 6.1m",
-      capacity: 4,
-      hourlyRate: "₹600",
-      features: ["Indoor", "Air Conditioned"],
-      availability: "6:00 AM - 10:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Saturday",
-      bookingRate: "75%",
-    },
-    {
-      id: "8",
-      name: "Badminton Court 2",
-      sport: "Badminton",
-      surface: "Synthetic",
-      dimensions: "13.4m x 6.1m",
-      capacity: 4,
-      hourlyRate: "₹600",
-      features: ["Indoor", "Air Conditioned"],
-      availability: "6:00 AM - 10:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Saturday",
-      bookingRate: "70%",
-    },
-    {
-      id: "9",
-      name: "Volleyball Court",
-      sport: "Volleyball",
-      surface: "Sand",
-      dimensions: "18m x 9m",
-      capacity: 12,
-      hourlyRate: "₹1,000",
-      features: ["Floodlights"],
-      availability: "6:00 AM - 8:00 PM",
-      status: "Maintenance",
-      maintenanceSchedule: "Currently under maintenance",
-      bookingRate: "0%",
-    },
-    {
-      id: "10",
-      name: "Multi-purpose Court",
-      sport: "Multiple",
-      surface: "Synthetic",
-      dimensions: "30m x 20m",
-      capacity: 20,
-      hourlyRate: "₹1,800",
-      features: ["Floodlights", "Changing Rooms", "Equipment Rental"],
-      availability: "6:00 AM - 10:00 PM",
-      status: "Active",
-      maintenanceSchedule: "Every Sunday",
-      bookingRate: "82%",
-    },
-  ])
+  // Add this useEffect to fetch courts data
+  useEffect(() => {
+    const fetchCourts = async () => {
+      try {
+        setLoading(true)
+        const response = await turfService.getGrounds(turfId)
+
+        // Transform API data to match component expectations
+        const transformedCourts = response.data.map((ground: any) => ({
+          id: ground.groundId,
+          name: ground.groundName,
+          sport: ground.sportType,
+          surface: ground.surfaceType,
+          dimensions: ground.dimensions || "Standard",
+          capacity: ground.capacity || 0,
+          hourlyRate: turfService.formatPrice(ground.hourlyRate),
+          features: ground.amenities || [],
+          availability: "6:00 AM - 10:00 PM", // This would need separate API for availability
+          status: ground.status === "active" ? "Active" : "Inactive",
+          maintenanceSchedule: "Weekly", // This would need separate API
+          bookingRate: "75%", // This would need analytics API
+        }))
+
+        setCourts(transformedCourts)
+      } catch (error) {
+        console.error("Error fetching courts:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourts()
+  }, [turfId])
 
   // Filter courts based on active tab and search query
   const filteredCourts = courts.filter((court) => {
@@ -210,10 +103,52 @@ export default function CourtsPage({ params }: { params: { id: string } }) {
   // Get unique sports for tabs
   const sports = ["All Sports", ...new Set(courts.map((court) => court.sport))]
 
-  const handleAddCourt = (formData) => {
-    // In a real app, you would save the new court to the database
-    console.log("Adding new court:", formData)
-    setIsAddCourtOpen(false)
+  // Update the handleAddCourt function
+  const handleAddCourt = async (formData: any) => {
+    try {
+      const courtData = {
+        groundName: formData.name,
+        sportType: formData.sport,
+        surfaceType: formData.surface,
+        capacity: Number(formData.capacity),
+        dimensions: formData.dimensions,
+        hourlyRate: Number(formData.hourlyRate),
+        halfDayRate: formData.halfDayRate ? Number(formData.halfDayRate) : undefined,
+        fullDayRate: formData.fullDayRate ? Number(formData.fullDayRate) : undefined,
+        amenities: Object.keys(formData.features).filter((feature) => formData.features[feature]),
+        description: formData.description || "",
+      }
+
+      const response = await turfService.createGround(turfId, courtData)
+
+      // Add the new court to the local state
+      const newCourt = {
+        id: response.data.groundId,
+        name: response.data.groundName,
+        sport: response.data.sportType,
+        surface: response.data.surfaceType,
+        dimensions: response.data.dimensions || "Standard",
+        capacity: response.data.capacity || 0,
+        hourlyRate: turfService.formatPrice(response.data.hourlyRate),
+        features: response.data.amenities || [],
+        availability: formData.availability || "6:00 AM - 10:00 PM",
+        status: "Active",
+        maintenanceSchedule: formData.maintenanceSchedule || "Weekly",
+        bookingRate: "0%",
+      }
+
+      setCourts((prev) => [...prev, newCourt])
+      setIsAddCourtOpen(false)
+
+      console.log("Court created successfully:", response)
+    } catch (error) {
+      console.error("Error creating court:", error)
+      // Handle error appropriately
+    }
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-96">Loading courts...</div>
   }
 
   return (
@@ -438,6 +373,7 @@ function AddCourtDialog({ isOpen, setIsOpen, onAddCourt }) {
     },
     availability: "",
     maintenanceSchedule: "",
+    description: "",
   })
 
   const handleChange = (field, value) => {
@@ -474,6 +410,7 @@ function AddCourtDialog({ isOpen, setIsOpen, onAddCourt }) {
       },
       availability: "",
       maintenanceSchedule: "",
+      description: "",
     })
   }
 
@@ -662,6 +599,8 @@ function AddCourtDialog({ isOpen, setIsOpen, onAddCourt }) {
                 <Label htmlFor="description">Additional Information</Label>
                 <Textarea
                   id="description"
+                  value={formData.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
                   placeholder="Any additional details about the court"
                   className="min-h-[80px]"
                 />
