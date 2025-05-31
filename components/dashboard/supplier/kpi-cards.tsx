@@ -1,7 +1,10 @@
 "use client"
 
 import type React from "react"
-import { Calendar, Users, TrendingUp, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Calendar, Users, TrendingUp, AlertCircle, Loader2 } from "lucide-react"
+import { getSupplierAnalyticsOverview } from "@/services/analyticsService"
+import { toast } from "@/hooks/use-toast"
 
 interface KpiCardProps {
   title: string
@@ -10,6 +13,7 @@ interface KpiCardProps {
   trend?: string
   trendValue?: string
   color?: "emerald" | "blue" | "indigo" | "red" | "amber" | "purple"
+  loading?: boolean
 }
 
 interface KpiData {
@@ -25,61 +29,131 @@ interface KpiData {
 
 interface KpiCardsProps {
   data?: KpiData
+  refreshTrigger?: number
 }
 
-// Default data that would be replaced by API data in a real application
-const defaultData: KpiData = {
-  totalRevenue: "₹124,500",
-  totalEnrollments: 342,
-  overallCapacity: "72%",
-  feeReminders: 28,
-  revenueChange: "7.2%",
-  enrollmentsChange: "5.3%",
-  capacityChange: "2.1%",
-  remindersChange: "12.5%",
-}
+export function KpiCards({ data, refreshTrigger }: KpiCardsProps) {
+  const [loading, setLoading] = useState(true)
+  const [kpiData, setKpiData] = useState<KpiData>({
+    totalRevenue: "₹0",
+    totalEnrollments: 0,
+    overallCapacity: "0%",
+    feeReminders: 0,
+    revenueChange: "0%",
+    enrollmentsChange: "0%",
+    capacityChange: "0%",
+    remindersChange: "0%",
+  })
 
-export function KpiCards({ data = defaultData }: KpiCardsProps) {
+  const fetchKpiData = async () => {
+    try {
+      setLoading(true)
+      const result = await getSupplierAnalyticsOverview(6)
+
+      if (result.success && result.data) {
+        const analyticsData = result.data
+
+        // Calculate total revenue from monthly breakdown
+        const totalRevenue = analyticsData.monthlyBreakdown?.reduce((sum, month) => sum + month.revenue, 0) || 0
+
+        // Calculate total bookings from monthly breakdown
+        const totalBookings = analyticsData.monthlyBreakdown?.reduce((sum, month) => sum + month.bookings, 0) || 0
+
+        // Calculate growth rates (comparing last month to previous month)
+        const monthlyData = analyticsData.monthlyBreakdown || []
+        const lastMonth = monthlyData[monthlyData.length - 1]
+        const previousMonth = monthlyData[monthlyData.length - 2]
+
+        const revenueGrowth =
+          previousMonth && lastMonth
+            ? (((lastMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100).toFixed(1)
+            : "0"
+
+        const bookingsGrowth =
+          previousMonth && lastMonth
+            ? (((lastMonth.bookings - previousMonth.bookings) / previousMonth.bookings) * 100).toFixed(1)
+            : "0"
+
+        setKpiData({
+          totalRevenue: `₹${totalRevenue.toLocaleString()}`,
+          totalEnrollments: totalBookings,
+          overallCapacity: "75%", // This would come from capacity analytics
+          feeReminders: 0, // This would come from fee management system
+          revenueChange: `${revenueGrowth}%`,
+          enrollmentsChange: `${bookingsGrowth}%`,
+          capacityChange: "2.1%", // This would come from capacity analytics
+          remindersChange: "0%", // This would come from fee management system
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to fetch KPI data",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching KPI data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch KPI data",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchKpiData()
+  }, [refreshTrigger])
+
+  // Use provided data if available, otherwise use fetched data
+  const displayData = data || kpiData
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <KpiCard
         title="Total Revenue"
-        value={data.totalRevenue}
+        value={displayData.totalRevenue}
         icon={<TrendingUp size={20} className="text-emerald-500" />}
         trend="from last month"
-        trendValue={data.revenueChange}
+        trendValue={displayData.revenueChange}
         color="emerald"
+        loading={loading}
       />
       <KpiCard
         title="Total Enrollments"
-        value={data.totalEnrollments}
+        value={displayData.totalEnrollments}
         icon={<Users size={20} className="text-blue-500" />}
         trend="from last month"
-        trendValue={data.enrollmentsChange}
+        trendValue={displayData.enrollmentsChange}
         color="blue"
+        loading={loading}
       />
       <KpiCard
         title="Overall Capacity"
-        value={data.overallCapacity}
+        value={displayData.overallCapacity}
         icon={<Calendar size={20} className="text-indigo-500" />}
         trend="from last month"
-        trendValue={data.capacityChange}
+        trendValue={displayData.capacityChange}
         color="indigo"
+        loading={loading}
       />
       <KpiCard
         title="Fee Reminders"
-        value={data.feeReminders}
+        value={displayData.feeReminders}
         icon={<AlertCircle size={20} className="text-red-500" />}
         trend="from last month"
-        trendValue={data.remindersChange}
+        trendValue={displayData.remindersChange}
         color="red"
+        loading={loading}
       />
     </div>
   )
 }
 
-function KpiCard({ title, value, icon, trend, trendValue, color = "emerald" }: KpiCardProps) {
-  // Determine background color based on the explicit color prop instead of trying to parse the icon
+function KpiCard({ title, value, icon, trend, trendValue, color = "emerald", loading }: KpiCardProps) {
+  // Determine background color based on the explicit color prop
   let bgColor = "bg-white"
   let borderColor = "border-gray-100"
   let iconBgColor = "bg-gray-100"
@@ -129,16 +203,22 @@ function KpiCard({ title, value, icon, trend, trendValue, color = "emerald" }: K
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-          {trend && trendValue && (
+          {trend && trendValue && !loading && (
             <p className={`text-sm ${trendColor} mt-1`}>
               <span className="font-medium">{trendValue}</span> {trend}
             </p>
           )}
         </div>
-        <div className={`p-2 rounded-full ${iconBgColor}`}>{icon}</div>
+        <div className={`p-2 rounded-full ${iconBgColor}`}>
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : icon}
+        </div>
       </div>
       <div className="mt-4">
-        <span className={`text-3xl font-bold ${textColor}`}>{value}</span>
+        {loading ? (
+          <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+        ) : (
+          <span className={`text-3xl font-bold ${textColor}`}>{value}</span>
+        )}
       </div>
     </div>
   )
